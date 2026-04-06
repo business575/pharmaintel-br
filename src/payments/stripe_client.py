@@ -48,10 +48,10 @@ PLANS: dict[str, dict] = {
             "Suporte por email",
         ],
         "prices": {
-            "monthly":   {"brl": 29700,  "label": "R$ 297",   "period_label": "por mês"},
-            "quarterly": {"brl": 79900,  "label": "R$ 799",   "period_label": "a cada 3 meses", "saving": "Economize 10%"},
-            "biannual":  {"brl": 149700, "label": "R$ 1.497", "period_label": "a cada 6 meses", "saving": "Economize 16%"},
-            "annual":    {"brl": 269700, "label": "R$ 2.697", "period_label": "por ano",         "saving": "Economize 24%"},
+            "monthly":   {"brl": 29700,  "label": "R$ 297",   "usd_label": "US$ 297",   "period_label": "por mês"},
+            "quarterly": {"brl": 79900,  "label": "R$ 799",   "usd_label": "US$ 799",   "period_label": "a cada 3 meses", "saving": "Economize 10%"},
+            "biannual":  {"brl": 149700, "label": "R$ 1.497", "usd_label": "US$ 1.497", "period_label": "a cada 6 meses", "saving": "Economize 16%"},
+            "annual":    {"brl": 269700, "label": "R$ 2.697", "usd_label": "US$ 2.697", "period_label": "por ano",         "saving": "Economize 24%"},
         },
     },
     "pro": {
@@ -68,10 +68,10 @@ PLANS: dict[str, dict] = {
             "Suporte prioritário",
         ],
         "prices": {
-            "monthly":   {"brl": 69700,  "label": "R$ 697",   "period_label": "por mês"},
-            "quarterly": {"brl": 189700, "label": "R$ 1.897", "period_label": "a cada 3 meses", "saving": "Economize 9%"},
-            "biannual":  {"brl": 349700, "label": "R$ 3.497", "period_label": "a cada 6 meses", "saving": "Economize 16%"},
-            "annual":    {"brl": 669700, "label": "R$ 6.697", "period_label": "por ano",         "saving": "Economize 20%"},
+            "monthly":   {"brl": 69700,  "label": "R$ 697",   "usd_label": "US$ 697",   "period_label": "por mês"},
+            "quarterly": {"brl": 189700, "label": "R$ 1.897", "usd_label": "US$ 1.897", "period_label": "a cada 3 meses", "saving": "Economize 9%"},
+            "biannual":  {"brl": 349700, "label": "R$ 3.497", "usd_label": "US$ 3.497", "period_label": "a cada 6 meses", "saving": "Economize 16%"},
+            "annual":    {"brl": 669700, "label": "R$ 6.697", "usd_label": "US$ 6.697", "period_label": "por ano",         "saving": "Economize 20%"},
         },
     },
     "enterprise": {
@@ -88,10 +88,10 @@ PLANS: dict[str, dict] = {
             "Suporte dedicado + SLA",
         ],
         "prices": {
-            "monthly":   {"brl": 149700, "label": "R$ 1.497", "period_label": "por mês"},
-            "quarterly": {"brl": 399700, "label": "R$ 3.997", "period_label": "a cada 3 meses", "saving": "Economize 11%"},
-            "biannual":  {"brl": 749700, "label": "R$ 7.497", "period_label": "a cada 6 meses", "saving": "Economize 17%"},
-            "annual":    {"brl": 1399700,"label": "R$ 13.997","period_label": "por ano",         "saving": "Economize 22%"},
+            "monthly":   {"brl": 149700, "label": "R$ 1.497", "usd_label": "US$ 1.497", "period_label": "por mês"},
+            "quarterly": {"brl": 399700, "label": "R$ 3.997", "usd_label": "US$ 3.997", "period_label": "a cada 3 meses", "saving": "Economize 11%"},
+            "biannual":  {"brl": 749700, "label": "R$ 7.497", "usd_label": "US$ 7.497", "period_label": "a cada 6 meses", "saving": "Economize 17%"},
+            "annual":    {"brl": 1399700,"label": "R$ 13.997","usd_label": "US$ 13.997","period_label": "por ano",         "saving": "Economize 22%"},
         },
     },
 }

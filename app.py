@@ -421,6 +421,7 @@ def _page_pricing() -> None:
               <div class="plan-name">{plan['name']}</div>
               <div class="plan-desc">{plan['description']}</div>
               <div class="price-tag">{price_info['label']}</div>
+              <div style="color:#26C6DA; font-size:1rem; font-weight:600; margin-top:0.15rem;">{price_info['usd_label']}</div>
               <div class="price-period">{price_info['period_label']}</div>
               <div style="margin:0.5rem 0;">{saving_html}&nbsp;</div>
               <ul class="feature-list">{features_html}</ul>
