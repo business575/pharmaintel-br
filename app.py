@@ -73,6 +73,165 @@ def _safe_bool(val) -> bool:
     except (ValueError, TypeError):
         return False
 
+
+# ---------------------------------------------------------------------------
+# Internationalisation (PT / EN)
+# ---------------------------------------------------------------------------
+
+TRANSLATIONS: dict[str, dict[str, str]] = {
+    "PT": {
+        # Navigation
+        "nav_overview":   "Visão Geral",
+        "nav_imports":    "Importações",
+        "nav_anvisa":     "ANVISA",
+        "nav_companies":  "Empresas",
+        "nav_comtrade":   "UN Comtrade",
+        "nav_etl":        "Pipeline ETL",
+        "nav_agent":      "Agente IA",
+        # Sidebar labels
+        "year_label":     "Ano de referência",
+        "data_status":    "STATUS DOS DADOS",
+        "api_keys":       "API KEYS",
+        "logged_as":      "Logado como",
+        "logout":         "Sair",
+        # Page subtitles
+        "subtitle":             "Inteligência de Mercado Farmacêutico Brasileiro",
+        "header_overview":      "Visão Geral",
+        "header_imports":       "Importações",
+        "header_anvisa":        "ANVISA",
+        "header_companies":     "Empresas",
+        "header_comtrade":      "UN Comtrade",
+        "header_etl":           "Pipeline ETL",
+        "header_agent":         "Agente IA — PharmaIntel AI",
+        # KPIs
+        "kpi_total_fob":        "Total FOB",
+        "kpi_total_fob_brl":    "Total FOB (BRL)",
+        "kpi_volume":           "Volume",
+        "kpi_ncms":             "NCMs Distintos",
+        "kpi_countries":        "Países Origem",
+        "kpi_chapter":          "Capítulo 30",
+        "kpi_active_suppliers": "Fornecedores ativos",
+        "kpi_net_weight":       "Peso líquido",
+        # Charts
+        "chart_monthly":        "Evolução Mensal das Importações (FOB)",
+        "chart_top_countries":  "Top 10 Países de Origem",
+        "chart_top_ncms":       "Top 15 NCMs por Importação",
+        "chart_trend":          "Tendência",
+        # Demo
+        "demo_msg": (
+            "**Modo demonstração** — Exibindo dados simulados. "
+            "Execute o ETL na aba **Pipeline ETL** para carregar dados reais."
+        ),
+        # Login
+        "login_username":   "Usuário",
+        "login_password":   "Senha",
+        "login_btn":        "Entrar",
+        "login_error":      "Usuário ou senha incorretos.",
+        "login_subtitle":   "Inteligência de Mercado Farmacêutico",
+        "login_hint":       "Configure credenciais em <code>.env</code> via APP_USERNAME / APP_PASSWORD",
+        # Agent page
+        "agent_active":         "Agente ATIVO — Groq/Llama 3.3 70B",
+        "agent_fallback":       "Modo Fallback — Configure GROQ_API_KEY",
+        "agent_groq_hint":      "Obtenha uma chave gratuita em https://console.groq.com e adicione ao arquivo `.env`",
+        "agent_suggestions":    "Sugestões:",
+        "agent_input":          "Faça uma pergunta sobre o mercado farmacêutico...",
+        "agent_spinner":        "PharmaIntel AI está analisando...",
+        "agent_tools":          "Ferramentas utilizadas",
+        "agent_tokens":         "Tokens",
+        "agent_clear":          "Limpar conversa",
+        "agent_you":            "Você",
+        "agent_suggestions_list": [
+            "Quais são os 5 NCMs com maior valor FOB?",
+            "Mostre a tendência mensal das importações",
+            "Quais países lideram as importações?",
+            "Existe algum alerta de compliance ANVISA?",
+            "Qual o preço médio por kg dos principais NCMs?",
+        ],
+    },
+    "EN": {
+        # Navigation
+        "nav_overview":   "Overview",
+        "nav_imports":    "Imports",
+        "nav_anvisa":     "ANVISA",
+        "nav_companies":  "Companies",
+        "nav_comtrade":   "UN Comtrade",
+        "nav_etl":        "ETL Pipeline",
+        "nav_agent":      "AI Agent",
+        # Sidebar labels
+        "year_label":     "Reference year",
+        "data_status":    "DATA STATUS",
+        "api_keys":       "API KEYS",
+        "logged_as":      "Logged in as",
+        "logout":         "Logout",
+        # Page subtitles
+        "subtitle":             "Brazilian Pharmaceutical Market Intelligence",
+        "header_overview":      "Overview",
+        "header_imports":       "Imports",
+        "header_anvisa":        "ANVISA",
+        "header_companies":     "Companies",
+        "header_comtrade":      "UN Comtrade",
+        "header_etl":           "ETL Pipeline",
+        "header_agent":         "AI Agent — PharmaIntel AI",
+        # KPIs
+        "kpi_total_fob":        "Total FOB",
+        "kpi_total_fob_brl":    "Total FOB (BRL)",
+        "kpi_volume":           "Volume",
+        "kpi_ncms":             "Distinct NCMs",
+        "kpi_countries":        "Origin Countries",
+        "kpi_chapter":          "Chapter 30",
+        "kpi_active_suppliers": "Active suppliers",
+        "kpi_net_weight":       "Net weight",
+        # Charts
+        "chart_monthly":        "Monthly Import Evolution (FOB)",
+        "chart_top_countries":  "Top 10 Origin Countries",
+        "chart_top_ncms":       "Top 15 NCMs by Import Value",
+        "chart_trend":          "Trend",
+        # Demo
+        "demo_msg": (
+            "**Demo mode** — Showing simulated data. "
+            "Run the ETL in the **ETL Pipeline** tab to load real data."
+        ),
+        # Login
+        "login_username":   "Username",
+        "login_password":   "Password",
+        "login_btn":        "Sign In",
+        "login_error":      "Incorrect username or password.",
+        "login_subtitle":   "Pharmaceutical Market Intelligence",
+        "login_hint":       "Set credentials in <code>.env</code> via APP_USERNAME / APP_PASSWORD",
+        # Agent page
+        "agent_active":         "Agent ACTIVE — Groq/Llama 3.3 70B",
+        "agent_fallback":       "Fallback Mode — Set GROQ_API_KEY",
+        "agent_groq_hint":      "Get a free key at https://console.groq.com and add it to `.env`",
+        "agent_suggestions":    "Suggestions:",
+        "agent_input":          "Ask a question about the pharmaceutical market...",
+        "agent_spinner":        "PharmaIntel AI is analyzing...",
+        "agent_tools":          "Tools used",
+        "agent_tokens":         "Tokens",
+        "agent_clear":          "Clear conversation",
+        "agent_you":            "You",
+        "agent_suggestions_list": [
+            "What are the top 5 NCMs by FOB value?",
+            "Show the monthly import trend",
+            "Which countries lead pharmaceutical imports?",
+            "Are there any ANVISA compliance alerts?",
+            "What is the average price per kg for key NCMs?",
+        ],
+    },
+}
+
+# Internal navigation keys (language-independent)
+_NAV_KEYS = ["overview", "imports", "anvisa", "companies", "comtrade", "etl", "agent"]
+_NAV_T_KEYS = [
+    "nav_overview", "nav_imports", "nav_anvisa", "nav_companies",
+    "nav_comtrade", "nav_etl", "nav_agent",
+]
+
+
+def _t(key: str) -> str:
+    """Return translated string for the current session language."""
+    lang = st.session_state.get("lang", "PT")
+    return TRANSLATIONS.get(lang, TRANSLATIONS["PT"]).get(key, key)
+
 # ---------------------------------------------------------------------------
 # Page config — MUST be first Streamlit call
 # ---------------------------------------------------------------------------
@@ -113,21 +272,29 @@ def _login_page() -> None:
     </style>
     """, unsafe_allow_html=True)
 
+    # Language toggle on login page
+    lang_col_l, lang_col_r = st.columns([8, 1])
+    with lang_col_r:
+        if st.button("PT | EN", key="login_lang_toggle"):
+            current = st.session_state.get("lang", "PT")
+            st.session_state["lang"] = "EN" if current == "PT" else "PT"
+            st.rerun()
+
     col_l, col_m, col_r = st.columns([1, 1.4, 1])
     with col_m:
         st.markdown("<br><br>", unsafe_allow_html=True)
-        st.markdown("""
+        st.markdown(f"""
         <div style="text-align:center; margin-bottom:2rem;">
           <span style="font-size:3rem;">💊</span>
           <h1 style="color:#4DB6AC; font-size:1.8rem; margin:0.5rem 0 0.25rem;">PharmaIntel BR</h1>
-          <p style="color:#8899AA; font-size:0.9rem;">Inteligência de Mercado Farmacêutico</p>
+          <p style="color:#8899AA; font-size:0.9rem;">{_t("login_subtitle")}</p>
         </div>
         """, unsafe_allow_html=True)
 
         with st.form("login_form", clear_on_submit=False):
-            username = st.text_input("Usuário", placeholder="admin")
-            password = st.text_input("Senha", type="password", placeholder="••••••••")
-            submitted = st.form_submit_button("Entrar", use_container_width=True, type="primary")
+            username = st.text_input(_t("login_username"), placeholder="admin")
+            password = st.text_input(_t("login_password"), type="password", placeholder="••••••••")
+            submitted = st.form_submit_button(_t("login_btn"), use_container_width=True, type="primary")
 
             if submitted:
                 if _check_password(username, password):
@@ -135,11 +302,11 @@ def _login_page() -> None:
                     st.session_state["auth_user"] = username
                     st.rerun()
                 else:
-                    st.error("Usuário ou senha incorretos.", icon="🔒")
+                    st.error(_t("login_error"), icon="🔒")
 
-        st.markdown("""
+        st.markdown(f"""
         <p style="text-align:center; color:#8899AA; font-size:0.75rem; margin-top:1.5rem;">
-          Configure credenciais em <code>.env</code> via APP_USERNAME / APP_PASSWORD
+          {_t("login_hint")}
         </p>
         """, unsafe_allow_html=True)
     st.stop()
@@ -383,7 +550,7 @@ def render_header(page: str) -> None:
     st.markdown(f"""
     <div class="ph-header">
       <h1>💊 PharmaIntel BR</h1>
-      <p>Inteligência de Mercado Farmacêutico Brasileiro &nbsp;·&nbsp; {page}</p>
+      <p>{_t("subtitle")} &nbsp;·&nbsp; {page}</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -422,11 +589,7 @@ def fmt_brl(v: float) -> str:
 # Demo warning banner
 # ---------------------------------------------------------------------------
 def demo_warning() -> None:
-    st.info(
-        "**Modo demonstração** — Exibindo dados simulados. "
-        "Execute o ETL na aba **Pipeline ETL** para carregar dados reais.",
-        icon="ℹ️",
-    )
+    st.info(_t("demo_msg"), icon="ℹ️")
 
 
 # ===========================================================================
@@ -434,7 +597,7 @@ def demo_warning() -> None:
 # ===========================================================================
 
 def page_overview(year: int) -> None:
-    render_header("Visão Geral")
+    render_header(_t("header_overview"))
 
     df, is_demo = load_or_demo_imports(year)
     if is_demo:
@@ -449,11 +612,11 @@ def page_overview(year: int) -> None:
 
     cols = st.columns(5)
     kpis = [
-        ("Total FOB", fmt_usd(total_fob), f"Capítulo 30 · {year}"),
-        ("Total FOB (BRL)", fmt_brl(total_fob * 5.10), "USD × R$5,10"),
-        ("Volume", f"{total_kg/1e6:.1f}M kg", "Peso líquido"),
-        ("NCMs Distintos", f"{n_ncms}", "Capítulo 30"),
-        ("Países Origem", f"{n_paises}", "Fornecedores ativos"),
+        (_t("kpi_total_fob"),     fmt_usd(total_fob),          f"{_t('kpi_chapter')} · {year}"),
+        (_t("kpi_total_fob_brl"), fmt_brl(total_fob * 5.10),   "USD × R$5,10"),
+        (_t("kpi_volume"),        f"{total_kg/1e6:.1f}M kg",   _t("kpi_net_weight")),
+        (_t("kpi_ncms"),          f"{n_ncms}",                  _t("kpi_chapter")),
+        (_t("kpi_countries"),     f"{n_paises}",                _t("kpi_active_suppliers")),
     ]
     for col, (label, value, sub) in zip(cols, kpis):
         col.markdown(kpi_card(label, value, sub), unsafe_allow_html=True)
@@ -464,7 +627,7 @@ def page_overview(year: int) -> None:
     c1, c2 = st.columns([3, 2])
 
     with c1:
-        st.markdown('<div class="section-title">Evolução Mensal das Importações (FOB)</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="section-title">{_t("chart_monthly")}</div>', unsafe_allow_html=True)
         if "co_mes" in df.columns and "vl_fob" in df.columns:
             monthly = (
                 df.groupby("co_mes")
@@ -482,7 +645,7 @@ def page_overview(year: int) -> None:
             ))
             fig.add_trace(go.Scatter(
                 x=monthly["mes_nome"], y=monthly["fob"] / 1e6,
-                mode="lines+markers", name="Tendência",
+                mode="lines+markers", name=_t("chart_trend"),
                 line=dict(color=COLOR_ACCENT, width=2),
                 marker=dict(size=6, color=COLOR_ACCENT),
             ))
@@ -491,7 +654,7 @@ def page_overview(year: int) -> None:
             st.plotly_chart(fig, width="stretch")
 
     with c2:
-        st.markdown('<div class="section-title">Top 8 Países de Origem</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="section-title">{_t("chart_top_countries")}</div>', unsafe_allow_html=True)
         if "ds_pais" in df.columns and "vl_fob" in df.columns:
             top_paises = (
                 df.groupby("ds_pais")["vl_fob"].sum()
@@ -550,7 +713,7 @@ def page_overview(year: int) -> None:
 
 
 def page_importacoes(year: int) -> None:
-    render_header("Importações — Capítulo 30")
+    render_header(_t("header_imports"))
 
     df, is_demo = load_or_demo_imports(year)
     if is_demo:
@@ -636,7 +799,7 @@ def page_importacoes(year: int) -> None:
 
 
 def page_anvisa(year: int) -> None:
-    render_header("ANVISA — Registros")
+    render_header(_t("header_anvisa"))
 
     df, is_demo = load_or_demo_imports(year)
     if is_demo:
@@ -688,7 +851,7 @@ def page_anvisa(year: int) -> None:
 
 
 def page_comtrade(year: int) -> None:
-    render_header("UN Comtrade — Contexto Global")
+    render_header(_t("header_comtrade"))
 
     df, is_demo = load_or_demo_comtrade(year)
     if is_demo:
@@ -752,7 +915,7 @@ def page_comtrade(year: int) -> None:
 
 
 def page_empresas(year: int) -> None:
-    render_header("Empresas — Detentores de Registro ANVISA")
+    render_header(_t("header_companies"))
 
     PROCESSED_DIR_LOCAL = ROOT / "data" / "processed"
     emp_path  = PROCESSED_DIR_LOCAL / "empresas_anvisa.parquet"
@@ -975,7 +1138,7 @@ def page_empresas(year: int) -> None:
 
 
 def page_etl(year: int) -> None:
-    render_header("Pipeline ETL — 5 Estágios")
+    render_header(_t("header_etl"))
 
     st.markdown("""
     O pipeline ETL do PharmaIntel BR processa dados de três fontes:
@@ -1042,7 +1205,7 @@ def page_etl(year: int) -> None:
 
 
 def page_agent(year: int) -> None:
-    render_header("Agente IA — PharmaIntel AI")
+    render_header(_t("header_agent"))
 
     # Initialize session state
     if "chat_history" not in st.session_state:
@@ -1059,22 +1222,16 @@ def page_agent(year: int) -> None:
 
     # Status
     if agent.is_available:
-        st.markdown('<span class="badge-ok">Agente ATIVO — Groq/Llama 3.3 70B</span>', unsafe_allow_html=True)
+        st.markdown(f'<span class="badge-ok">{_t("agent_active")}</span>', unsafe_allow_html=True)
     else:
-        st.markdown('<span class="badge-warn">Modo Fallback — Configure GROQ_API_KEY</span>', unsafe_allow_html=True)
-        st.info("Obtenha uma chave gratuita em https://console.groq.com e adicione ao arquivo `.env`")
+        st.markdown(f'<span class="badge-warn">{_t("agent_fallback")}</span>', unsafe_allow_html=True)
+        st.info(_t("agent_groq_hint"))
 
     st.markdown("<br>", unsafe_allow_html=True)
 
     # Suggestion chips
-    suggestions = [
-        "Quais são os 5 NCMs com maior valor FOB?",
-        "Mostre a tendência mensal das importações",
-        "Quais países lideram as importações?",
-        "Existe algum alerta de compliance ANVISA?",
-        "Qual o preço médio por kg dos principais NCMs?",
-    ]
-    st.markdown("**Sugestões:**")
+    suggestions = TRANSLATIONS[st.session_state.get("lang", "PT")]["agent_suggestions_list"]
+    st.markdown(f"**{_t('agent_suggestions')}**")
     cols = st.columns(len(suggestions))
     for col, sug in zip(cols, suggestions):
         if col.button(sug[:30] + "…" if len(sug) > 30 else sug, width="stretch"):
@@ -1084,12 +1241,12 @@ def page_agent(year: int) -> None:
     st.markdown("---")
     for msg in st.session_state.chat_history:
         if msg["role"] == "user":
-            st.markdown(f'<div class="chat-user">**Você:** {msg["content"]}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="chat-user">**{_t("agent_you")}:** {msg["content"]}</div>', unsafe_allow_html=True)
         else:
             st.markdown(f'<div class="chat-ai">{msg["content"]}</div>', unsafe_allow_html=True)
 
     # Input
-    user_input = st.chat_input("Faça uma pergunta sobre o mercado farmacêutico...")
+    user_input = st.chat_input(_t("agent_input"))
 
     # Handle suggestion button clicks
     if "pending_message" in st.session_state:
@@ -1097,16 +1254,16 @@ def page_agent(year: int) -> None:
 
     if user_input:
         st.session_state.chat_history.append({"role": "user", "content": user_input})
-        with st.spinner("PharmaIntel AI está analisando..."):
+        with st.spinner(_t("agent_spinner")):
             response = agent.chat(user_input)
         st.session_state.chat_history.append({"role": "assistant", "content": response.text})
         if response.tool_calls_made:
-            st.caption(f"Ferramentas utilizadas: {', '.join(response.tool_calls_made)} · Tokens: {response.tokens_used:,}")
+            st.caption(f"{_t('agent_tools')}: {', '.join(response.tool_calls_made)} · {_t('agent_tokens')}: {response.tokens_used:,}")
         st.rerun()
 
     # Reset button
     if st.session_state.chat_history:
-        if st.button("Limpar conversa", type="secondary"):
+        if st.button(_t("agent_clear"), type="secondary"):
             st.session_state.chat_history = []
             agent.reset()
             st.rerun()
@@ -1118,31 +1275,48 @@ def page_agent(year: int) -> None:
 
 def sidebar() -> tuple[str, int]:
     with st.sidebar:
+        # Language toggle
+        lang = st.session_state.get("lang", "PT")
+        col_logo, col_lang = st.columns([3, 1])
+        with col_lang:
+            if st.button("EN" if lang == "PT" else "PT", key="lang_toggle"):
+                st.session_state["lang"] = "EN" if lang == "PT" else "PT"
+                st.rerun()
+
         st.markdown("""
-        <div style="text-align:center; padding: 1rem 0 0.5rem;">
+        <div style="text-align:center; padding: 0.5rem 0 0.5rem;">
           <span style="font-size:2rem;">💊</span>
           <h2 style="color:#4DB6AC; margin:0.25rem 0 0; font-size:1.2rem;">PharmaIntel BR</h2>
-          <p style="color:#8899AA; font-size:0.75rem; margin:0;">v2.0 — Mercado Farmacêutico</p>
+          <p style="color:#8899AA; font-size:0.75rem; margin:0;">v2.0</p>
         </div>
         <hr style="border-color:#1E3A5F; margin:0.75rem 0;">
         """, unsafe_allow_html=True)
 
-        page = st.radio(
-            "Navegação",
-            ["Visão Geral", "Importações", "ANVISA", "Empresas", "UN Comtrade", "Pipeline ETL", "Agente IA"],
+        # Navigation — translated labels mapped to internal keys
+        nav_labels = [_t(k) for k in _NAV_T_KEYS]
+        # Preserve current page across language switches using internal key
+        current_key = st.session_state.get("page_key", "overview")
+        current_idx = _NAV_KEYS.index(current_key) if current_key in _NAV_KEYS else 0
+        selected_idx = st.radio(
+            "nav",
+            options=range(len(_NAV_KEYS)),
+            format_func=lambda i: nav_labels[i],
+            index=current_idx,
             label_visibility="collapsed",
         )
+        page_key = _NAV_KEYS[selected_idx]
+        st.session_state["page_key"] = page_key
 
         st.markdown("<hr style='border-color:#1E3A5F;'>", unsafe_allow_html=True)
-        year = st.selectbox("Ano de referência", [2024, 2023, 2022], index=0)
+        year = st.selectbox(_t("year_label"), [2024, 2023, 2022], index=0)
 
         # Data status
-        st.markdown('<p style="color:#8899AA; font-size:0.75rem; margin:0.5rem 0 0.25rem;">STATUS DOS DADOS</p>', unsafe_allow_html=True)
+        st.markdown(f'<p style="color:#8899AA; font-size:0.75rem; margin:0.5rem 0 0.25rem;">{_t("data_status")}</p>', unsafe_allow_html=True)
         data_files = {
-            "Importações": f"pharma_imports_{year}.parquet",
-            "KPIs":        f"kpis_anuais_{year}.parquet",
-            "Empresas":    "empresas_anvisa.parquet",
-            "Comtrade":    f"comtrade_{year}.parquet",
+            _t("nav_imports"):   f"pharma_imports_{year}.parquet",
+            "KPIs":              f"kpis_anuais_{year}.parquet",
+            _t("nav_companies"): "empresas_anvisa.parquet",
+            _t("nav_comtrade"):  f"comtrade_{year}.parquet",
         }
         for label, fname in data_files.items():
             exists = (PROCESSED_DIR / fname).exists()
@@ -1155,20 +1329,20 @@ def sidebar() -> tuple[str, int]:
         # API key status
         groq_key   = bool(_secret("GROQ_API_KEY"))
         ctrade_key = bool(_secret("COMTRADE_API_KEY"))
-        st.markdown('<p style="color:#8899AA; font-size:0.75rem; margin:0.25rem 0;">API KEYS</p>', unsafe_allow_html=True)
+        st.markdown(f'<p style="color:#8899AA; font-size:0.75rem; margin:0.25rem 0;">{_t("api_keys")}</p>', unsafe_allow_html=True)
         st.markdown(f'<span class="{"badge-ok" if groq_key else "badge-warn"}">Groq: {"OK" if groq_key else "Missing"}</span><br>', unsafe_allow_html=True)
         st.markdown(f'<span class="{"badge-ok" if ctrade_key else "badge-warn"}">Comtrade: {"OK" if ctrade_key else "Missing"}</span>', unsafe_allow_html=True)
 
         # Logout
         st.markdown("<hr style='border-color:#1E3A5F; margin:1rem 0 0.5rem;'>", unsafe_allow_html=True)
         auth_user = st.session_state.get("auth_user", _APP_USERNAME)
-        st.markdown(f'<p style="color:#8899AA; font-size:0.75rem; margin:0 0 0.4rem;">Logado como <b style="color:#4DB6AC;">{auth_user}</b></p>', unsafe_allow_html=True)
-        if st.button("Sair", use_container_width=True):
+        st.markdown(f'<p style="color:#8899AA; font-size:0.75rem; margin:0 0 0.4rem;">{_t("logged_as")} <b style="color:#4DB6AC;">{auth_user}</b></p>', unsafe_allow_html=True)
+        if st.button(_t("logout"), use_container_width=True):
             st.session_state["authenticated"] = False
             st.session_state["auth_user"] = ""
             st.rerun()
 
-    return page, year
+    return page_key, year
 
 
 # ===========================================================================
@@ -1176,19 +1350,19 @@ def sidebar() -> tuple[str, int]:
 # ===========================================================================
 
 def main() -> None:
-    page, year = sidebar()
+    page_key, year = sidebar()
 
     pages = {
-        "Visão Geral":  page_overview,
-        "Importações":  page_importacoes,
-        "ANVISA":       page_anvisa,
-        "Empresas":     page_empresas,
-        "UN Comtrade":  page_comtrade,
-        "Pipeline ETL": page_etl,
-        "Agente IA":    page_agent,
+        "overview":   page_overview,
+        "imports":    page_importacoes,
+        "anvisa":     page_anvisa,
+        "companies":  page_empresas,
+        "comtrade":   page_comtrade,
+        "etl":        page_etl,
+        "agent":      page_agent,
     }
 
-    fn = pages.get(page)
+    fn = pages.get(page_key)
     if fn:
         fn(year)
 
