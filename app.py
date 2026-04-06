@@ -251,16 +251,32 @@ _APP_PASSWORD_HASH = _secret("APP_PASSWORD_HASH", "")
 
 
 def _check_password(username: str, password: str) -> bool:
-    """Verify credentials using constant-time comparison (timing-safe)."""
+    """Verify credentials — checks admin env vars first, then subscriber DB."""
+    # 1. Admin user from env vars
     user_ok = hmac.compare_digest(username.strip(), _APP_USERNAME)
     if _APP_PASSWORD_HASH:
-        # Compare against sha256 hash stored in env
         entered_hash = hashlib.sha256(password.encode()).hexdigest()
         pass_ok = hmac.compare_digest(entered_hash, _APP_PASSWORD_HASH)
     else:
-        # Plaintext comparison (dev mode)
         pass_ok = hmac.compare_digest(password, _APP_PASSWORD)
-    return user_ok and pass_ok
+    if user_ok and pass_ok:
+        return True
+
+    # 2. Subscriber accounts from SQLite DB (email + password login)
+    try:
+        from src.db.database import init_db, get_user_by_email
+        init_db()
+        user = get_user_by_email(username.strip())
+        if user and user.check_password(password) and user.has_active_subscription:
+            st.session_state["subscriber_plan"]   = user.plan
+            st.session_state["subscriber_period"]  = user.period
+            st.session_state["subscriber_email"]   = user.email
+            st.session_state["stripe_customer_id"] = user.stripe_customer_id
+            return True
+    except Exception:
+        pass
+
+    return False
 
 
 def _login_page() -> None:
@@ -291,8 +307,14 @@ def _login_page() -> None:
         </div>
         """, unsafe_allow_html=True)
 
+        # Detect Stripe payment success redirect
+        params = st.query_params
+        session_id = params.get("session_id", "")
+        if session_id and not st.session_state.get("payment_processed"):
+            _handle_payment_success(session_id)
+
         with st.form("login_form", clear_on_submit=False):
-            username = st.text_input(_t("login_username"), placeholder="admin")
+            username = st.text_input(_t("login_username"), placeholder="admin ou seu email")
             password = st.text_input(_t("login_password"), type="password", placeholder="••••••••")
             submitted = st.form_submit_button(_t("login_btn"), use_container_width=True, type="primary")
 
@@ -304,17 +326,195 @@ def _login_page() -> None:
                 else:
                     st.error(_t("login_error"), icon="🔒")
 
+        st.markdown("---")
+        st.markdown("""
+        <div style="text-align:center;">
+          <p style="color:#8899AA; font-size:0.85rem; margin:0 0 0.5rem;">Ainda não tem acesso?</p>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("Ver Planos e Preços", use_container_width=True):
+            st.session_state["show_pricing"] = True
+            st.rerun()
+
         st.markdown(f"""
-        <p style="text-align:center; color:#8899AA; font-size:0.75rem; margin-top:1.5rem;">
+        <p style="text-align:center; color:#8899AA; font-size:0.7rem; margin-top:1rem;">
           {_t("login_hint")}
         </p>
         """, unsafe_allow_html=True)
     st.stop()
 
 
-# Gate: show login page if not authenticated
+def _page_pricing() -> None:
+    """Public pricing page — shown before login."""
+    from src.payments.stripe_client import PLANS, PERIOD_LABEL_PT, is_configured, create_checkout_session
+
+    st.markdown("""
+    <style>
+    [data-testid="stAppViewContainer"] { background: #0A1628; }
+    [data-testid="stSidebar"] { display: none; }
+    .price-card {
+        background: #112240; border: 1px solid #1E3A5F; border-radius: 16px;
+        padding: 2rem; text-align: center; margin-bottom: 1rem;
+        transition: border-color 0.2s;
+    }
+    .price-card.featured { border-color: #00897B; box-shadow: 0 0 20px rgba(0,137,123,0.3); }
+    .price-tag { font-size: 2.2rem; font-weight: 700; color: #4DB6AC; }
+    .price-period { color: #8899AA; font-size: 0.85rem; }
+    .plan-name { font-size: 1.3rem; font-weight: 700; color: #E2EAF4; margin-bottom: 0.5rem; }
+    .plan-desc { color: #8899AA; font-size: 0.85rem; margin-bottom: 1.5rem; }
+    .feature-list { text-align: left; list-style: none; padding: 0; margin-bottom: 1.5rem; }
+    .feature-list li { color: #B0BEC5; font-size: 0.85rem; padding: 0.2rem 0; }
+    .feature-list li::before { content: "✓ "; color: #4DB6AC; font-weight: bold; }
+    .saving-badge {
+        background: #00574B; color: #4DB6AC; border-radius: 20px;
+        padding: 0.15rem 0.6rem; font-size: 0.75rem; font-weight: 600;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # Header
+    col_back, col_title = st.columns([1, 8])
+    with col_back:
+        if st.button("Voltar", key="pricing_back"):
+            st.session_state["show_pricing"] = False
+            st.rerun()
+
+    st.markdown("""
+    <div style="text-align:center; padding: 2rem 0 1rem;">
+      <span style="font-size:2.5rem;">💊</span>
+      <h1 style="color:#4DB6AC; font-size:2rem; margin:0.5rem 0 0.25rem;">PharmaIntel BR</h1>
+      <p style="color:#8899AA;">Escolha o plano ideal para sua operação</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Period selector
+    period_options = list(PERIOD_LABEL_PT.values())
+    period_keys    = list(PERIOD_LABEL_PT.keys())
+    selected_label = st.radio(
+        "Periodicidade",
+        period_options,
+        index=0,
+        horizontal=True,
+        label_visibility="collapsed",
+    )
+    selected_period = period_keys[period_options.index(selected_label)]
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Pricing cards
+    cols = st.columns(3)
+    plan_keys = list(PLANS.keys())
+
+    for col, plan_key in zip(cols, plan_keys):
+        plan      = PLANS[plan_key]
+        price_info = plan["prices"][selected_period]
+        is_pro    = plan_key == "pro"
+
+        with col:
+            card_class = "price-card featured" if is_pro else "price-card"
+            saving_html = f'<span class="saving-badge">{price_info.get("saving","")}</span>' if price_info.get("saving") else ""
+            features_html = "".join(f"<li>{f}</li>" for f in plan["features"])
+
+            st.markdown(f"""
+            <div class="{card_class}">
+              {"<div style='color:#4DB6AC; font-size:0.75rem; font-weight:600; margin-bottom:0.5rem;'>MAIS POPULAR</div>" if is_pro else "<div style='height:1.2rem;'></div>"}
+              <div class="plan-name">{plan['name']}</div>
+              <div class="plan-desc">{plan['description']}</div>
+              <div class="price-tag">{price_info['label']}</div>
+              <div class="price-period">{price_info['period_label']}</div>
+              <div style="margin:0.5rem 0;">{saving_html}&nbsp;</div>
+              <ul class="feature-list">{features_html}</ul>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Checkout button
+            email_key = f"email_{plan_key}"
+            email     = st.text_input("Seu email", key=email_key, placeholder="seu@email.com",
+                                      label_visibility="collapsed")
+            btn_label = f"Assinar {plan['name']}"
+            if st.button(btn_label, key=f"btn_{plan_key}", use_container_width=True,
+                         type="primary" if is_pro else "secondary"):
+                if not email or "@" not in email:
+                    st.error("Digite um email válido.")
+                elif not is_configured():
+                    st.warning("Pagamentos em configuração — entre em contato: contato@pharmaintel.com.br")
+                else:
+                    base_url = "https://pharmaintel-br.onrender.com"
+                    result   = create_checkout_session(
+                        plan=plan_key,
+                        period=selected_period,
+                        email=email,
+                        success_url=f"{base_url}/?session_id={{CHECKOUT_SESSION_ID}}",
+                        cancel_url=f"{base_url}/",
+                    )
+                    if result.error:
+                        st.error(f"Erro ao iniciar checkout: {result.error}")
+                    else:
+                        st.markdown(
+                            f'<meta http-equiv="refresh" content="0; url={result.url}">',
+                            unsafe_allow_html=True,
+                        )
+
+    # Footer
+    st.markdown("""
+    <div style="text-align:center; padding:2rem 0; color:#8899AA; font-size:0.8rem;">
+      <p>Pagamentos processados com segurança via <b>Stripe</b> · Cancele a qualquer momento</p>
+      <p>Dúvidas? <a href="mailto:contato@pharmaintel.com.br" style="color:#4DB6AC;">contato@pharmaintel.com.br</a></p>
+    </div>
+    """, unsafe_allow_html=True)
+    st.stop()
+
+
+def _handle_payment_success(session_id: str) -> None:
+    """Verify Stripe session and create subscriber account after payment."""
+    try:
+        from src.payments.stripe_client import verify_checkout_session
+        from src.db.database import init_db, get_user_by_email, create_user
+        from src.db.models import User
+
+        init_db()
+        info = verify_checkout_session(session_id)
+
+        if not info.ok:
+            st.warning(f"Não foi possível verificar o pagamento: {info.error}")
+            return
+
+        # Create or update user account
+        existing = get_user_by_email(info.email)
+        if not existing:
+            password = User.generate_password()
+            create_user(
+                email=info.email,
+                password=password,
+                plan=info.plan,
+                period=info.period,
+                stripe_customer_id=info.customer_id,
+                stripe_subscription_id=info.subscription_id,
+                subscription_status="active",
+            )
+            st.session_state["payment_processed"] = True
+            st.success(f"""
+            **Pagamento confirmado!** Bem-vindo ao PharmaIntel BR.
+
+            **Seu email:** {info.email}
+            **Sua senha:** `{password}`
+
+            Guarde essa senha — ela não será exibida novamente.
+            """)
+        else:
+            st.session_state["payment_processed"] = True
+            st.info(f"Assinatura atualizada para o plano **{info.plan}**. Faça login com seu email e senha.")
+
+    except Exception as exc:
+        st.warning(f"Erro ao processar pagamento: {exc}")
+
+
+# Gate: show pricing page if requested (unauthenticated)
 if not st.session_state.get("authenticated", False):
-    _login_page()
+    if st.session_state.get("show_pricing", False):
+        _page_pricing()
+    else:
+        _login_page()
 
 # ---------------------------------------------------------------------------
 # Theme — Dark Teal
@@ -1333,13 +1533,34 @@ def sidebar() -> tuple[str, int]:
         st.markdown(f'<span class="{"badge-ok" if groq_key else "badge-warn"}">Groq: {"OK" if groq_key else "Missing"}</span><br>', unsafe_allow_html=True)
         st.markdown(f'<span class="{"badge-ok" if ctrade_key else "badge-warn"}">Comtrade: {"OK" if ctrade_key else "Missing"}</span>', unsafe_allow_html=True)
 
+        # Subscription info
+        plan   = st.session_state.get("subscriber_plan", "")
+        period = st.session_state.get("subscriber_period", "")
+        if plan:
+            from src.payments.stripe_client import PLANS, PERIOD_LABEL_PT
+            plan_name   = PLANS.get(plan, {}).get("name", plan.title())
+            period_name = PERIOD_LABEL_PT.get(period, period)
+            st.markdown(f'<span class="badge-ok">Plano {plan_name} · {period_name}</span><br>', unsafe_allow_html=True)
+
+            cid = st.session_state.get("stripe_customer_id", "")
+            if cid:
+                if st.button("Gerenciar Assinatura", use_container_width=True):
+                    from src.payments.stripe_client import create_customer_portal_session
+                    portal_url = create_customer_portal_session(cid, "https://pharmaintel-br.onrender.com/")
+                    if portal_url:
+                        st.markdown(f'<meta http-equiv="refresh" content="0; url={portal_url}">', unsafe_allow_html=True)
+
         # Logout
         st.markdown("<hr style='border-color:#1E3A5F; margin:1rem 0 0.5rem;'>", unsafe_allow_html=True)
         auth_user = st.session_state.get("auth_user", _APP_USERNAME)
         st.markdown(f'<p style="color:#8899AA; font-size:0.75rem; margin:0 0 0.4rem;">{_t("logged_as")} <b style="color:#4DB6AC;">{auth_user}</b></p>', unsafe_allow_html=True)
         if st.button(_t("logout"), use_container_width=True):
             st.session_state["authenticated"] = False
-            st.session_state["auth_user"] = ""
+            st.session_state["auth_user"]     = ""
+            st.session_state.pop("subscriber_plan",   None)
+            st.session_state.pop("subscriber_period",  None)
+            st.session_state.pop("subscriber_email",   None)
+            st.session_state.pop("stripe_customer_id", None)
             st.rerun()
 
     return page_key, year

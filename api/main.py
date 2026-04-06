@@ -25,8 +25,9 @@ from pathlib import Path
 from typing import Optional
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -43,6 +44,13 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("PharmaIntel BR API starting up...")
+    # Ensure database tables exist
+    try:
+        from src.db.database import init_db
+        init_db()
+        logger.info("Database initialized.")
+    except Exception as exc:
+        logger.warning("DB init failed: %s", exc)
     yield
     logger.info("PharmaIntel BR API shutting down.")
 
@@ -182,3 +190,102 @@ def agent_reset(year: int = 2024):
     if year in _agent_pool:
         _agent_pool[year].reset()
     return {"message": f"Agent for year {year} reset."}
+
+
+# ---------------------------------------------------------------------------
+# Stripe Webhook
+# ---------------------------------------------------------------------------
+
+@app.post("/stripe/webhook")
+async def stripe_webhook(request: Request, stripe_signature: str = Header(None)):
+    """
+    Handle Stripe webhook events for subscription lifecycle management.
+
+    Configure in Stripe Dashboard → Webhooks → Add endpoint:
+        URL: https://<your-api-domain>/stripe/webhook
+        Events: customer.subscription.*, invoice.payment_*
+    """
+    from datetime import datetime, timezone
+
+    payload = await request.body()
+
+    try:
+        from src.payments.stripe_client import construct_webhook_event
+        event = construct_webhook_event(payload, stripe_signature or "")
+    except Exception as exc:
+        logger.warning("Webhook signature verification failed: %s", exc)
+        raise HTTPException(status_code=400, detail=f"Webhook error: {exc}")
+
+    event_id   = event.get("id", "")
+    event_type = event.get("type", "")
+
+    # Idempotency check
+    from src.db.database import webhook_seen, mark_webhook_seen
+    if webhook_seen(event_id):
+        return JSONResponse({"status": "already_processed"})
+
+    logger.info("Stripe event: %s (%s)", event_type, event_id)
+
+    try:
+        data_obj = event.get("data", {}).get("object", {})
+
+        if event_type in ("customer.subscription.created", "customer.subscription.updated"):
+            _handle_subscription_update(data_obj)
+
+        elif event_type == "customer.subscription.deleted":
+            _handle_subscription_canceled(data_obj)
+
+        elif event_type == "invoice.payment_failed":
+            _handle_payment_failed(data_obj)
+
+        mark_webhook_seen(event_id, event_type, str(event)[:2000])
+
+    except Exception as exc:
+        logger.error("Webhook handling error for %s: %s", event_type, exc)
+        # Return 200 to prevent Stripe retries for our own errors
+        return JSONResponse({"status": "error", "detail": str(exc)})
+
+    return JSONResponse({"status": "ok"})
+
+
+def _handle_subscription_update(sub: dict) -> None:
+    from datetime import datetime, timezone
+    from src.db.database import update_subscription
+
+    customer_id = sub.get("customer", "")
+    sub_id      = sub.get("id", "")
+    status      = sub.get("status", "")
+    meta        = sub.get("metadata") or {}
+    plan        = meta.get("plan", "")
+    period      = meta.get("period", "")
+
+    # current_period_end is a Unix timestamp
+    period_end_ts = sub.get("current_period_end")
+    period_end    = datetime.fromtimestamp(period_end_ts, tz=timezone.utc) if period_end_ts else None
+
+    updated = update_subscription(
+        stripe_customer_id=customer_id,
+        subscription_id=sub_id,
+        status=status,
+        plan=plan,
+        period=period,
+        subscription_end=period_end,
+    )
+    logger.info("Subscription updated (customer=%s, status=%s, found=%s)", customer_id, status, updated)
+
+
+def _handle_subscription_canceled(sub: dict) -> None:
+    from src.db.database import update_subscription
+    customer_id = sub.get("customer", "")
+    sub_id      = sub.get("id", "")
+    update_subscription(customer_id, sub_id, "canceled")
+    logger.info("Subscription canceled (customer=%s)", customer_id)
+
+
+def _handle_payment_failed(invoice: dict) -> None:
+    from src.db.database import update_subscription
+    customer_id = invoice.get("customer", "")
+    sub_id      = invoice.get("subscription", "")
+    if customer_id:
+        update_subscription(customer_id, sub_id, "past_due")
+    logger.info("Payment failed (customer=%s)", customer_id)
