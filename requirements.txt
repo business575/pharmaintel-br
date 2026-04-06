@@ -1,0 +1,23 @@
+# PharmaIntel BR — Dependencies
+# Compatible with Python 3.11+ (Streamlit Community Cloud) and Python 3.14 (local)
+
+streamlit>=1.40.0
+plotly>=5.19.0
+pandas>=2.2.0
+numpy>=1.26.0
+pyarrow>=15.0.0
+requests>=2.31.0
+httpx>=0.27.0
+tenacity>=8.2.0
+urllib3>=2.0.0
+groq>=0.9.0
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+python-multipart>=0.0.9
+passlib[bcrypt]>=1.7.4
+bcrypt>=4.1.0
+python-jose[cryptography]>=3.3.0
+sqlalchemy>=2.0.0
+python-dotenv>=1.0.1
+loguru>=0.7.2
+rich>=13.7.0

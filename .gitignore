@@ -1,0 +1,48 @@
+# Variáveis de ambiente — NUNCA commitar
+.env
+.env.local
+.env.production
+
+# Dados brutos (podem ser grandes e conter dados sensíveis)
+data/raw/
+data/exports/
+
+# data/processed/ é rastreado — contém os parquets pré-processados para deploy
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Ambientes virtuais
+venv/
+.venv/
+env/
+.env/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Streamlit
+.streamlit/secrets.toml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
