@@ -277,14 +277,88 @@ def build_empresa_dataset(anvisa_df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Dat
     return empresas_df, ncm_link_df
 
 
+def build_produtos_vencendo(anvisa_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Build a product-level dataset of ANVISA registrations that are expired or
+    expiring within the next 365 days, plus the 500 soonest-expiring active ones.
+
+    Returns DataFrame with one row per product registration, sorted by
+    dias_para_vencer ascending (most urgent first).
+    """
+    df = anvisa_df.copy()
+
+    # ── Parse CNPJ + razão social ──────────────────────────────────────────
+    empresa_col = next((c for c in ["empresa", "empresa_detentora_registro"] if c in df.columns), None)
+    if empresa_col:
+        parsed = df[empresa_col].apply(
+            lambda x: _parse_empresa(str(x)) if pd.notna(x) else ("", "")
+        )
+        df["cnpj"]         = parsed.apply(lambda t: t[0])
+        df["cnpj_fmt"]     = df["cnpj"].apply(_format_cnpj)
+        df["razao_social"] = parsed.apply(lambda t: t[1])
+    else:
+        df["cnpj"] = df["cnpj_fmt"] = df["razao_social"] = ""
+
+    # ── Ensure vencimento is datetime ──────────────────────────────────────
+    if "vencimento" in df.columns:
+        df["vencimento"] = pd.to_datetime(df["vencimento"], dayfirst=True, errors="coerce")
+    else:
+        return pd.DataFrame()
+
+    today = pd.Timestamp.today().normalize()
+    df["dias_para_vencer"] = (df["vencimento"] - today).dt.days
+
+    def _classify(days) -> str:
+        if pd.isna(days):
+            return "Sem data"
+        d = int(days)
+        if d < 0:
+            return "Vencido"
+        if d <= 30:
+            return "Vencendo ≤30 dias"
+        if d <= 90:
+            return "Vencendo ≤90 dias"
+        if d <= 180:
+            return "Vencendo ≤180 dias"
+        if d <= 365:
+            return "Vencendo ≤1 ano"
+        return "Vigente"
+
+    df["urgencia"] = df["dias_para_vencer"].apply(_classify)
+
+    # ── Keep relevant columns ──────────────────────────────────────────────
+    keep = [
+        "numero_registro", "nome_produto", "principio_ativo", "classe_terapeutica",
+        "cnpj", "cnpj_fmt", "razao_social", "situacao", "ativo",
+        "vencimento", "dias_para_vencer", "urgencia",
+    ]
+    keep = [c for c in keep if c in df.columns]
+    result = df[keep].copy()
+
+    # ── Filter: expired OR expiring within 365 days ────────────────────────
+    mask = (result["dias_para_vencer"].notna()) & (result["dias_para_vencer"] <= 365)
+    result = result[mask].sort_values("dias_para_vencer").reset_index(drop=True)
+
+    logger.info("Produtos vencendo/vencidos: %d registros", len(result))
+    return result
+
+
 def load_or_build(anvisa_df: pd.DataFrame, force: bool = False) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Load cached parquet files or rebuild from raw ANVISA data."""
-    emp_path  = PROCESSED_DIR / "empresas_anvisa.parquet"
-    link_path = PROCESSED_DIR / "ncm_empresa_link.parquet"
+    emp_path     = PROCESSED_DIR / "empresas_anvisa.parquet"
+    link_path    = PROCESSED_DIR / "ncm_empresa_link.parquet"
+    venc_path    = PROCESSED_DIR / "produtos_vencendo.parquet"
 
     if not force and emp_path.exists() and link_path.exists():
         logger.info("Loading cached empresa datasets")
-        return pd.read_parquet(emp_path), pd.read_parquet(link_path)
+        emp_df  = pd.read_parquet(emp_path)
+        link_df = pd.read_parquet(link_path)
+        # Rebuild produtos_vencendo if missing
+        if not venc_path.exists():
+            venc_df = build_produtos_vencendo(anvisa_df)
+            if not venc_df.empty:
+                venc_df.to_parquet(venc_path, index=False, engine="pyarrow")
+        return emp_df, link_df
 
     logger.info("Building empresa datasets from %d ANVISA rows...", len(anvisa_df))
     emp_df, link_df = build_empresa_dataset(anvisa_df)
@@ -294,5 +368,10 @@ def load_or_build(anvisa_df: pd.DataFrame, force: bool = False) -> tuple[pd.Data
     link_df.to_parquet(link_path, index=False, engine="pyarrow")
     logger.info("Saved: %s (%d rows), %s (%d rows)",
                 emp_path.name, len(emp_df), link_path.name, len(link_df))
+
+    venc_df = build_produtos_vencendo(anvisa_df)
+    if not venc_df.empty:
+        venc_df.to_parquet(venc_path, index=False, engine="pyarrow")
+        logger.info("Saved: %s (%d rows)", venc_path.name, len(venc_df))
 
     return emp_df, link_df

@@ -155,6 +155,23 @@ TOOLS = [
             }, "required": ["razao_social"]},
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_produtos_vencendo",
+            "description": (
+                "Lista registros ANVISA individuais (produtos/medicamentos) que já venceram "
+                "ou vencerão nos próximos dias. Mostra nome do produto, princípio ativo, "
+                "empresa, CNPJ e data exata de vencimento. Use para análise de risco regulatório."
+            ),
+            "parameters": {"type": "object", "properties": {
+                "prazo_dias":     {"type": "integer", "description": "Listar produtos vencendo nos próximos N dias (padrão: 180). Use 0 para apenas já vencidos."},
+                "top_n":          {"type": "integer", "description": "Número máximo de produtos a retornar (padrão: 30)"},
+                "apenas_vencidos":{"type": "boolean", "description": "Se true, retorna apenas registros já vencidos (padrão: false)"},
+                "empresa_filtro": {"type": "string",  "description": "Filtrar por nome parcial da empresa (opcional)"},
+            }, "required": []},
+        },
+    },
 ]
 
 
@@ -404,6 +421,77 @@ class ToolExecutor:
             "registros_vencidos":  int(r.get("registros_vencidos", 0)),
             "ncms_estimados":      list(r.get("ncms_estimados") or []),
             "principais_classes":  list(r.get("principais_classes") or []),
+        }
+
+    def _tool_get_produtos_vencendo(
+        self,
+        prazo_dias: int = 180,
+        top_n: int = 30,
+        apenas_vencidos: bool = False,
+        empresa_filtro: str = "",
+    ) -> dict:
+        """Return individual ANVISA product registrations that are expired or expiring."""
+        prazo_dias = int(prazo_dias)
+        top_n      = int(top_n)
+
+        p = PROCESSED_DIR / "produtos_vencendo.parquet"
+        if not p.exists():
+            return {
+                "error": (
+                    "Arquivo produtos_vencendo.parquet não encontrado. "
+                    "Execute o Pipeline ETL para regenerar os dados."
+                )
+            }
+
+        df = pd.read_parquet(p)
+        if df.empty:
+            return {"message": "Nenhum registro vencendo ou vencido encontrado na base ANVISA."}
+
+        # Filters
+        if apenas_vencidos:
+            df = df[df["dias_para_vencer"] < 0]
+        else:
+            df = df[df["dias_para_vencer"] <= prazo_dias]
+
+        if empresa_filtro:
+            mask = df["razao_social"].str.upper().str.contains(empresa_filtro.upper(), na=False)
+            df = df[mask]
+
+        df = df.sort_values("dias_para_vencer").head(top_n)
+
+        if df.empty:
+            return {
+                "message": f"Nenhum produto encontrado com os filtros aplicados (prazo={prazo_dias}d, empresa='{empresa_filtro}')."
+            }
+
+        rows = []
+        for _, r in df.iterrows():
+            venc = r.get("vencimento")
+            venc_str = venc.strftime("%d/%m/%Y") if pd.notna(venc) else "Sem data"
+            dias = r.get("dias_para_vencer")
+            dias_str = f"{int(dias)} dias" if pd.notna(dias) and int(dias) >= 0 else f"Vencido há {abs(int(dias))} dias"
+            rows.append({
+                "numero_registro":  r.get("numero_registro", ""),
+                "nome_produto":     r.get("nome_produto", ""),
+                "principio_ativo":  r.get("principio_ativo", ""),
+                "classe_terapeutica": r.get("classe_terapeutica", ""),
+                "empresa":          r.get("razao_social", ""),
+                "cnpj":             r.get("cnpj_fmt", ""),
+                "vencimento":       venc_str,
+                "situacao":         dias_str,
+                "urgencia":         r.get("urgencia", ""),
+            })
+
+        n_vencidos  = int((df["dias_para_vencer"] < 0).sum())
+        n_vencendo  = int((df["dias_para_vencer"] >= 0).sum())
+
+        return {
+            "total_retornados": len(rows),
+            "ja_vencidos":      n_vencidos,
+            "vencendo_em_breve": n_vencendo,
+            "filtro_prazo_dias": prazo_dias,
+            "nota": "Dados ANVISA — registros de medicamentos. Ordenados do mais urgente para o mais recente.",
+            "produtos": rows,
         }
 
 
