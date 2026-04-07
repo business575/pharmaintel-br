@@ -163,8 +163,8 @@ def create_checkout_session(
 
         # Build price inline (no pre-created Price IDs needed)
         price_kwargs = {
-            "currency": "brl",
-            "unit_amount": price_data["brl"],
+            "currency": "usd",
+            "unit_amount": price_data["brl"],  # same numeric value, now in USD cents
         }
         if period == "monthly":
             price_kwargs["recurring"] = {"interval": "month", "interval_count": 1}
