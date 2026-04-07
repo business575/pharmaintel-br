@@ -65,6 +65,45 @@ def _start_keepalive() -> None:
 if os.getenv("APP_ENV", "development") != "development":
     _start_keepalive()
 
+
+# ---------------------------------------------------------------------------
+# Patent scheduler — auto-refresh every 30 days (background thread)
+# ---------------------------------------------------------------------------
+def _start_patent_scheduler() -> None:
+    """
+    Background thread that refreshes data/patents.json every 30 days.
+    Runs once on startup (after 60s delay so app is ready), then monthly.
+    No API keys required — uses INPI, Espacenet and Google Patents scraping.
+    """
+    import threading
+    import time
+
+    INTERVAL = 30 * 24 * 3600  # 30 days in seconds
+    STARTUP_DELAY = 60          # wait 60s after boot before first run
+
+    def _run():
+        time.sleep(STARTUP_DELAY)
+        while True:
+            try:
+                from src.integrations.patent_fetcher import refresh_patents
+                logger.info("[PatentScheduler] Starting monthly patent refresh…")
+                result = refresh_patents()
+                logger.info(
+                    "[PatentScheduler] Done — updated=%s skipped=%s errors=%s",
+                    result.get("updated", 0),
+                    result.get("skipped", 0),
+                    result.get("errors", 0),
+                )
+            except Exception as exc:
+                logger.warning("[PatentScheduler] Refresh failed: %s", exc)
+            time.sleep(INTERVAL)
+
+    t = threading.Thread(target=_run, daemon=True, name="patent-scheduler")
+    t.start()
+    logger.info("[PatentScheduler] Scheduled — runs every 30 days.")
+
+_start_patent_scheduler()
+
 PROCESSED_DIR = ROOT / "data" / "processed"
 PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 
