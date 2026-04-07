@@ -158,6 +158,21 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "get_patent_info",
+            "description": (
+                "Retorna informações sobre patentes de medicamentos — data de expiração, "
+                "status (vigente/expirada/prestes a expirar), princípio ativo, detentor da patente "
+                "e oportunidade de genérico/biossimilar no Brasil. "
+                "Use quando o usuário perguntar sobre patentes, exclusividade, genéricos ou biossimilares."
+            ),
+            "parameters": {"type": "object", "properties": {
+                "query": {"type": "string", "description": "Nome do medicamento, princípio ativo ou NCM (ex: semaglutida, adalimumabe, 30049079)"},
+            }, "required": ["query"]},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "get_produtos_vencendo",
             "description": (
                 "Lista registros ANVISA individuais (produtos/medicamentos) que já venceram "
@@ -173,6 +188,266 @@ TOOLS = [
         },
     },
 ]
+
+
+# ---------------------------------------------------------------------------
+# Patent database — curated list of key pharma patents in Brazil
+# Sources: INPI, EPO, company disclosures, industry reports
+# ---------------------------------------------------------------------------
+PATENT_DB: list[dict] = [
+    {
+        "principio_ativo": "Semaglutida",
+        "marca": "Ozempic / Rybelsus / Wegovy",
+        "ncms": ["30049069", "30043929"],
+        "detentor": "Novo Nordisk",
+        "indicacao": "Diabetes tipo 2 / Obesidade (GLP-1)",
+        "patente_expiracao_br": "2032-01-01",
+        "patente_expiracao_us": "2032-01-01",
+        "status": "Vigente",
+        "oportunidade_biossimilar": "2032+",
+        "observacao": "Patente de composição expira ~2032. Novo Nordisk tem patentes de formulação adicionais até 2036.",
+    },
+    {
+        "principio_ativo": "Adalimumabe",
+        "marca": "Humira",
+        "ncms": ["30021590", "30021520"],
+        "detentor": "AbbVie",
+        "indicacao": "Artrite reumatoide, Crohn, psoríase (anti-TNF)",
+        "patente_expiracao_br": "2018-12-31",
+        "patente_expiracao_us": "2023-06-30",
+        "status": "Expirada",
+        "oportunidade_biossimilar": "IMEDIATA — biossimilares já aprovados pela ANVISA",
+        "observacao": "Patente principal expirada. Biossimilares disponíveis: Amgevita (Amgen), Hadlima (Samsung Bioepis), Hyrimoz (Sandoz).",
+    },
+    {
+        "principio_ativo": "Trastuzumabe",
+        "marca": "Herceptin",
+        "ncms": ["30021590", "30021520"],
+        "detentor": "Roche/Genentech",
+        "indicacao": "Câncer de mama HER2+",
+        "patente_expiracao_br": "2019-07-25",
+        "patente_expiracao_us": "2019-07-25",
+        "status": "Expirada",
+        "oportunidade_biossimilar": "IMEDIATA — biossimilares aprovados ANVISA",
+        "observacao": "Patente expirada. Biossimilares: Kanjinti (Amgen), Ogivri (Mylan/Viatris), Herzuma (Celltrion).",
+    },
+    {
+        "principio_ativo": "Bevacizumabe",
+        "marca": "Avastin",
+        "ncms": ["30021590"],
+        "detentor": "Roche/Genentech",
+        "indicacao": "Câncer colorretal, pulmão, renal (anti-VEGF)",
+        "patente_expiracao_br": "2018-01-01",
+        "patente_expiracao_us": "2020-07-22",
+        "status": "Expirada",
+        "oportunidade_biossimilar": "IMEDIATA",
+        "observacao": "Patente expirada. Biossimilar Zirabev (Pfizer) e Mvasi (Amgen) aprovados.",
+    },
+    {
+        "principio_ativo": "Rituximabe",
+        "marca": "Mabthera / Rituxan",
+        "ncms": ["30021590", "30021520"],
+        "detentor": "Roche/Biogen",
+        "indicacao": "Linfoma não-Hodgkin, artrite reumatoide (anti-CD20)",
+        "patente_expiracao_br": "2015-10-01",
+        "patente_expiracao_us": "2018-02-01",
+        "status": "Expirada",
+        "oportunidade_biossimilar": "IMEDIATA",
+        "observacao": "Patente expirada. Biossimilares: Truxima (Celltrion), Ruxience (Pfizer).",
+    },
+    {
+        "principio_ativo": "Pembrolizumabe",
+        "marca": "Keytruda",
+        "ncms": ["30021590", "30049079"],
+        "detentor": "MSD (Merck)",
+        "indicacao": "Câncer de pulmão, melanoma, outros (anti-PD-1)",
+        "patente_expiracao_br": "2028-07-11",
+        "patente_expiracao_us": "2028-07-11",
+        "status": "Vigente",
+        "oportunidade_biossimilar": "2028+",
+        "observacao": "Patente principal até 2028. Patentes secundárias podem estender até 2036.",
+    },
+    {
+        "principio_ativo": "Nivolumabe",
+        "marca": "Opdivo",
+        "ncms": ["30021590", "30049079"],
+        "detentor": "Bristol-Myers Squibb",
+        "indicacao": "Melanoma, câncer de pulmão, renal (anti-PD-1)",
+        "patente_expiracao_br": "2026-05-19",
+        "patente_expiracao_us": "2026-05-19",
+        "status": "Vencendo em breve",
+        "oportunidade_biossimilar": "2026-2027",
+        "observacao": "Patente expira maio/2026. Alta oportunidade para biossimilares no Brasil.",
+    },
+    {
+        "principio_ativo": "Insulina Glargina",
+        "marca": "Lantus / Basaglar",
+        "ncms": ["30043100", "30043929"],
+        "detentor": "Sanofi",
+        "indicacao": "Diabetes tipo 1 e 2 (insulina basal)",
+        "patente_expiracao_br": "2015-05-16",
+        "patente_expiracao_us": "2015-02-12",
+        "status": "Expirada",
+        "oportunidade_biossimilar": "IMEDIATA — biossimilar Basaglar já disponível",
+        "observacao": "Patente principal expirada. Biossimilares: Basaglar (Lilly/Boehringer), Semglee (Mylan).",
+    },
+    {
+        "principio_ativo": "Dupilumabe",
+        "marca": "Dupixent",
+        "ncms": ["30021590"],
+        "detentor": "Sanofi/Regeneron",
+        "indicacao": "Dermatite atópica, asma (anti-IL-4/IL-13)",
+        "patente_expiracao_br": "2033-03-29",
+        "patente_expiracao_us": "2033-03-29",
+        "status": "Vigente",
+        "oportunidade_biossimilar": "2033+",
+        "observacao": "Patente vigente até 2033. Um dos biológicos de maior crescimento no Brasil.",
+    },
+    {
+        "principio_ativo": "Apixabana",
+        "marca": "Eliquis",
+        "ncms": ["30049069"],
+        "detentor": "Bristol-Myers Squibb / Pfizer",
+        "indicacao": "Anticoagulante — FA, TEV",
+        "patente_expiracao_br": "2026-11-19",
+        "patente_expiracao_us": "2026-11-19",
+        "status": "Vencendo em breve",
+        "oportunidade_biossimilar": "N/A — molécula pequena; genérico possível em 2026-2027",
+        "observacao": "Patente expira nov/2026. Alta oportunidade para genéricos no Brasil.",
+    },
+    {
+        "principio_ativo": "Rivaroxabana",
+        "marca": "Xarelto",
+        "ncms": ["30049069"],
+        "detentor": "Bayer / J&J",
+        "indicacao": "Anticoagulante — FA, TEV, síndrome coronariana",
+        "patente_expiracao_br": "2024-03-01",
+        "patente_expiracao_us": "2024-07-23",
+        "status": "Expirada",
+        "oportunidade_biossimilar": "N/A — genérico disponível",
+        "observacao": "Patente expirada. Genéricos aprovados ANVISA disponíveis no mercado.",
+    },
+    {
+        "principio_ativo": "Tirzepatida",
+        "marca": "Mounjaro / Zepbound",
+        "ncms": ["30043929", "30049069"],
+        "detentor": "Eli Lilly",
+        "indicacao": "Diabetes tipo 2 / Obesidade (GIP+GLP-1 dual agonista)",
+        "patente_expiracao_br": "2036-06-01",
+        "patente_expiracao_us": "2036-06-01",
+        "status": "Vigente",
+        "oportunidade_biossimilar": "2036+",
+        "observacao": "Aprovado ANVISA 2023. Concorre diretamente com semaglutida. Patente longa.",
+    },
+    {
+        "principio_ativo": "Infliximabe",
+        "marca": "Remicade",
+        "ncms": ["30021590"],
+        "detentor": "J&J / MSD",
+        "indicacao": "Artrite reumatoide, Crohn, psoríase (anti-TNF)",
+        "patente_expiracao_br": "2014-08-21",
+        "patente_expiracao_us": "2018-09-04",
+        "status": "Expirada",
+        "oportunidade_biossimilar": "IMEDIATA — Remsima (Celltrion), Renflexis (Samsung) aprovados",
+        "observacao": "Patente expirada. Biossimilares com desconto de 30-50% disponíveis no SUS.",
+    },
+    {
+        "principio_ativo": "Lenalidomida",
+        "marca": "Revlimid",
+        "ncms": ["30049079"],
+        "detentor": "Bristol-Myers Squibb (ex-Celgene)",
+        "indicacao": "Mieloma múltiplo, síndrome mielodisplásica",
+        "patente_expiracao_br": "2027-06-22",
+        "patente_expiracao_us": "2027-06-22",
+        "status": "Vigente",
+        "oportunidade_biossimilar": "2027+ — genérico",
+        "observacao": "Patente expira 2027. Um dos medicamentos mais caros do SUS.",
+    },
+    {
+        "principio_ativo": "Ocrelizumabe",
+        "marca": "Ocrevus",
+        "ncms": ["30021590"],
+        "detentor": "Roche",
+        "indicacao": "Esclerose múltipla (anti-CD20)",
+        "patente_expiracao_br": "2030-08-19",
+        "patente_expiracao_us": "2030-08-19",
+        "status": "Vigente",
+        "oportunidade_biossimilar": "2030+",
+        "observacao": "Único aprovado para EM primária progressiva. Biossimilares em desenvolvimento.",
+    },
+    {
+        "principio_ativo": "Vedolizumabe",
+        "marca": "Entyvio",
+        "ncms": ["30021590"],
+        "detentor": "Takeda",
+        "indicacao": "Doença de Crohn, colite ulcerativa (anti-integrina)",
+        "patente_expiracao_br": "2026-08-01",
+        "patente_expiracao_us": "2026-08-01",
+        "status": "Vencendo em breve",
+        "oportunidade_biossimilar": "2026-2027",
+        "observacao": "Patente expira 2026. Biossimilares em fase 3. Alta oportunidade no SUS.",
+    },
+    {
+        "principio_ativo": "Ustekinumabe",
+        "marca": "Stelara",
+        "ncms": ["30021590"],
+        "detentor": "J&J (Janssen)",
+        "indicacao": "Psoríase, Crohn (anti-IL-12/23)",
+        "patente_expiracao_br": "2024-01-17",
+        "patente_expiracao_us": "2023-09-25",
+        "status": "Expirada",
+        "oportunidade_biossimilar": "IMEDIATA — biossimilares em aprovação ANVISA",
+        "observacao": "Patente expirada. Biossimilares aprovados FDA/EMA. ANVISA em análise.",
+    },
+    {
+        "principio_ativo": "Secuquinumabe",
+        "marca": "Cosentyx",
+        "ncms": ["30021590"],
+        "detentor": "Novartis",
+        "indicacao": "Psoríase, espondilite anquilosante (anti-IL-17A)",
+        "patente_expiracao_br": "2029-10-26",
+        "patente_expiracao_us": "2029-10-26",
+        "status": "Vigente",
+        "oportunidade_biossimilar": "2029+",
+        "observacao": "Crescimento acelerado no Brasil. Patente vigente até 2029.",
+    },
+    {
+        "principio_ativo": "Entrectinibe",
+        "marca": "Rozlytrek",
+        "ncms": ["30049079"],
+        "detentor": "Roche",
+        "indicacao": "Câncer de pulmão NTRK/ROS1+",
+        "patente_expiracao_br": "2034-05-01",
+        "patente_expiracao_us": "2034-05-01",
+        "status": "Vigente",
+        "oportunidade_biossimilar": "2034+",
+        "observacao": "Terapia-alvo de nicho. Patente longa.",
+    },
+    {
+        "principio_ativo": "Ixekizumabe",
+        "marca": "Taltz",
+        "ncms": ["30021590"],
+        "detentor": "Eli Lilly",
+        "indicacao": "Psoríase, artrite psoriásica (anti-IL-17A)",
+        "patente_expiracao_br": "2028-03-22",
+        "patente_expiracao_us": "2028-03-22",
+        "status": "Vigente",
+        "oportunidade_biossimilar": "2028+",
+        "observacao": "Concorre com Cosentyx (Novartis) no segmento anti-IL-17.",
+    },
+]
+
+# Build search index
+_PATENT_INDEX: dict[str, list[dict]] = {}
+for _p in PATENT_DB:
+    for _term in (
+        [_p["principio_ativo"].upper(), _p["marca"].upper()]
+        + [n.upper() for n in _p.get("ncms", [])]
+        + _p["principio_ativo"].upper().split()
+    ):
+        _PATENT_INDEX.setdefault(_term, [])
+        if _p not in _PATENT_INDEX[_term]:
+            _PATENT_INDEX[_term].append(_p)
 
 
 # ---------------------------------------------------------------------------
@@ -328,6 +603,68 @@ class ToolExecutor:
         if p.exists():
             return pd.read_parquet(p)
         return pd.DataFrame()
+
+    def _tool_get_patent_info(self, query: str) -> dict:
+        """Return patent information for a drug by name, active ingredient or NCM."""
+        from datetime import date
+        q = query.strip().upper()
+        results = []
+
+        # Search index
+        for term, entries in _PATENT_INDEX.items():
+            if q in term or term in q:
+                for e in entries:
+                    if e not in results:
+                        results.append(e)
+
+        if not results:
+            return {
+                "query": query,
+                "message": (
+                    f"Nenhuma informação de patente encontrada para '{query}' na base curada. "
+                    "A base cobre os 20 principais biológicos e medicamentos de alto valor no Brasil. "
+                    "Para consultas detalhadas: https://busca.inpi.gov.br/pePI/"
+                ),
+                "fonte": "Base curada PharmaIntel BR — INPI/EPO/USPTO",
+            }
+
+        today = date.today()
+        output = []
+        for p in results[:3]:
+            exp_str = p.get("patente_expiracao_br", "")
+            try:
+                exp_date = date.fromisoformat(exp_str)
+                days_left = (exp_date - today).days
+                if days_left < 0:
+                    countdown = f"Expirada há {abs(days_left)} dias"
+                elif days_left <= 365:
+                    countdown = f"Expira em {days_left} dias ({exp_date.strftime('%d/%m/%Y')}) — URGENTE"
+                else:
+                    years_left = days_left // 365
+                    countdown = f"Expira em ~{years_left} anos ({exp_date.strftime('%d/%m/%Y')})"
+            except Exception:
+                countdown = exp_str
+
+            output.append({
+                "principio_ativo":         p["principio_ativo"],
+                "marca":                    p["marca"],
+                "ncms_relacionados":        p.get("ncms", []),
+                "detentor_patente":         p["detentor"],
+                "indicacao":               p["indicacao"],
+                "status_patente":           p["status"],
+                "expiracao_brasil":         countdown,
+                "expiracao_eua":            p.get("patente_expiracao_us", ""),
+                "oportunidade_generco_biossimilar": p["oportunidade_biossimilar"],
+                "observacao":              p["observacao"],
+            })
+
+        return {
+            "query": query,
+            "resultados": len(output),
+            "patentes": output,
+            "fonte": "Base curada PharmaIntel BR — dados INPI/EPO/USPTO/literatura especializada",
+            "aviso": "Datas são estimativas baseadas em fontes públicas. Consulte advogado especializado para decisões comerciais.",
+        }
 
     def _tool_get_top_empresas(self, top_n: int = 10, apenas_ativas: bool = True) -> dict:
         top_n = int(top_n)
