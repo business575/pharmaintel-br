@@ -724,7 +724,7 @@ class ToolExecutor:
                 "status_patente":           p["status"],
                 "expiracao_brasil":         countdown,
                 "expiracao_eua":            p.get("patente_expiracao_us", ""),
-                "oportunidade_generco_biossimilar": p["oportunidade_biossimilar"],
+                "oportunidade_generico_biossimilar": p["oportunidade_biossimilar"],
                 "observacao":              p["observacao"],
             })
 

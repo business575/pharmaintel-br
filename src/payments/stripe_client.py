@@ -48,10 +48,10 @@ PLANS: dict[str, dict] = {
             "Suporte por email",
         ],
         "prices": {
-            "monthly":   {"brl": 29700,  "label": "R$ 297",   "usd_label": "US$ 297",   "period_label": "por mês"},
-            "quarterly": {"brl": 79900,  "label": "R$ 799",   "usd_label": "US$ 799",   "period_label": "a cada 3 meses", "saving": "Economize 10%"},
-            "biannual":  {"brl": 149700, "label": "R$ 1.497", "usd_label": "US$ 1.497", "period_label": "a cada 6 meses", "saving": "Economize 16%"},
-            "annual":    {"brl": 269700, "label": "R$ 2.697", "usd_label": "US$ 2.697", "period_label": "por ano",         "saving": "Economize 24%"},
+            "monthly":   {"brl": 49900,  "usd": 19900,  "label": "R$ 499",   "usd_label": "US$ 199",   "period_label": "por mês"},
+            "quarterly": {"brl": 134900, "usd": 53700,  "label": "R$ 1.349", "usd_label": "US$ 537",   "period_label": "a cada 3 meses", "saving": "Economize 10%"},
+            "biannual":  {"brl": 254900, "usd": 101400, "label": "R$ 2.549", "usd_label": "US$ 1.014", "period_label": "a cada 6 meses", "saving": "Economize 15%"},
+            "annual":    {"brl": 479900, "usd": 191400, "label": "R$ 4.799", "usd_label": "US$ 1.914", "period_label": "por ano",         "saving": "Economize 20%"},
         },
     },
     "pro": {
@@ -68,10 +68,10 @@ PLANS: dict[str, dict] = {
             "Suporte prioritário",
         ],
         "prices": {
-            "monthly":   {"brl": 69700,  "label": "R$ 697",   "usd_label": "US$ 697",   "period_label": "por mês"},
-            "quarterly": {"brl": 189700, "label": "R$ 1.897", "usd_label": "US$ 1.897", "period_label": "a cada 3 meses", "saving": "Economize 9%"},
-            "biannual":  {"brl": 349700, "label": "R$ 3.497", "usd_label": "US$ 3.497", "period_label": "a cada 6 meses", "saving": "Economize 16%"},
-            "annual":    {"brl": 669700, "label": "R$ 6.697", "usd_label": "US$ 6.697", "period_label": "por ano",         "saving": "Economize 20%"},
+            "monthly":   {"brl": 75000,  "usd": 39900,  "label": "R$ 750",   "usd_label": "US$ 399",   "period_label": "por mês"},
+            "quarterly": {"brl": 202500, "usd": 107700, "label": "R$ 2.025", "usd_label": "US$ 1.077", "period_label": "a cada 3 meses", "saving": "Economize 10%"},
+            "biannual":  {"brl": 382500, "usd": 203400, "label": "R$ 3.825", "usd_label": "US$ 2.034", "period_label": "a cada 6 meses", "saving": "Economize 15%"},
+            "annual":    {"brl": 720000, "usd": 383000, "label": "R$ 7.200", "usd_label": "US$ 3.830", "period_label": "por ano",         "saving": "Economize 20%"},
         },
     },
     "enterprise": {
@@ -88,10 +88,10 @@ PLANS: dict[str, dict] = {
             "Suporte dedicado + SLA",
         ],
         "prices": {
-            "monthly":   {"brl": 149700, "label": "R$ 1.497", "usd_label": "US$ 1.497", "period_label": "por mês"},
-            "quarterly": {"brl": 399700, "label": "R$ 3.997", "usd_label": "US$ 3.997", "period_label": "a cada 3 meses", "saving": "Economize 11%"},
-            "biannual":  {"brl": 749700, "label": "R$ 7.497", "usd_label": "US$ 7.497", "period_label": "a cada 6 meses", "saving": "Economize 17%"},
-            "annual":    {"brl": 1399700,"label": "R$ 13.997","usd_label": "US$ 13.997","period_label": "por ano",         "saving": "Economize 22%"},
+            "monthly":   {"brl": 159900, "usd": 69900,  "label": "R$ 1.599", "usd_label": "US$ 699",   "period_label": "por mês"},
+            "quarterly": {"brl": 431700, "usd": 188700, "label": "R$ 4.317", "usd_label": "US$ 1.887", "period_label": "a cada 3 meses", "saving": "Economize 10%"},
+            "biannual":  {"brl": 815900, "usd": 356500, "label": "R$ 8.159", "usd_label": "US$ 3.565", "period_label": "a cada 6 meses", "saving": "Economize 15%"},
+            "annual":    {"brl": 1535000,"usd": 671000, "label": "R$ 15.350","usd_label": "US$ 6.710", "period_label": "por ano",         "saving": "Economize 20%"},
         },
     },
 }
@@ -164,7 +164,7 @@ def create_checkout_session(
         # Build price inline (no pre-created Price IDs needed)
         price_kwargs = {
             "currency": "usd",
-            "unit_amount": price_data["brl"],  # same numeric value, now in USD cents
+            "unit_amount": price_data["usd"],  # USD cents — matches usd_label displayed to user
         }
         if period == "monthly":
             price_kwargs["recurring"] = {"interval": "month", "interval_count": 1}
