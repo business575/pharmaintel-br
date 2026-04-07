@@ -32,6 +32,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 PROCESSED_DIR = Path(__file__).resolve().parents[2] / "data" / "processed"
+PATENTS_PATH  = Path(__file__).resolve().parents[2] / "data" / "patents.json"
 GROQ_MODEL    = "llama-3.3-70b-versatile"
 MAX_ITERATIONS = 6
 MAX_HISTORY    = 20
@@ -173,6 +174,18 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "refresh_patent_db",
+            "description": (
+                "Atualiza automaticamente a base de patentes consultando o EPO OPS e o INPI. "
+                "Use quando o usuário pedir para atualizar, sincronizar ou verificar dados de patentes. "
+                "Retorna um resumo de quantas patentes foram atualizadas."
+            ),
+            "parameters": {"type": "object", "properties": {}, "required": []},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "get_produtos_vencendo",
             "description": (
                 "Lista registros ANVISA individuais (produtos/medicamentos) que já venceram "
@@ -191,10 +204,42 @@ TOOLS = [
 
 
 # ---------------------------------------------------------------------------
-# Patent database — curated list of key pharma patents in Brazil
-# Sources: INPI, EPO, company disclosures, industry reports
+# Patent database — loaded from data/patents.json (editable without code change)
+# Sources: INPI, EPO OPS, company disclosures, industry reports
+# Refresh: use the refresh_patent_db agent tool or run patent_fetcher.refresh_patents()
 # ---------------------------------------------------------------------------
-PATENT_DB: list[dict] = [
+def _load_patent_db() -> list[dict]:
+    """Load patent database from JSON file, falling back to empty list."""
+    try:
+        from src.integrations.patent_fetcher import load_patents, build_patent_index as _bi
+        return load_patents(PATENTS_PATH)
+    except Exception as exc:
+        logger.warning("Could not load patents.json: %s", exc)
+        return []
+
+def _build_patent_index(patents: list[dict]) -> dict[str, list[dict]]:
+    try:
+        from src.integrations.patent_fetcher import build_patent_index
+        return build_patent_index(patents)
+    except Exception:
+        index: dict[str, list[dict]] = {}
+        for p in patents:
+            for term in (
+                [p.get("principio_ativo", "").upper(), p.get("marca", "").upper()]
+                + [n.upper() for n in p.get("ncms", [])]
+                + p.get("principio_ativo", "").upper().split()
+            ):
+                if term:
+                    index.setdefault(term, [])
+                    if p not in index[term]:
+                        index[term].append(p)
+        return index
+
+PATENT_DB: list[dict] = _load_patent_db()
+
+# Legacy entries kept for the first run before JSON exists
+if not PATENT_DB:
+    PATENT_DB = [
     {
         "principio_ativo": "Semaglutida",
         "marca": "Ozempic / Rybelsus / Wegovy",
@@ -205,7 +250,7 @@ PATENT_DB: list[dict] = [
         "patente_expiracao_us": "2032-01-01",
         "status": "Expirada",
         "oportunidade_biossimilar": "IMEDIATA — patente principal expirou 20/03/2025 no Brasil",
-        "observacao": "Patente de composição expirou em 20/03/2025 no Brasil, abrindo espaço para biossimilares e marcas nacionais. Novo Nordisk ainda detém patentes de formulação e processo que podem ser contestadas. Nos EUA a patente principal vai até ~2032. Alta oportunidade para importadores e laboratórios nacionais.",
+        "observacao": "Patente de composição expirou em 20/03/2025 no Brasil, abrindo espaço para biossimilares e marcas nacionais.",
     },
     {
         "principio_ativo": "Adalimumabe",
@@ -435,19 +480,9 @@ PATENT_DB: list[dict] = [
         "oportunidade_biossimilar": "2028+",
         "observacao": "Concorre com Cosentyx (Novartis) no segmento anti-IL-17.",
     },
-]
+]  # end fallback list
 
-# Build search index
-_PATENT_INDEX: dict[str, list[dict]] = {}
-for _p in PATENT_DB:
-    for _term in (
-        [_p["principio_ativo"].upper(), _p["marca"].upper()]
-        + [n.upper() for n in _p.get("ncms", [])]
-        + _p["principio_ativo"].upper().split()
-    ):
-        _PATENT_INDEX.setdefault(_term, [])
-        if _p not in _PATENT_INDEX[_term]:
-            _PATENT_INDEX[_term].append(_p)
+_PATENT_INDEX: dict[str, list[dict]] = _build_patent_index(PATENT_DB)
 
 
 # ---------------------------------------------------------------------------
@@ -604,28 +639,63 @@ class ToolExecutor:
             return pd.read_parquet(p)
         return pd.DataFrame()
 
+    def _tool_refresh_patent_db(self) -> dict:
+        """Refresh patent database from EPO OPS and INPI, then reload the index."""
+        global PATENT_DB, _PATENT_INDEX
+        try:
+            from src.integrations.patent_fetcher import refresh_patents
+            summary = refresh_patents(PATENTS_PATH)
+            # Reload global state
+            PATENT_DB = _load_patent_db()
+            _PATENT_INDEX = _build_patent_index(PATENT_DB)
+            return {
+                "status": "concluído",
+                "patentes_atualizadas": summary.get("updated", 0),
+                "patentes_sem_alteracao": summary.get("skipped", 0),
+                "erros": summary.get("errors", 0),
+                "total": summary.get("total", len(PATENT_DB)),
+                "nota": (
+                    "Status inferido automaticamente pela data de expiração. "
+                    "Enriquecimento via EPO OPS requer EPO_OPS_KEY e EPO_OPS_SECRET nas variáveis de ambiente."
+                    if not (os.getenv("EPO_OPS_KEY") and os.getenv("EPO_OPS_SECRET"))
+                    else "Dados atualizados via EPO OPS."
+                ),
+            }
+        except Exception as exc:
+            return {"error": f"Falha ao atualizar base de patentes: {exc}"}
+
     def _tool_get_patent_info(self, query: str) -> dict:
         """Return patent information for a drug by name, active ingredient or NCM."""
         from datetime import date
+        # Always use freshest data (reload index on each call)
+        patents = _load_patent_db() or PATENT_DB
+        index   = _build_patent_index(patents)
+
         q = query.strip().upper()
         results = []
 
         # Search index
-        for term, entries in _PATENT_INDEX.items():
+        for term, entries in index.items():
             if q in term or term in q:
                 for e in entries:
                     if e not in results:
                         results.append(e)
 
+        last_refreshed = max(
+            (p.get("last_refreshed") or "" for p in patents),
+            default=""
+        )
         if not results:
             return {
                 "query": query,
                 "message": (
                     f"Nenhuma informação de patente encontrada para '{query}' na base curada. "
-                    "A base cobre os 20 principais biológicos e medicamentos de alto valor no Brasil. "
-                    "Para consultas detalhadas: https://busca.inpi.gov.br/pePI/"
+                    f"A base contém {len(patents)} medicamentos de alto valor no Brasil. "
+                    "Para adicionar: edite data/patents.json ou use refresh_patent_db. "
+                    "Consulta manual: https://busca.inpi.gov.br/pePI/"
                 ),
-                "fonte": "Base curada PharmaIntel BR — INPI/EPO/USPTO",
+                "ultima_atualizacao": last_refreshed or "nunca sincronizado",
+                "fonte": "Base curada PharmaIntel BR — data/patents.json (INPI/EPO/literatura)",
             }
 
         today = date.today()
@@ -662,8 +732,9 @@ class ToolExecutor:
             "query": query,
             "resultados": len(output),
             "patentes": output,
-            "fonte": "Base curada PharmaIntel BR — dados INPI/EPO/USPTO/literatura especializada",
-            "aviso": "Datas são estimativas baseadas em fontes públicas. Consulte advogado especializado para decisões comerciais.",
+            "ultima_atualizacao": last_refreshed or "nunca sincronizado",
+            "fonte": "Base PharmaIntel BR — data/patents.json (INPI/EPO/literatura especializada)",
+            "aviso": "Datas são baseadas em fontes públicas. Consulte advogado especializado para decisões comerciais. Use refresh_patent_db para sincronizar dados.",
         }
 
     def _tool_get_top_empresas(self, top_n: int = 10, apenas_ativas: bool = True) -> dict:
