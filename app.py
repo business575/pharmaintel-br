@@ -41,6 +41,30 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
+
+# ---------------------------------------------------------------------------
+# Keepalive — prevent Render free tier from sleeping
+# ---------------------------------------------------------------------------
+def _start_keepalive() -> None:
+    """Ping the app every 10 minutes to prevent Render free tier spin-down."""
+    import threading
+    import time
+    import urllib.request
+
+    def _ping():
+        while True:
+            time.sleep(600)  # 10 minutes
+            try:
+                urllib.request.urlopen("https://pharmaintel-br.onrender.com/", timeout=10)
+            except Exception:
+                pass
+
+    t = threading.Thread(target=_ping, daemon=True)
+    t.start()
+
+if os.getenv("APP_ENV", "development") != "development":
+    _start_keepalive()
+
 PROCESSED_DIR = ROOT / "data" / "processed"
 PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -236,11 +260,24 @@ def _t(key: str) -> str:
 # Page config — MUST be first Streamlit call
 # ---------------------------------------------------------------------------
 st.set_page_config(
-    page_title="PharmaIntel BR",
+    page_title="PharmaIntel BR — Inteligência Farmacêutica",
     page_icon="💊",
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+# SEO meta tags
+st.markdown("""
+<meta name="description" content="Plataforma de inteligência de mercado farmacêutico brasileiro. Monitore importações, registros ANVISA, licitações e oportunidades com IA.">
+<meta name="keywords" content="farmacêutico, importação, ANVISA, NCM, Comex Stat, inteligência de mercado, medicamentos, dispositivos médicos, Brasil">
+<meta name="author" content="PharmaIntel BR">
+<meta property="og:title" content="PharmaIntel BR — Inteligência Farmacêutica">
+<meta property="og:description" content="Dados reais de importação, registros ANVISA e IA para o mercado farmacêutico brasileiro.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="PharmaIntel BR">
+<meta name="twitter:description" content="Inteligência de mercado farmacêutico com dados ANVISA e Comex Stat.">
+""", unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
 # Authentication
@@ -510,10 +547,136 @@ def _handle_payment_success(session_id: str) -> None:
         st.warning(f"Erro ao processar pagamento: {exc}")
 
 
+def _page_landing() -> None:
+    """Public landing page — first thing visitors see."""
+    st.markdown("""
+    <style>
+    [data-testid="stAppViewContainer"] { background: #0A1628; }
+    [data-testid="stSidebar"] { display: none; }
+    .hero-title { font-size: 3rem; font-weight: 800; color: #fff; line-height: 1.2; margin: 0; }
+    .hero-accent { color: #4DB6AC; }
+    .hero-sub { color: #8899AA; font-size: 1.15rem; margin: 1rem 0 2rem; line-height: 1.6; }
+    .stat-box { background: #112240; border: 1px solid #1E3A5F; border-radius: 12px;
+                padding: 1.5rem; text-align: center; }
+    .stat-num { font-size: 2rem; font-weight: 700; color: #4DB6AC; }
+    .stat-lbl { color: #8899AA; font-size: 0.85rem; margin-top: 0.25rem; }
+    .feature-item { background: #112240; border: 1px solid #1E3A5F; border-radius: 12px;
+                    padding: 1.25rem 1.5rem; margin-bottom: 0.75rem; }
+    .feature-icon { font-size: 1.5rem; margin-right: 0.5rem; }
+    .feature-title { color: #E2EAF4; font-weight: 600; font-size: 1rem; }
+    .feature-desc { color: #8899AA; font-size: 0.85rem; margin-top: 0.25rem; }
+    .source-badge { background: #0D2B45; border: 1px solid #1E3A5F; border-radius: 20px;
+                    padding: 0.3rem 0.8rem; color: #4DB6AC; font-size: 0.8rem;
+                    display: inline-block; margin: 0.2rem; }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # Top bar
+    col_logo, col_nav = st.columns([3, 2])
+    with col_logo:
+        st.markdown('<span style="color:#4DB6AC; font-size:1.3rem; font-weight:700;">💊 PharmaIntel BR</span>', unsafe_allow_html=True)
+    with col_nav:
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("Entrar", use_container_width=True):
+                st.session_state["show_landing"] = False
+                st.rerun()
+        with c2:
+            if st.button("Ver Planos", use_container_width=True, type="primary"):
+                st.session_state["show_pricing"] = True
+                st.session_state["show_landing"] = False
+                st.rerun()
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Hero
+    st.markdown("""
+    <div style="text-align:center; padding: 3rem 1rem 2rem;">
+      <div class="hero-title">
+        Inteligência Farmacêutica<br>
+        <span class="hero-accent">para o Mercado Brasileiro</span>
+      </div>
+      <p class="hero-sub">
+        Monitore importações, rastreie registros ANVISA e descubra oportunidades<br>
+        de mercado com dados reais e IA — tudo em uma plataforma.
+      </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Stats
+    s1, s2, s3, s4 = st.columns(4)
+    stats = [
+        ("US$ 12.35B", "Importações Cap. 30 · 2024"),
+        ("42.926", "Registros ANVISA"),
+        ("817", "Empresas Mapeadas"),
+        ("208", "NCMs Monitorados"),
+    ]
+    for col, (num, lbl) in zip([s1, s2, s3, s4], stats):
+        col.markdown(f'<div class="stat-box"><div class="stat-num">{num}</div><div class="stat-lbl">{lbl}</div></div>', unsafe_allow_html=True)
+
+    st.markdown("<br><br>", unsafe_allow_html=True)
+
+    # Features + CTA
+    f_col, cta_col = st.columns([3, 2])
+
+    with f_col:
+        st.markdown('<p style="color:#4DB6AC; font-weight:600; font-size:0.85rem; letter-spacing:1px;">FUNCIONALIDADES</p>', unsafe_allow_html=True)
+        features = [
+            ("📊", "Dashboard de Importações", "Dados Comex Stat em tempo real por NCM, país e período"),
+            ("🏛️", "Monitoramento ANVISA", "Registros ativos, vencimentos e alertas de compliance"),
+            ("🤖", "Agente IA", "Análise estratégica com Llama 3.3 70B — pergunte em português"),
+            ("🌍", "Contexto Global", "Dados UN Comtrade para benchmarking internacional"),
+            ("🏢", "Mapa de Empresas", "817 importadores mapeados com CNPJ e portfólio de produtos"),
+        ]
+        for icon, title, desc in features:
+            st.markdown(f"""
+            <div class="feature-item">
+              <span class="feature-icon">{icon}</span>
+              <span class="feature-title">{title}</span>
+              <div class="feature-desc">{desc}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    with cta_col:
+        st.markdown('<p style="color:#4DB6AC; font-weight:600; font-size:0.85rem; letter-spacing:1px;">FONTES DE DADOS</p>', unsafe_allow_html=True)
+        sources = ["MDIC / Comex Stat", "ANVISA Dados Abertos", "UN Comtrade", "Banco Central do Brasil", "ComprasNet"]
+        for s in sources:
+            st.markdown(f'<span class="source-badge">{s}</span>', unsafe_allow_html=True)
+
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        st.markdown('<p style="color:#E2EAF4; font-weight:600; font-size:1rem;">Pronto para começar?</p>', unsafe_allow_html=True)
+        if st.button("Assinar Agora", use_container_width=True, type="primary"):
+            st.session_state["show_pricing"] = True
+            st.session_state["show_landing"] = False
+            st.rerun()
+        st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)
+        if st.button("Já tenho conta — Entrar", use_container_width=True):
+            st.session_state["show_landing"] = False
+            st.rerun()
+
+        st.markdown("""
+        <p style="color:#8899AA; font-size:0.75rem; text-align:center; margin-top:1rem;">
+          Cancele a qualquer momento · Suporte por email
+        </p>
+        """, unsafe_allow_html=True)
+
+    # Footer
+    st.markdown("""
+    <hr style="border-color:#1E3A5F; margin:3rem 0 1rem;">
+    <div style="text-align:center; color:#8899AA; font-size:0.8rem; padding-bottom:2rem;">
+      © 2026 PharmaIntel BR · Dados públicos brasileiros ·
+      <a href="mailto:contato@pharmaintel.com.br" style="color:#4DB6AC;">contato@pharmaintel.com.br</a>
+    </div>
+    """, unsafe_allow_html=True)
+    st.stop()
+
+
 # Gate: show pricing page if requested (unauthenticated)
 if not st.session_state.get("authenticated", False):
     if st.session_state.get("show_pricing", False):
         _page_pricing()
+    elif st.session_state.get("show_landing", True):
+        _page_landing()
     else:
         _login_page()
 

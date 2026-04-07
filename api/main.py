@@ -27,7 +27,8 @@ from typing import Optional
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -108,6 +109,26 @@ def _get_agent(year: int):
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "PharmaIntel BR API", "version": "2.0.0"}
+
+
+@app.get("/ping")
+def ping():
+    """Keepalive endpoint — prevents Render free tier from sleeping."""
+    return PlainTextResponse("pong")
+
+
+@app.get("/robots.txt", response_class=PlainTextResponse)
+def robots():
+    static = ROOT / "static" / "robots.txt"
+    return static.read_text() if static.exists() else "User-agent: *\nAllow: /"
+
+
+@app.get("/sitemap.xml", response_class=PlainTextResponse)
+def sitemap():
+    static = ROOT / "static" / "sitemap.xml"
+    content = static.read_text() if static.exists() else ""
+    from fastapi.responses import Response
+    return Response(content=content, media_type="application/xml")
 
 
 @app.post("/etl/run")
