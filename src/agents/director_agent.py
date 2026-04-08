@@ -437,21 +437,22 @@ class DirectorAgent:
         return response.choices[0].message.content or ""
 
     def chat(self, message: str, lang: str = "PT") -> str:
-        """Send a message and return the director's response."""
+        """Send a message and return the director's response.
+        Priority: Groq (reliable, fast) → Anthropic (full tool calling) → fallback.
+        """
         if not self._client and not self._groq_client:
             return self._fallback_response(message, lang)
 
         self._history.append({"role": "user", "content": message})
 
-        # Use Groq if Anthropic not available
-        if not self._client and self._groq_client:
+        # Try Groq first — context-enriched, always works
+        if self._groq_client:
             try:
                 text = self._chat_groq(message, lang)
                 self._history.append({"role": "assistant", "content": text})
                 return text
             except Exception as exc:
-                logger.error("Groq director error: %s", exc)
-                return self._fallback_response(message, lang)
+                logger.warning("Groq director failed, trying Anthropic: %s", exc)
 
         try:
             response = self._client.messages.create(
