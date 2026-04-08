@@ -193,9 +193,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "login_subtitle":   "Inteligência de Mercado Farmacêutico",
         "login_hint":       "Configure credenciais em <code>.env</code> via APP_USERNAME / APP_PASSWORD",
         # Agent page
-        "agent_active":         "Agente ATIVO — OpenAI GPT-4o mini",
-        "agent_fallback":       "Modo Fallback — Configure OPENAI_API_KEY",
-        "agent_groq_hint":      "Adicione OPENAI_API_KEY nas variáveis de ambiente do Render.",
+        "agent_active":         "Agente ATIVO",
+        "agent_fallback":       "Modo Fallback — Configure a chave de IA",
+        "agent_groq_hint":      "Adicione a chave de IA nas variáveis de ambiente do Render.",
         "agent_suggestions":    "Sugestões:",
         "agent_input":          "Faça uma pergunta sobre o mercado farmacêutico...",
         "agent_spinner":        "PharmaIntel AI está analisando...",
@@ -283,9 +283,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "login_subtitle":   "Pharmaceutical Market Intelligence",
         "login_hint":       "Set credentials in <code>.env</code> via APP_USERNAME / APP_PASSWORD",
         # Agent page
-        "agent_active":         "Agent ACTIVE — OpenAI GPT-4o mini",
-        "agent_fallback":       "Fallback Mode — Set OPENAI_API_KEY",
-        "agent_groq_hint":      "Add OPENAI_API_KEY to Render environment variables.",
+        "agent_active":         "Agent ACTIVE",
+        "agent_fallback":       "Fallback Mode — Set AI key",
+        "agent_groq_hint":      "Add the AI key to Render environment variables.",
         "agent_suggestions":    "Suggestions:",
         "agent_input":          "Ask a question about the pharmaceutical market...",
         "agent_spinner":        "PharmaIntel AI is analyzing...",
@@ -872,17 +872,17 @@ def _page_demo_agent() -> None:
             <div style="background:#0A1628; border:1px solid #1E3A5F; border-radius:10px; padding:1rem 1.5rem; min-width:140px;">
               <div style="color:#4DB6AC; font-weight:700; font-size:0.9rem;">Starter</div>
               <div style="color:#E2EAF4; font-size:1.3rem; font-weight:700; margin:0.25rem 0;">R$ 497<span style="color:#8899AA; font-size:0.7rem;">/{'mo' if is_en else 'mês'}</span></div>
-              <div style="color:#8899AA; font-size:0.72rem;">GPT-4o mini</div>
+              <div style="color:#8899AA; font-size:0.72rem;">{'Data + AI' if is_en else 'Dados + IA'}</div>
             </div>
             <div style="background:#0A1628; border:2px solid #00897B; border-radius:10px; padding:1rem 1.5rem; min-width:140px;">
               <div style="color:#00897B; font-weight:700; font-size:0.9rem;">Pro ★</div>
               <div style="color:#E2EAF4; font-size:1.3rem; font-weight:700; margin:0.25rem 0;">R$ 997<span style="color:#8899AA; font-size:0.7rem;">/{'mo' if is_en else 'mês'}</span></div>
-              <div style="color:#8899AA; font-size:0.72rem;">Claude Sonnet</div>
+              <div style="color:#8899AA; font-size:0.72rem;">{'Advanced AI' if is_en else 'IA Avançada'}</div>
             </div>
             <div style="background:#0A1628; border:1px solid #26C6DA; border-radius:10px; padding:1rem 1.5rem; min-width:140px;">
               <div style="color:#26C6DA; font-weight:700; font-size:0.9rem;">Enterprise</div>
               <div style="color:#E2EAF4; font-size:1.3rem; font-weight:700; margin:0.25rem 0;">R$ 2.497<span style="color:#8899AA; font-size:0.7rem;">/{'mo' if is_en else 'mês'}</span></div>
-              <div style="color:#8899AA; font-size:0.72rem;">Claude Sonnet + API</div>
+              <div style="color:#8899AA; font-size:0.72rem;">{'AI + Full API' if is_en else 'IA + API Completa'}</div>
             </div>
           </div>
         </div>
@@ -948,7 +948,7 @@ def _page_trial_register() -> None:
         included = [
             ("📊", "Import Dashboard" if is_en else "Dashboard de Importações"),
             ("🏛️", "ANVISA Monitoring" if is_en else "Monitoramento ANVISA"),
-            ("🤖", "AI Agent (GPT-4o mini)"),
+            ("🤖", "AI Agent" if is_en else "Agente IA"),
             ("🧬", "Patent Tracker" if is_en else "Rastreador de Patentes"),
             ("🏢", "Company Intelligence" if is_en else "Mapa de Empresas"),
         ]
@@ -1352,7 +1352,7 @@ def _page_landing() -> None:
             features = [
                 ("📊", "Import Dashboard",        "Real-time Comex Stat data by NCM/HS code, country and period"),
                 ("🏛️", "ANVISA Monitoring",       "Active registrations, expiry alerts and compliance tracking"),
-                ("🤖", "AI Agent",                "Strategic analysis with GPT-4o mini / Claude Sonnet — ask in English"),
+                ("🤖", "AI Agent",                "Proprietary AI for strategic market analysis — ask in English"),
                 ("🌍", "Global Context",           "UN Comtrade data for international benchmarking"),
                 ("🏢", "Company Intelligence",     "817 importers mapped with CNPJ and product portfolio"),
                 ("🧬", "Patent Tracker",           "Expiry dates and biosimilar opportunities for key molecules"),
@@ -1361,7 +1361,7 @@ def _page_landing() -> None:
             features = [
                 ("📊", "Dashboard de Importações", "Dados Comex Stat em tempo real por NCM, país e período"),
                 ("🏛️", "Monitoramento ANVISA",     "Registros ativos, vencimentos e alertas de compliance"),
-                ("🤖", "Agente IA",                "Análise estratégica com GPT-4o mini / Claude Sonnet"),
+                ("🤖", "Agente IA",                "IA proprietária para análise estratégica de mercado"),
                 ("🌍", "Contexto Global",           "Dados UN Comtrade para benchmarking internacional"),
                 ("🏢", "Mapa de Empresas",          "817 importadores mapeados com CNPJ e portfólio"),
                 ("🧬", "Patentes",                  "Vencimentos e oportunidades de biossimilares"),

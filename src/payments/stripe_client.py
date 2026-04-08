@@ -41,13 +41,13 @@ PLANS: dict[str, dict] = {
         "color":        "#4DB6AC",
         "description":  "Comece agora — dados e alertas para seu negócio",
         "description_en": "Start now — data and alerts for your business",
-        "ai_model":     "GPT-4o mini",
+        "ai_model":     "AI",
         "features": [
             "Dashboard completo de importações",
             "NCMs ilimitados monitorados",
             "Alertas ANVISA básicos",
             "Dados Comex Stat em tempo real",
-            "Agente IA GPT-4o mini",
+            "Agente IA integrado",
             "Suporte por email",
         ],
         "features_en": [
@@ -55,7 +55,7 @@ PLANS: dict[str, dict] = {
             "Unlimited NCM/HS codes monitored",
             "Basic ANVISA alerts",
             "Real-time Comex Stat data",
-            "AI Agent GPT-4o mini",
+            "Integrated AI Agent",
             "Email support",
         ],
         "prices": {
@@ -70,10 +70,10 @@ PLANS: dict[str, dict] = {
         "color":        "#00897B",
         "description":  "Análise precisa — IA superior para decisões estratégicas",
         "description_en": "Precise analysis — superior AI for strategic decisions",
-        "ai_model":     "Claude Sonnet",
+        "ai_model":     "Advanced AI",
         "features": [
             "Tudo do Starter",
-            "Agente IA Claude Sonnet (mais preciso)",
+            "Agente IA de alta precisão",
             "Alertas ANVISA completos + vencimentos",
             "Patentes e oportunidades de biossimilares",
             "Dados UN Comtrade",
@@ -82,7 +82,7 @@ PLANS: dict[str, dict] = {
         ],
         "features_en": [
             "Everything in Starter",
-            "AI Agent Claude Sonnet (higher accuracy)",
+            "High-accuracy AI Agent",
             "Full ANVISA alerts + expiry tracking",
             "Patent expiration and biosimilar opportunities",
             "UN Comtrade global data",
@@ -101,7 +101,7 @@ PLANS: dict[str, dict] = {
         "color":        "#26C6DA",
         "description":  "Sua equipe toda — API, white-label e suporte dedicado",
         "description_en": "Your whole team — API, white-label and dedicated support",
-        "ai_model":     "Claude Sonnet + API",
+        "ai_model":     "Enterprise AI + API",
         "features": [
             "Tudo do Pro",
             "Acesso à API REST completa",
