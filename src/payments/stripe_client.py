@@ -50,10 +50,10 @@ PLANS: dict[str, dict] = {
             "Suporte por email",
         ],
         "prices": {
-            "monthly":   {"brl": 49700,  "usd": 9700,   "label": "R$ 497",   "usd_label": "US$ 97",    "period_label": "por mês"},
-            "quarterly": {"brl": 134190, "usd": 26190,  "label": "R$ 1.342", "usd_label": "US$ 262",   "period_label": "a cada 3 meses", "saving": "Economize 10%"},
-            "biannual":  {"brl": 253470, "usd": 49470,  "label": "R$ 2.535", "usd_label": "US$ 495",   "period_label": "a cada 6 meses", "saving": "Economize 15%"},
-            "annual":    {"brl": 477120, "usd": 93120,  "label": "R$ 4.771", "usd_label": "US$ 931",   "period_label": "por ano",         "saving": "Economize 20%"},
+            "monthly":   {"brl": 49700,  "usd": 19900,  "label": "R$ 497",   "usd_label": "US$ 199",   "period_label": "por mês"},
+            "quarterly": {"brl": 134190, "usd": 53730,  "label": "R$ 1.342", "usd_label": "US$ 537",   "period_label": "a cada 3 meses", "saving": "Economize 10%"},
+            "biannual":  {"brl": 253470, "usd": 101490, "label": "R$ 2.535", "usd_label": "US$ 1.015", "period_label": "a cada 6 meses", "saving": "Economize 15%"},
+            "annual":    {"brl": 477120, "usd": 191040, "label": "R$ 4.771", "usd_label": "US$ 1.910", "period_label": "por ano",         "saving": "Economize 20%"},
         },
     },
     "pro": {
@@ -71,10 +71,10 @@ PLANS: dict[str, dict] = {
             "Suporte prioritário",
         ],
         "prices": {
-            "monthly":   {"brl": 99700,  "usd": 19700,  "label": "R$ 997",   "usd_label": "US$ 197",   "period_label": "por mês"},
-            "quarterly": {"brl": 269190, "usd": 53190,  "label": "R$ 2.692", "usd_label": "US$ 532",   "period_label": "a cada 3 meses", "saving": "Economize 10%"},
-            "biannual":  {"brl": 508470, "usd": 100470, "label": "R$ 5.085", "usd_label": "US$ 1.005", "period_label": "a cada 6 meses", "saving": "Economize 15%"},
-            "annual":    {"brl": 957120, "usd": 189120, "label": "R$ 9.571", "usd_label": "US$ 1.891", "period_label": "por ano",         "saving": "Economize 20%"},
+            "monthly":   {"brl": 99700,  "usd": 39900,  "label": "R$ 997",   "usd_label": "US$ 399",   "period_label": "por mês"},
+            "quarterly": {"brl": 269190, "usd": 107730, "label": "R$ 2.692", "usd_label": "US$ 1.077", "period_label": "a cada 3 meses", "saving": "Economize 10%"},
+            "biannual":  {"brl": 508470, "usd": 203490, "label": "R$ 5.085", "usd_label": "US$ 2.035", "period_label": "a cada 6 meses", "saving": "Economize 15%"},
+            "annual":    {"brl": 957120, "usd": 383040, "label": "R$ 9.571", "usd_label": "US$ 3.830", "period_label": "por ano",         "saving": "Economize 20%"},
         },
     },
     "enterprise": {
@@ -92,10 +92,10 @@ PLANS: dict[str, dict] = {
             "Suporte dedicado + SLA garantido",
         ],
         "prices": {
-            "monthly":   {"brl": 249700, "usd": 49700,  "label": "R$ 2.497", "usd_label": "US$ 497",   "period_label": "por mês"},
-            "quarterly": {"brl": 674190, "usd": 134190, "label": "R$ 6.742", "usd_label": "US$ 1.342", "period_label": "a cada 3 meses", "saving": "Economize 10%"},
-            "biannual":  {"brl": 1273470,"usd": 253470, "label": "R$ 12.735","usd_label": "US$ 2.535", "period_label": "a cada 6 meses", "saving": "Economize 15%"},
-            "annual":    {"brl": 2397120,"usd": 477120, "label": "R$ 23.971","usd_label": "US$ 4.771", "period_label": "por ano",         "saving": "Economize 20%"},
+            "monthly":   {"brl": 249700, "usd": 129900, "label": "R$ 2.497", "usd_label": "US$ 1.299", "period_label": "por mês"},
+            "quarterly": {"brl": 674190, "usd": 350730, "label": "R$ 6.742", "usd_label": "US$ 3.507", "period_label": "a cada 3 meses", "saving": "Economize 10%"},
+            "biannual":  {"brl": 1273470,"usd": 662490, "label": "R$ 12.735","usd_label": "US$ 6.625", "period_label": "a cada 6 meses", "saving": "Economize 15%"},
+            "annual":    {"brl": 2397120,"usd": 1247040,"label": "R$ 23.971","usd_label": "US$ 12.470","period_label": "por ano",         "saving": "Economize 20%"},
         },
     },
 }
