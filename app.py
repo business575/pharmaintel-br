@@ -545,19 +545,52 @@ def _page_demo_agent() -> None:
             if submitted and question.strip():
                 with st.spinner("Analisando..." if not is_en else "Analyzing..."):
                     try:
-                        import anthropic as _anthropic
-                        _ant = _anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
                         system = _DEMO_SYSTEM_EN if is_en else _DEMO_SYSTEM_PT
-                        resp = _ant.messages.create(
-                            model="claude-sonnet-4-6",
-                            max_tokens=600,
-                            system=system,
-                            messages=[{"role": "user", "content": question.strip()}],
-                        )
-                        answer = resp.content[0].text if resp.content else ""
+                        answer = ""
+                        # 1st: Anthropic Claude Sonnet
+                        anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
+                        if anthropic_key:
+                            try:
+                                import anthropic as _anthropic
+                                _ant = _anthropic.Anthropic(api_key=anthropic_key)
+                                resp = _ant.messages.create(
+                                    model="claude-sonnet-4-6",
+                                    max_tokens=600,
+                                    system=system,
+                                    messages=[{"role": "user", "content": question.strip()}],
+                                )
+                                answer = resp.content[0].text if resp.content else ""
+                            except Exception as exc1:
+                                logger.warning("Anthropic demo failed: %s", exc1)
+
+                        # 2nd fallback: Groq
+                        if not answer:
+                            groq_key = os.getenv("GROQ_API_KEY", "")
+                            if groq_key:
+                                try:
+                                    from groq import Groq
+                                    _groq = Groq(api_key=groq_key)
+                                    gresp = _groq.chat.completions.create(
+                                        model="llama-3.3-70b-versatile",
+                                        messages=[
+                                            {"role": "system", "content": system},
+                                            {"role": "user",   "content": question.strip()},
+                                        ],
+                                        max_tokens=600,
+                                        temperature=0.7,
+                                    )
+                                    answer = gresp.choices[0].message.content or ""
+                                except Exception as exc2:
+                                    logger.warning("Groq demo failed: %s", exc2)
+
+                        if not answer:
+                            raise RuntimeError("All AI providers failed")
+
                     except Exception as exc:
                         logger.error("Demo agent error: %s", exc)
-                        answer = f"[DEBUG] Erro: {exc}"
+                        answer = ("I'm unable to process your question right now. Please try again or contact us at Business@globalhealthcareaccess.com"
+                                  if is_en else
+                                  "Não foi possível processar sua pergunta agora. Tente novamente ou entre em contato: Business@globalhealthcareaccess.com")
 
                 st.session_state["demo_question_used"] = True
                 st.session_state["demo_question_text"] = question.strip()
