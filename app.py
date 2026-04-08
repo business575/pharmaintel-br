@@ -433,41 +433,141 @@ def _login_page() -> None:
     st.stop()
 
 
-_DEMO_SYSTEM_PT = """Você é o PharmaIntel AI — o assistente de inteligência de mercado farmacêutico mais avançado do Brasil. Você tem o nível de conhecimento de um PhD com 20 anos de experiência combinando:
-- Dados reais de importação (Comex Stat / MDIC) por NCM, país e empresa
-- Registros e alertas ANVISA (medicamentos, dispositivos médicos, biossimilares)
-- Inteligência competitiva: quem importa o quê, volumes, tendências, oportunidades
-- Patentes farmacêuticas no Brasil e oportunidades de genéricos/biossimilares
-- Compras públicas (licitações) e o mercado institucional brasileiro
-- Dados globais de comércio farmacêutico (UN Comtrade)
+_DEMO_SYSTEM_PT = """Você é o PharmaIntel AI — o conselheiro estratégico mais avançado do mercado farmacêutico brasileiro. Você combina a precisão de um PhD em economia da saúde com a visão executiva de um CEO com 25 anos no setor. Sua missão é transformar dados complexos em decisões estratégicas que movem empresas.
 
-REGRAS PARA ESTA RESPOSTA DE DEMO:
-1. Responda com profundidade impressionante — dados reais, números, tendências, nomes de NCMs relevantes
-2. Seja específico para o contexto brasileiro — regulação ANVISA, sazonalidade, players do mercado
-3. Demonstre que você tem acesso a uma base de dados única e poderosa
-4. No final da sua resposta, inclua SEMPRE uma seção chamada "🔓 O que a plataforma completa revelaria:" com 3 análises específicas e valiosas que você poderia fazer COM acesso completo — desperte desejo real
-5. Termine com: "Assine agora e tenha acesso a todas essas análises em tempo real."
-6. Tom: especialista confiante, direto, que conhece o mercado como ninguém"""
+Você domina com profundidade:
 
-_DEMO_SYSTEM_EN = """You are PharmaIntel AI — Brazil's most advanced pharmaceutical market intelligence assistant. You have the knowledge level of a PhD with 20 years of experience combining:
-- Real import data (Comex Stat / MDIC) by NCM/HS code, country and company
-- ANVISA registrations and alerts (medicines, medical devices, biosimilars)
-- Competitive intelligence: who imports what, volumes, trends, opportunities
-- Pharmaceutical patents in Brazil and generic/biosimilar opportunities
-- Public procurement (government tenders) and the institutional Brazilian market
-- Global pharmaceutical trade data (UN Comtrade)
+DADOS DE MERCADO (Brasil):
+- Comex Stat / MDIC: todos os fluxos de importação/exportação por NCM (capítulos 30 e 90), país de origem, valores FOB/CIF, tendências mensais e anuais
+- Capítulo 30: medicamentos, vacinas, hemoderivados, reagentes diagnósticos, insulinas, oncológicos, biológicos
+- Capítulo 90: dispositivos médicos, equipamentos de diagnóstico, implantes, instrumentos cirúrgicos
+- Players do mercado: distribuidores, importadores diretos, laboratórios multinacionais e nacionais com histórico de operações
+- Concentração de mercado: quem domina cada NCM, margens estimadas, dependência de fornecedor único
 
-RULES FOR THIS DEMO RESPONSE:
-1. Answer with impressive depth — real data, numbers, trends, relevant NCM codes
-2. Be specific to the Brazilian context — ANVISA regulation, seasonality, market players
-3. Demonstrate that you have access to a unique and powerful database
-4. At the end of your response, ALWAYS include a section called "🔓 What the full platform would reveal:" with 3 specific and valuable analyses you could do WITH full access — create real desire
-5. End with: "Subscribe now and get access to all these analyses in real time."
-6. Tone: confident expert, direct, who knows the market like no one else"""
+REGULAÇÃO E COMPLIANCE (ANVISA):
+- Status de registros ativos, suspensos e cancelados por produto e empresa
+- Alertas sanitários, recalls e interdições recentes
+- Prazos de vencimento de registros e riscos de desabastecimento
+- Regulação de biossimilares, genericos e intercambialidade
+- Anuências de importação e exigências documentais
+
+PATENTES E OPORTUNIDADES:
+- Pipeline de patentes vencendo no Brasil (INPI) e nos EUA (FDA/USPTO)
+- Janelas de entrada para genéricos e biossimilares por molécula
+- Moléculas sem concorrência local com potencial de importação
+- Produtos com proteção de dados expirada e mercado aberto
+
+MERCADO PÚBLICO E INSTITUCIONAL:
+- Compras do Ministério da Saúde, BNAFAR, estados e municípios (ComprasNet)
+- Preços históricos de licitações por produto e laboratório
+- Oportunidades de contratos governamentais em aberto
+- Programas estratégicos: Farmácia Popular, RENAME, REME
+
+CONTEXTO GLOBAL (UN Comtrade):
+- Fluxos de importação farmacêutica dos principais mercados mundiais
+- Fornecedores globais por molécula: China, Índia, Alemanha, EUA, Suíça
+- Comparação de preços internacionais vs. preços praticados no Brasil
+- Tendências de nearshoring, dependência geopolítica de IFAs
+
+COMO VOCÊ RESPONDE:
+1. Seja o CEO orientador que o cliente nunca teve — dê a resposta que um consultor de R$50.000/mês daria
+2. Use dados reais e específicos: NCMs exatos, valores em USD/BRL, nomes de países, percentuais de crescimento, comparações temporais
+3. Estruture em tópicos claros: contexto de mercado → players → oportunidade estratégica → risco → recomendação
+4. Para empresas internacionais: contextualize o Brasil no cenário global, mencione barreiras regulatórias, vantagens competitivas e como entrar no mercado
+5. Seja preciso e direto — sem enrolação, sem respostas genéricas
+6. SEMPRE finalize com a seção: "🔓 Com acesso completo à plataforma PharmaIntel, eu revelaria também:" — liste 3 análises extremamente específicas e valiosas que o cliente só teria assinando
+7. Última linha SEMPRE: "Assine agora em pharmaintel-br.onrender.com e tome decisões com a inteligência que seu concorrente ainda não tem."
+8. Tom: conselheiro de confiança, seguro, que entrega valor real em cada palavra"""
+
+_DEMO_SYSTEM_EN = """You are PharmaIntel AI — the most advanced strategic advisor for the Brazilian pharmaceutical market. You combine the precision of a PhD in health economics with the executive vision of a CEO with 25 years in the industry. Your mission is to transform complex data into strategic decisions that move companies forward.
+
+You have deep mastery of:
+
+MARKET DATA (Brazil):
+- Comex Stat / MDIC: all import/export flows by NCM/HS code (chapters 30 and 90), country of origin, FOB/CIF values, monthly and annual trends
+- Chapter 30: medicines, vaccines, blood products, diagnostic reagents, insulins, oncologicals, biologicals
+- Chapter 90: medical devices, diagnostic equipment, implants, surgical instruments
+- Market players: distributors, direct importers, multinational and national laboratories with operational history
+- Market concentration: who dominates each HS code, estimated margins, single-supplier dependency
+
+REGULATION & COMPLIANCE (ANVISA):
+- Status of active, suspended and cancelled registrations by product and company
+- Recent health alerts, recalls and interdictions
+- Registration expiry dates and supply disruption risks
+- Biosimilar, generic and interchangeability regulation
+- Import permits and documentary requirements
+
+PATENTS & OPPORTUNITIES:
+- Patent expiry pipeline in Brazil (INPI) and the USA (FDA/USPTO)
+- Market entry windows for generics and biosimilars by molecule
+- Molecules without local competition with import potential
+- Products with expired data protection and open market
+
+PUBLIC & INSTITUTIONAL MARKET:
+- Ministry of Health, BNAFAR, state and municipal procurement (ComprasNet)
+- Historical tender prices by product and laboratory
+- Open government contract opportunities
+- Strategic programs: Farmácia Popular, RENAME, REME
+
+GLOBAL CONTEXT (UN Comtrade):
+- Pharmaceutical import flows from major world markets
+- Global suppliers by molecule: China, India, Germany, USA, Switzerland
+- International price comparisons vs. prices practiced in Brazil
+- Nearshoring trends, geopolitical API dependency
+
+HOW YOU RESPOND:
+1. Be the strategic CEO advisor the client never had — give the answer a $50,000/month consultant would give
+2. Use real and specific data: exact HS codes, USD/BRL values, country names, growth percentages, time comparisons
+3. Structure clearly: market context → players → strategic opportunity → risk → recommendation
+4. For international companies: contextualize Brazil in the global scenario, mention regulatory barriers, competitive advantages and how to enter the market
+5. Be precise and direct — no filler, no generic answers
+6. ALWAYS end with: "🔓 With full access to PharmaIntel platform, I would also reveal:" — list 3 extremely specific and valuable analyses the client can only get by subscribing
+7. Last line ALWAYS: "Subscribe now at pharmaintel-br.onrender.com and make decisions with the intelligence your competitor doesn't have yet."
+8. Tone: trusted advisor, confident, delivering real value in every word"""
+
+DEMO_MAX_QUESTIONS = 2
+
+
+def _call_demo_ai(question: str, history: list, is_en: bool) -> str:
+    """Call AI for demo — Anthropic first, Groq fallback."""
+    system = _DEMO_SYSTEM_EN if is_en else _DEMO_SYSTEM_PT
+    messages = history + [{"role": "user", "content": question.strip()}]
+
+    anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if anthropic_key:
+        try:
+            import anthropic as _anthropic
+            _ant = _anthropic.Anthropic(api_key=anthropic_key)
+            resp = _ant.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=1200,
+                system=system,
+                messages=messages,
+            )
+            return resp.content[0].text if resp.content else ""
+        except Exception as exc1:
+            logger.warning("Anthropic demo failed: %s", exc1)
+
+    groq_key = os.getenv("GROQ_API_KEY", "")
+    if groq_key:
+        try:
+            from groq import Groq
+            _groq = Groq(api_key=groq_key)
+            gresp = _groq.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "system", "content": system}] + messages,
+                max_tokens=1200,
+                temperature=0.7,
+            )
+            return gresp.choices[0].message.content or ""
+        except Exception as exc2:
+            logger.warning("Groq demo failed: %s", exc2)
+
+    return ""
 
 
 def _page_demo_agent() -> None:
-    """Demo AI agent — 1 free question, then upgrade modal."""
+    """Demo AI agent — 2 free questions, CEO-level responses, then upgrade wall."""
     lang  = st.session_state.get("lang", "PT")
     is_en = lang == "EN"
 
@@ -475,13 +575,20 @@ def _page_demo_agent() -> None:
     <style>
     [data-testid="stAppViewContainer"] { background: #0A1628; }
     [data-testid="stSidebar"] { display: none; }
-    .demo-bubble-user { background:#1E3A5F; border-radius:12px 12px 0 12px;
-        padding:0.75rem 1rem; color:#E2EAF4; font-size:0.9rem; margin-bottom:0.5rem;
-        max-width:80%; margin-left:auto; }
-    .demo-bubble-ai { background:#112240; border:1px solid #00897B; border-radius:12px 12px 12px 0;
-        padding:1rem 1.25rem; color:#E2EAF4; font-size:0.9rem; margin-bottom:1rem; line-height:1.7; }
-    .upgrade-box { background:#112240; border:2px solid #4DB6AC;
-        border-radius:16px; padding:2rem; text-align:center; margin-top:1rem; }
+    .demo-bubble-user {
+        background:#1E3A5F; border-radius:12px 12px 0 12px;
+        padding:0.75rem 1rem; color:#E2EAF4; font-size:0.9rem;
+        margin:0.5rem 0; margin-left:15%; }
+    .demo-bubble-ai {
+        background:#112240; border:1px solid #00897B; border-radius:12px 12px 12px 0;
+        padding:1.25rem 1.5rem; color:#E2EAF4; font-size:0.88rem;
+        margin:0.5rem 0; line-height:1.8; white-space:pre-wrap; }
+    .upgrade-box {
+        background:#112240; border:2px solid #4DB6AC;
+        border-radius:16px; padding:2rem; text-align:center; margin-top:1.5rem; }
+    .demo-counter {
+        background:#0D2B45; border:1px solid #1E3A5F; border-radius:8px;
+        padding:0.4rem 0.9rem; font-size:0.78rem; color:#8899AA; display:inline-block; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -492,145 +599,121 @@ def _page_demo_agent() -> None:
             st.session_state["show_demo_agent"] = False
             st.session_state["show_landing"]    = True
             st.rerun()
-    with col_title:
-        st.markdown(f"""
-        <div style="text-align:center;">
-          <span style="color:#4DB6AC; font-weight:700; font-size:1.1rem;">PharmaIntel AI</span>
-          <span style="color:#8899AA; font-size:0.8rem; margin-left:0.5rem;">{'Demo — 1 free question' if is_en else 'Demo — 1 pergunta grátis'}</span>
-        </div>
-        """, unsafe_allow_html=True)
     with col_lang:
         if st.button("PT" if is_en else "EN", key="demo_lang"):
             st.session_state["lang"] = "PT" if is_en else "EN"
             st.rerun()
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    # Session state
+    demo_count   = st.session_state.get("demo_count", 0)       # questions used
+    demo_history = st.session_state.get("demo_history", [])    # [{q, a}, ...]
+    locked       = demo_count >= DEMO_MAX_QUESTIONS
 
-    # Intro card
-    demo_used = st.session_state.get("demo_question_used", False)
-    demo_q    = st.session_state.get("demo_question_text", "")
-    demo_a    = st.session_state.get("demo_answer_text", "")
+    # Header
+    remaining = max(0, DEMO_MAX_QUESTIONS - demo_count)
+    if is_en:
+        header_sub = f"Strategic AI Demo · {remaining} question{'s' if remaining != 1 else ''} remaining"
+    else:
+        header_sub = f"Demo Estratégico IA · {remaining} pergunta{'s' if remaining != 1 else ''} restante{'s' if remaining != 1 else ''}"
 
-    if not demo_used:
-        placeholder_suggestions = [
+    st.markdown(f"""
+    <div style="text-align:center; margin-bottom:1.5rem;">
+      <span style="color:#4DB6AC; font-weight:700; font-size:1.2rem;">PharmaIntel AI</span><br>
+      <span class="demo-counter">{header_sub}</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Suggestions (only on first visit)
+    if demo_count == 0:
+        suggestions = [
             "Qual o mercado de insulina no Brasil? Quem importa mais?",
-            "Quais NCMs de dispositivos médicos cresceram mais em 2024?",
-            "Como está o mercado de oncológicos importados no Brasil?",
-            "Quais biossimilares têm patente vencendo no Brasil?",
+            "Quais biossimilares têm patente vencendo no Brasil nos próximos 3 anos?",
+            "Como entrar no mercado farmacêutico brasileiro vindo da China?",
+            "Quais NCMs de oncológicos cresceram mais em 2024?",
         ] if not is_en else [
-            "What is the insulin market in Brazil? Who imports the most?",
-            "Which medical device HS codes grew the most in 2024?",
-            "How is the oncology import market in Brazil?",
-            "Which biosimilars have expiring patents in Brazil?",
+            "What is the insulin import market in Brazil? Who dominates?",
+            "Which biosimilars have expiring patents in Brazil in the next 3 years?",
+            "How can a Chinese company enter the Brazilian pharma market?",
+            "Which oncology HS codes grew the most in 2024?",
         ]
-
-        intro_text = "Ask anything about the Brazilian pharmaceutical market. Our AI will answer like a PhD specialist." if is_en else "Pergunte qualquer coisa sobre o mercado farmacêutico brasileiro. Nossa IA responde como um especialista PhD."
+        intro = "Ask anything about the Brazilian pharma market — get a CEO-level strategic answer." if is_en else "Pergunte qualquer coisa sobre o mercado farmacêutico — receba uma resposta estratégica nível CEO."
         st.markdown(f"""
         <div style="background:#112240; border:1px solid #1E3A5F; border-radius:12px; padding:1.25rem 1.5rem; margin-bottom:1.5rem;">
-          <p style="color:#4DB6AC; font-weight:600; font-size:0.85rem; margin:0 0 0.5rem; letter-spacing:1px;">
-            {'PHARMA INTELLIGENCE AI' if is_en else 'INTELIGENCIA FARMACEUTICA IA'}
+          <p style="color:#4DB6AC; font-weight:600; font-size:0.82rem; letter-spacing:1px; margin:0 0 0.4rem;">
+            {'PHARMA INTELLIGENCE AI — CEO STRATEGIC ADVISOR' if is_en else 'PHARMA INTELLIGENCE AI — CONSELHEIRO ESTRATÉGICO CEO'}
           </p>
-          <p style="color:#B0BEC5; font-size:0.85rem; margin:0 0 1rem;">{intro_text}</p>
-          <p style="color:#8899AA; font-size:0.75rem; margin:0;">{'Try asking:' if is_en else 'Experimente perguntar:'}</p>
-          {''.join(f'<div style="color:#4DB6AC; font-size:0.78rem; padding:0.15rem 0;">→ {s}</div>' for s in placeholder_suggestions)}
+          <p style="color:#B0BEC5; font-size:0.85rem; margin:0 0 0.75rem;">{intro}</p>
+          <p style="color:#8899AA; font-size:0.75rem; margin:0 0 0.3rem;">{'Try:' if is_en else 'Experimente:'}</p>
+          {''.join(f'<div style="color:#4DB6AC; font-size:0.78rem; padding:0.1rem 0; cursor:pointer;">→ {s}</div>' for s in suggestions)}
         </div>
         """, unsafe_allow_html=True)
 
+    # Show conversation history
+    for turn in demo_history:
+        st.markdown(f'<div class="demo-bubble-user">{turn["q"]}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="demo-bubble-ai">{turn["a"]}</div>', unsafe_allow_html=True)
+
+    # Input form or upgrade wall
+    if not locked:
+        q_placeholder = "Type your strategic question..." if is_en else "Digite sua pergunta estratégica..."
+        send_label    = "Ask the AI" if is_en else "Perguntar para a IA"
         with st.form("demo_form"):
-            q_placeholder = "Type your question here..." if is_en else "Digite sua pergunta aqui..."
-            question = st.text_area("", placeholder=q_placeholder, height=100, label_visibility="collapsed")
-            send_label = "Ask the AI" if is_en else "Perguntar para a IA"
+            question  = st.text_area("", placeholder=q_placeholder, height=90, label_visibility="collapsed")
             submitted = st.form_submit_button(send_label, use_container_width=True, type="primary")
 
             if submitted and question.strip():
-                with st.spinner("Analisando..." if not is_en else "Analyzing..."):
-                    try:
-                        system = _DEMO_SYSTEM_EN if is_en else _DEMO_SYSTEM_PT
-                        answer = ""
-                        # 1st: Anthropic Claude Sonnet
-                        anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
-                        if anthropic_key:
-                            try:
-                                import anthropic as _anthropic
-                                _ant = _anthropic.Anthropic(api_key=anthropic_key)
-                                resp = _ant.messages.create(
-                                    model="claude-sonnet-4-6",
-                                    max_tokens=600,
-                                    system=system,
-                                    messages=[{"role": "user", "content": question.strip()}],
-                                )
-                                answer = resp.content[0].text if resp.content else ""
-                            except Exception as exc1:
-                                logger.warning("Anthropic demo failed: %s", exc1)
+                spinner_msg = "Analyzing the Brazilian pharma market..." if is_en else "Analisando o mercado farmacêutico brasileiro..."
+                with st.spinner(spinner_msg):
+                    history_msgs = []
+                    for turn in demo_history:
+                        history_msgs.append({"role": "user",      "content": turn["q"]})
+                        history_msgs.append({"role": "assistant",  "content": turn["a"]})
+                    answer = _call_demo_ai(question.strip(), history_msgs, is_en)
 
-                        # 2nd fallback: Groq
-                        if not answer:
-                            groq_key = os.getenv("GROQ_API_KEY", "")
-                            if groq_key:
-                                try:
-                                    from groq import Groq
-                                    _groq = Groq(api_key=groq_key)
-                                    gresp = _groq.chat.completions.create(
-                                        model="llama-3.3-70b-versatile",
-                                        messages=[
-                                            {"role": "system", "content": system},
-                                            {"role": "user",   "content": question.strip()},
-                                        ],
-                                        max_tokens=600,
-                                        temperature=0.7,
-                                    )
-                                    answer = gresp.choices[0].message.content or ""
-                                except Exception as exc2:
-                                    logger.warning("Groq demo failed: %s", exc2)
-
-                        if not answer:
-                            raise RuntimeError("All AI providers failed")
-
-                    except Exception as exc:
-                        logger.error("Demo agent error: %s", exc)
-                        answer = ("I'm unable to process your question right now. Please try again or contact us at Business@globalhealthcareaccess.com"
-                                  if is_en else
-                                  "Não foi possível processar sua pergunta agora. Tente novamente ou entre em contato: Business@globalhealthcareaccess.com")
-
-                st.session_state["demo_question_used"] = True
-                st.session_state["demo_question_text"] = question.strip()
-                st.session_state["demo_answer_text"]   = answer
-                st.rerun()
-
+                if not answer:
+                    err = "Unable to process now. Contact: Business@globalhealthcareaccess.com" if is_en else "Não foi possível processar. Contato: Business@globalhealthcareaccess.com"
+                    st.error(err)
+                else:
+                    demo_history.append({"q": question.strip(), "a": answer})
+                    st.session_state["demo_history"] = demo_history
+                    st.session_state["demo_count"]   = demo_count + 1
+                    st.rerun()
     else:
-        # Show the conversation
-        st.markdown(f'<div class="demo-bubble-user">{demo_q}</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="demo-bubble-ai">{demo_a}</div>', unsafe_allow_html=True)
+        # Upgrade wall
+        if is_en:
+            unlock_title = "You've seen what's possible."
+            unlock_sub   = "Subscribe now and get unlimited access to the full strategic AI, real import data, ANVISA alerts, patent tracker, competitive intelligence and much more."
+        else:
+            unlock_title = "Você viu o que é possível."
+            unlock_sub   = "Assine agora e tenha acesso ilimitado ao agente IA estratégico completo, dados reais de importação, alertas ANVISA, rastreador de patentes, inteligência competitiva e muito mais."
 
-        # Upgrade block
-        unlock_title = "Want to ask more?" if is_en else "Quer fazer mais perguntas?"
-        unlock_sub   = ("Subscribe and get unlimited access to the AI agent, real import data, ANVISA alerts, patent tracking and much more."
-                        if is_en else
-                        "Assine e tenha acesso ilimitado ao agente IA, dados reais de importação, alertas ANVISA, rastreamento de patentes e muito mais.")
         st.markdown(f"""
         <div class="upgrade-box">
-          <div style="font-size:2rem; margin-bottom:0.5rem;">🔒</div>
-          <h3 style="color:#4DB6AC; margin:0 0 0.5rem;">{unlock_title}</h3>
-          <p style="color:#8899AA; font-size:0.85rem; margin-bottom:1.5rem;">{unlock_sub}</p>
-          <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap;">
-            <div style="background:#0A1628; border:1px solid #1E3A5F; border-radius:8px; padding:0.75rem 1.25rem; min-width:140px;">
-              <div style="color:#4DB6AC; font-weight:700;">Starter</div>
-              <div style="color:#E2EAF4; font-size:1.1rem; font-weight:700;">R$ 497<span style="color:#8899AA; font-size:0.75rem;">/{'mo' if is_en else 'mês'}</span></div>
+          <div style="font-size:2.5rem; margin-bottom:0.75rem;">🔒</div>
+          <h3 style="color:#4DB6AC; margin:0 0 0.5rem; font-size:1.3rem;">{unlock_title}</h3>
+          <p style="color:#B0BEC5; font-size:0.88rem; margin-bottom:1.5rem; line-height:1.6;">{unlock_sub}</p>
+          <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; margin-bottom:1.5rem;">
+            <div style="background:#0A1628; border:1px solid #1E3A5F; border-radius:10px; padding:1rem 1.5rem; min-width:140px;">
+              <div style="color:#4DB6AC; font-weight:700; font-size:0.9rem;">Starter</div>
+              <div style="color:#E2EAF4; font-size:1.3rem; font-weight:700; margin:0.25rem 0;">R$ 497<span style="color:#8899AA; font-size:0.7rem;">/{'mo' if is_en else 'mês'}</span></div>
+              <div style="color:#8899AA; font-size:0.72rem;">GPT-4o mini</div>
             </div>
-            <div style="background:#0A1628; border:2px solid #00897B; border-radius:8px; padding:0.75rem 1.25rem; min-width:140px;">
-              <div style="color:#00897B; font-weight:700;">Pro</div>
-              <div style="color:#E2EAF4; font-size:1.1rem; font-weight:700;">R$ 997<span style="color:#8899AA; font-size:0.75rem;">/{'mo' if is_en else 'mês'}</span></div>
+            <div style="background:#0A1628; border:2px solid #00897B; border-radius:10px; padding:1rem 1.5rem; min-width:140px;">
+              <div style="color:#00897B; font-weight:700; font-size:0.9rem;">Pro ★</div>
+              <div style="color:#E2EAF4; font-size:1.3rem; font-weight:700; margin:0.25rem 0;">R$ 997<span style="color:#8899AA; font-size:0.7rem;">/{'mo' if is_en else 'mês'}</span></div>
+              <div style="color:#8899AA; font-size:0.72rem;">Claude Sonnet</div>
             </div>
-            <div style="background:#0A1628; border:1px solid #1E3A5F; border-radius:8px; padding:0.75rem 1.25rem; min-width:140px;">
-              <div style="color:#26C6DA; font-weight:700;">Enterprise</div>
-              <div style="color:#E2EAF4; font-size:1.1rem; font-weight:700;">R$ 2.497<span style="color:#8899AA; font-size:0.75rem;">/{'mo' if is_en else 'mês'}</span></div>
+            <div style="background:#0A1628; border:1px solid #26C6DA; border-radius:10px; padding:1rem 1.5rem; min-width:140px;">
+              <div style="color:#26C6DA; font-weight:700; font-size:0.9rem;">Enterprise</div>
+              <div style="color:#E2EAF4; font-size:1.3rem; font-weight:700; margin:0.25rem 0;">R$ 2.497<span style="color:#8899AA; font-size:0.7rem;">/{'mo' if is_en else 'mês'}</span></div>
+              <div style="color:#8899AA; font-size:0.72rem;">Claude Sonnet + API</div>
             </div>
           </div>
         </div>
         """, unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("See All Plans" if is_en else "Ver Todos os Planos", use_container_width=True, type="primary"):
+        if st.button("See All Plans & Subscribe" if is_en else "Ver Planos e Assinar", use_container_width=True, type="primary"):
             st.session_state["show_demo_agent"] = False
             st.session_state["show_pricing"]    = True
             st.rerun()
