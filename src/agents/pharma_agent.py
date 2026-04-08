@@ -12,10 +12,12 @@ Arquitetura: agentic loop com tool calling nativo.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
 import re
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
@@ -35,7 +37,43 @@ PROCESSED_DIR = Path(__file__).resolve().parents[2] / "data" / "processed"
 PATENTS_PATH  = Path(__file__).resolve().parents[2] / "data" / "patents.json"
 GROQ_MODEL    = "llama-3.3-70b-versatile"
 MAX_ITERATIONS = 6
-MAX_HISTORY    = 20
+MAX_HISTORY    = 12          # reduzido de 20 → economiza tokens por requisição
+MAX_TOKENS     = 1024        # reduzido de 2048 → ~50% menos tokens por resposta
+MAX_RETRIES    = 3           # tentativas em caso de rate limit
+CACHE_TTL_S    = 3600        # cache de respostas: 1 hora
+
+# ---------------------------------------------------------------------------
+# Response cache — evita chamar Groq para perguntas idênticas
+# ---------------------------------------------------------------------------
+_response_cache: dict[str, tuple[float, "AgentResponse"]] = {}
+
+def _cache_key(message: str, year: int) -> str:
+    return hashlib.md5(f"{year}:{message.strip().lower()}".encode()).hexdigest()
+
+def _cache_get(key: str) -> Optional["AgentResponse"]:
+    if key in _response_cache:
+        ts, resp = _response_cache[key]
+        if time.time() - ts < CACHE_TTL_S:
+            return resp
+        del _response_cache[key]
+    return None
+
+def _cache_set(key: str, resp: "AgentResponse") -> None:
+    # Limita o cache a 200 entradas para não vazar memória
+    if len(_response_cache) >= 200:
+        oldest = min(_response_cache, key=lambda k: _response_cache[k][0])
+        del _response_cache[oldest]
+    _response_cache[key] = (time.time(), resp)
+
+def _parse_wait_seconds(err_str: str) -> float:
+    """Parse seconds to wait from Groq rate limit error message."""
+    m = re.search(r"try again in ([\d]+)m([\d.]+)s", err_str)
+    if m:
+        return int(m.group(1)) * 60 + float(m.group(2))
+    m = re.search(r"try again in ([\d.]+)s", err_str)
+    if m:
+        return float(m.group(1))
+    return 60.0  # default: wait 60s
 
 SYSTEM_PROMPT = """Você é o **PharmaIntel AI** — especialista em mercado farmacêutico brasileiro com profundo conhecimento em:
 
@@ -951,7 +989,15 @@ class PharmaAgent:
         if not self.is_available:
             return self._fallback(message)
 
+        # ── Cache hit — pergunta idêntica respondida recentemente ─────────
+        ck = _cache_key(message, self.year)
+        cached = _cache_get(ck)
+        if cached:
+            logger.info("Cache hit para: %.60s", message)
+            return cached
+
         self._history.append({"role": "user", "content": message})
+        # Mantém apenas as últimas MAX_HISTORY trocas → economiza tokens
         if len(self._history) > MAX_HISTORY * 2:
             self._history = self._history[-MAX_HISTORY * 2:]
 
@@ -960,32 +1006,54 @@ class PharmaAgent:
         tokens_used = 0
 
         for _ in range(MAX_ITERATIONS):
-            try:
-                resp = self._client.chat.completions.create(
-                    model=GROQ_MODEL,
-                    messages=messages,
-                    tools=TOOLS,
-                    tool_choice="auto",
-                    temperature=0.3,
-                    max_tokens=2048,
-                )
-            except Exception as exc:
-                err_str = str(exc)
-                logger.error("Groq API error: %s", err_str)
-                # Parse wait time from rate-limit message for a user-friendly response
-                wait_match = re.search(r"Please try again in ([\d]+m[\d.]+s|[\d.]+s)", err_str)
-                wait_str = wait_match.group(1) if wait_match else "alguns minutos"
-                if "rate_limit_exceeded" in err_str or "429" in err_str:
-                    return AgentResponse(
-                        text=(
-                            f"**Limite diário de tokens Groq atingido.**\n\n"
-                            f"O plano gratuito permite 100.000 tokens/dia. "
-                            f"Tente novamente em **{wait_str}**.\n\n"
-                            f"Para uso ilimitado, faça upgrade em: https://console.groq.com/settings/billing"
-                        ),
-                        error=err_str,
+            # ── Retry com backoff em caso de rate limit ───────────────────
+            resp = None
+            for attempt in range(MAX_RETRIES):
+                try:
+                    resp = self._client.chat.completions.create(
+                        model=GROQ_MODEL,
+                        messages=messages,
+                        tools=TOOLS,
+                        tool_choice="auto",
+                        temperature=0.3,
+                        max_tokens=MAX_TOKENS,
                     )
-                return AgentResponse(text="", error=err_str)
+                    break  # sucesso — sai do retry loop
+                except Exception as exc:
+                    err_str = str(exc)
+                    is_rate_limit = "rate_limit" in err_str or "429" in err_str
+
+                    if is_rate_limit and attempt < MAX_RETRIES - 1:
+                        wait_s = _parse_wait_seconds(err_str)
+                        wait_s = min(wait_s, 65)  # nunca espera mais de 65s
+                        logger.warning(
+                            "Groq rate limit — aguardando %.1fs (tentativa %d/%d)",
+                            wait_s, attempt + 1, MAX_RETRIES,
+                        )
+                        time.sleep(wait_s)
+                        continue
+
+                    # Rate limit esgotado após retries, ou outro erro
+                    logger.error("Groq API error: %s", err_str)
+                    if is_rate_limit:
+                        wait_s = _parse_wait_seconds(err_str)
+                        mins = int(wait_s // 60)
+                        secs = int(wait_s % 60)
+                        wait_str = f"{mins}m {secs}s" if mins else f"{secs}s"
+                        result = AgentResponse(
+                            text=(
+                                f"⏳ **Limite de requisições Groq atingido.**\n\n"
+                                f"Aguarde **{wait_str}** e tente novamente.\n\n"
+                                f"*Dica: perguntas repetidas são respondidas do cache sem consumir tokens.*"
+                            ),
+                            error=err_str,
+                        )
+                    else:
+                        result = AgentResponse(text="Erro ao conectar ao agente IA. Tente novamente.", error=err_str)
+                    return result
+
+            if resp is None:
+                return AgentResponse(text="Erro ao conectar ao agente IA. Tente novamente.", error="no response")
 
             if resp.usage:
                 tokens_used += resp.usage.total_tokens
@@ -1012,7 +1080,13 @@ class PharmaAgent:
 
             text = choice.message.content or ""
             self._history.append({"role": "assistant", "content": text})
-            return AgentResponse(text=text, tool_calls_made=tool_calls_made, tokens_used=tokens_used)
+            result = AgentResponse(text=text, tool_calls_made=tool_calls_made, tokens_used=tokens_used)
+
+            # Só cacheia respostas bem-sucedidas
+            if text:
+                _cache_set(ck, result)
+
+            return result
 
         return AgentResponse(
             text="Limite de iterações atingido. Tente reformular a pergunta.",
