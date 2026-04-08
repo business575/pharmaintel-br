@@ -38,22 +38,39 @@ except ImportError:
     OPENAI_AVAILABLE = False
     OpenAI = None  # type: ignore
 
+try:
+    import anthropic as _anthropic
+    ANTHROPIC_AVAILABLE = True
+except ImportError:
+    ANTHROPIC_AVAILABLE = False
+    _anthropic = None  # type: ignore
+
 logger = logging.getLogger(__name__)
 
 PROCESSED_DIR = Path(__file__).resolve().parents[2] / "data" / "processed"
 PATENTS_PATH  = Path(__file__).resolve().parents[2] / "data" / "patents.json"
 BUDGET_PATH   = Path(__file__).resolve().parents[2] / "data" / "ai_budget.json"
 
-OPENAI_MODEL   = "gpt-4o-mini"
+# Models per plan
+MODEL_STARTER    = "gpt-4o-mini"          # OpenAI — Starter
+MODEL_PRO        = "claude-sonnet-4-6"    # Anthropic — Pro + Enterprise
+PLANS_PRO_MODELS = {"pro", "enterprise"}  # plans that use Claude Sonnet
+
 MAX_ITERATIONS = 6
 MAX_HISTORY    = 12
 MAX_TOKENS     = 1024
 MAX_RETRIES    = 3
 CACHE_TTL_S    = 3600  # 1 hora
 
-# GPT-4o mini pricing (USD per token)
-COST_INPUT_PER_TOKEN  = 0.150 / 1_000_000   # $0.150 / 1M tokens
-COST_OUTPUT_PER_TOKEN = 0.600 / 1_000_000   # $0.600 / 1M tokens
+# Pricing (USD per token) — used for budget tracking
+COST_GPT_INPUT   = 0.150 / 1_000_000   # GPT-4o mini input
+COST_GPT_OUTPUT  = 0.600 / 1_000_000   # GPT-4o mini output
+COST_CLAUDE_INPUT  = 3.00 / 1_000_000  # Claude Sonnet input
+COST_CLAUDE_OUTPUT = 15.0 / 1_000_000  # Claude Sonnet output
+
+# Default (GPT-4o mini) — overridden per call based on plan
+COST_INPUT_PER_TOKEN  = COST_GPT_INPUT
+COST_OUTPUT_PER_TOKEN = COST_GPT_OUTPUT
 
 # ---------------------------------------------------------------------------
 # Budget tracker
@@ -191,6 +208,41 @@ def _cache_set(key: str, resp: "AgentResponse") -> None:
         oldest = min(_response_cache, key=lambda k: _response_cache[k][0])
         del _response_cache[oldest]
     _response_cache[key] = (time.time(), resp)
+
+def _normalize_anthropic(resp: Any) -> Any:
+    """
+    Normalize Anthropic response to a duck-typed object that matches
+    the OpenAI response structure used in the chat loop.
+    """
+    from types import SimpleNamespace
+
+    tool_calls = []
+    text_content = ""
+    finish_reason = "stop"
+
+    for block in resp.content:
+        if block.type == "text":
+            text_content = block.text
+        elif block.type == "tool_use":
+            finish_reason = "tool_calls"
+            tc = SimpleNamespace(
+                id=block.id,
+                function=SimpleNamespace(
+                    name=block.name,
+                    arguments=json.dumps(block.input),
+                ),
+            )
+            tool_calls.append(tc)
+
+    normalized = SimpleNamespace(
+        finish_reason=finish_reason,
+        content=text_content,
+        tool_calls=tool_calls,
+        _input_tokens=resp.usage.input_tokens if resp.usage else 0,
+        _output_tokens=resp.usage.output_tokens if resp.usage else 0,
+    )
+    return normalized
+
 
 def _parse_wait_seconds(err_str: str) -> float:
     """Parse retry-after seconds from OpenAI rate limit error."""
@@ -1096,20 +1148,32 @@ class PharmaAgent:
 
     def __init__(self, year: int = 2024, api_key: str = "") -> None:
         self.year = year
-        self._api_key = api_key or os.getenv("OPENAI_API_KEY", "")
-        self._client: Optional[Any] = None
+        self._openai_key    = os.getenv("OPENAI_API_KEY", "")
+        self._anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
+        self._openai_client:    Optional[Any] = None
+        self._anthropic_client: Optional[Any] = None
+        self._client: Optional[Any] = None  # active client (set per call)
         self._history: list[dict] = []
         self._executor = ToolExecutor(year=year)
 
-        if OPENAI_AVAILABLE and self._api_key:
+        # Initialize OpenAI (Starter)
+        if OPENAI_AVAILABLE and self._openai_key:
             try:
-                self._client = OpenAI(api_key=self._api_key)
-                logger.info("OpenAI ready — model: %s", OPENAI_MODEL)
+                self._openai_client = OpenAI(api_key=self._openai_key)
+                logger.info("OpenAI ready — %s", MODEL_STARTER)
             except Exception as exc:
                 logger.error("OpenAI init failed: %s", exc)
-        else:
-            reason = "openai not installed" if not OPENAI_AVAILABLE else "OPENAI_API_KEY not set"
-            logger.warning("Agent in fallback mode: %s", reason)
+
+        # Initialize Anthropic (Pro + Enterprise)
+        if ANTHROPIC_AVAILABLE and self._anthropic_key:
+            try:
+                self._anthropic_client = _anthropic.Anthropic(api_key=self._anthropic_key)
+                logger.info("Anthropic ready — %s", MODEL_PRO)
+            except Exception as exc:
+                logger.error("Anthropic init failed: %s", exc)
+
+        # Fallback: use whichever is available
+        self._client = self._openai_client or self._anthropic_client
 
     @property
     def is_available(self) -> bool:
@@ -1119,20 +1183,17 @@ class PharmaAgent:
         if not self.is_available:
             return self._fallback(message)
 
-        # ── Verificação de cota por cliente ───────────────────────────────
-        if user_email:
-            from src.agents.quota import get_user_quota, quota_status_message
-            quota = get_user_quota(user_email, user_plan)
-            if not quota["allowed"]:
-                return AgentResponse(
-                    text=quota_status_message(quota),
-                    error="quota_exceeded",
-                )
+        # ── Seleciona modelo e cliente por plano ─────────────────────────
+        use_claude = user_plan in PLANS_PRO_MODELS and self._anthropic_client is not None
+        active_model = MODEL_PRO if use_claude else MODEL_STARTER
+        cost_in  = COST_CLAUDE_INPUT  if use_claude else COST_GPT_INPUT
+        cost_out = COST_CLAUDE_OUTPUT if use_claude else COST_GPT_OUTPUT
 
-        # ── Verificação de orçamento global ───────────────────────────────
+        # ── Verificação de orçamento global (sem bloquear usuários) ──────
         allowed, budget_msg = _check_budget()
         if not allowed:
-            return AgentResponse(text=budget_msg, error="budget_exceeded")
+            logger.warning("Budget exceeded — notifying admin only, user continues")
+            # Apenas loga — não bloqueia o cliente
 
         # ── Cache hit — pergunta idêntica respondida recentemente ─────────
         ck = _cache_key(message, self.year)
@@ -1151,57 +1212,63 @@ class PharmaAgent:
         tokens_output_total = 0
 
         for _ in range(MAX_ITERATIONS):
-            # ── Retry com backoff em caso de rate limit ───────────────────
             resp = None
             for attempt in range(MAX_RETRIES):
                 try:
-                    resp = self._client.chat.completions.create(
-                        model=OPENAI_MODEL,
-                        messages=messages,
-                        tools=TOOLS,
-                        tool_choice="auto",
-                        temperature=0.3,
-                        max_tokens=MAX_TOKENS,
-                    )
+                    if use_claude:
+                        # ── Anthropic Claude Sonnet (Pro/Enterprise) ──────
+                        claude_resp = self._anthropic_client.messages.create(
+                            model=MODEL_PRO,
+                            max_tokens=MAX_TOKENS,
+                            system=SYSTEM_PROMPT,
+                            messages=[m for m in messages if m["role"] != "system"],
+                            tools=[{
+                                "name": t["function"]["name"],
+                                "description": t["function"]["description"],
+                                "input_schema": t["function"]["parameters"],
+                            } for t in TOOLS],
+                        )
+                        # Normalize to OpenAI-like structure
+                        resp = _normalize_anthropic(claude_resp)
+                    else:
+                        # ── OpenAI GPT-4o mini (Starter) ─────────────────
+                        resp = self._openai_client.chat.completions.create(
+                            model=MODEL_STARTER,
+                            messages=messages,
+                            tools=TOOLS,
+                            tool_choice="auto",
+                            temperature=0.3,
+                            max_tokens=MAX_TOKENS,
+                        )
                     break
                 except Exception as exc:
                     err_str = str(exc)
-                    is_rate_limit = "rate_limit" in err_str or "429" in err_str
-
+                    is_rate_limit = "rate_limit" in err_str or "429" in err_str or "overloaded" in err_str
                     if is_rate_limit and attempt < MAX_RETRIES - 1:
                         wait_s = min(_parse_wait_seconds(err_str), 65)
-                        logger.warning(
-                            "OpenAI rate limit — aguardando %.1fs (tentativa %d/%d)",
-                            wait_s, attempt + 1, MAX_RETRIES,
-                        )
+                        logger.warning("Rate limit — aguardando %.1fs (%s)", wait_s, active_model)
                         time.sleep(wait_s)
                         continue
-
-                    logger.error("OpenAI API error: %s", err_str)
+                    logger.error("API error (%s): %s", active_model, err_str)
                     if is_rate_limit:
                         wait_s = _parse_wait_seconds(err_str)
                         mins, secs = int(wait_s // 60), int(wait_s % 60)
                         wait_str = f"{mins}m {secs}s" if mins else f"{secs}s"
                         return AgentResponse(
-                            text=(
-                                f"⏳ **Limite temporário da API atingido.**\n\n"
-                                f"Aguarde **{wait_str}** e tente novamente."
-                            ),
+                            text=f"⏳ **Limite temporário da API atingido.**\n\nAguarde **{wait_str}** e tente novamente.",
                             error=err_str,
                         )
                     return AgentResponse(text="Erro ao conectar ao agente IA. Tente novamente.", error=err_str)
 
             if resp is None:
-                return AgentResponse(text="Erro ao conectar ao agente IA. Tente novamente.", error="no response")
+                return AgentResponse(text="Erro ao conectar ao agente IA.", error="no response")
 
-            if resp.usage:
-                tokens_input_total  += resp.usage.prompt_tokens
-                tokens_output_total += resp.usage.completion_tokens
-            choice = resp.choices[0]
+            tokens_input_total  += getattr(resp, "_input_tokens", 0) or 0
+            tokens_output_total += getattr(resp, "_output_tokens", 0) or 0
 
-            if choice.finish_reason == "tool_calls":
+            if resp.finish_reason == "tool_calls":
                 tool_msgs = []
-                for tc in choice.message.tool_calls:
+                for tc in resp.tool_calls:
                     name = tc.function.name
                     try:
                         args = json.loads(tc.function.arguments or "{}")
@@ -1214,36 +1281,24 @@ class PharmaAgent:
                         "tool_call_id": tc.id,
                         "content": result_str,
                     })
-                messages.append(choice.message)
+                messages.append({"role": "assistant", "content": None, "tool_calls": resp.tool_calls})
                 messages.extend(tool_msgs)
                 continue
 
-            text = choice.message.content or ""
+            text = resp.content or ""
             self._history.append({"role": "assistant", "content": text})
 
-            # Registra uso e custo
-            budget = _add_usage(tokens_input_total, tokens_output_total)
+            # Registra custo
+            cost = tokens_input_total * cost_in + tokens_output_total * cost_out
+            _add_usage(tokens_input_total, tokens_output_total)
             total_tokens = tokens_input_total + tokens_output_total
-            logger.info(
-                "OpenAI usage — in=%d out=%d cost=US$%.4f | mensal=US$%.4f/US$%.4f",
-                tokens_input_total, tokens_output_total,
-                total_tokens * COST_INPUT_PER_TOKEN,
-                budget["cost_usd"], _budget_limit_usd(),
-            )
+            logger.info("AI usage — model=%s in=%d out=%d cost=US$%.4f", active_model, tokens_input_total, tokens_output_total, cost)
 
             result = AgentResponse(text=text, tool_calls_made=tool_calls_made, tokens_used=total_tokens)
             if text:
                 _cache_set(ck, result)
-                # Consome 1 mensagem da cota do cliente
-                if user_email:
-                    from src.agents.quota import consume_message, quota_status_message
-                    quota = consume_message(user_email, user_plan)
-                    warn = quota_status_message(quota)
-                    if warn:
-                        result.text = result.text + f"\n\n---\n{warn}"
             return result
 
-        # Registra mesmo em caso de max iterations
         _add_usage(tokens_input_total, tokens_output_total)
         return AgentResponse(
             text="Limite de iterações atingido. Tente reformular a pergunta.",
