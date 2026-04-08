@@ -344,10 +344,12 @@ def _check_password(username: str, password: str) -> bool:
         init_db()
         user = get_user_by_email(username.strip())
         if user and user.check_password(password) and user.has_active_subscription:
-            st.session_state["subscriber_plan"]   = user.plan
+            st.session_state["subscriber_plan"]    = user.plan
             st.session_state["subscriber_period"]  = user.period
             st.session_state["subscriber_email"]   = user.email
             st.session_state["stripe_customer_id"] = user.stripe_customer_id
+            st.session_state["is_trial"]           = bool(user.is_trial)
+            st.session_state["trial_days_left"]    = user.trial_days_remaining if user.is_trial else 0
             return True
     except Exception:
         pass
@@ -403,12 +405,20 @@ def _login_page() -> None:
                     st.error(_t("login_error"), icon="🔒")
 
         st.markdown("---")
-        st.markdown("""
+        login_lang = st.session_state.get("lang", "PT")
+        no_account_txt = "Don't have an account yet?" if login_lang == "EN" else "Ainda não tem acesso?"
+        st.markdown(f"""
         <div style="text-align:center;">
-          <p style="color:#8899AA; font-size:0.85rem; margin:0 0 0.5rem;">Ainda não tem acesso?</p>
+          <p style="color:#8899AA; font-size:0.85rem; margin:0 0 0.5rem;">{no_account_txt}</p>
         </div>
         """, unsafe_allow_html=True)
-        if st.button("Ver Planos e Preços", use_container_width=True):
+        trial_btn_label = "Start Free 7-Day Trial" if login_lang == "EN" else "Teste Gratis — 7 Dias"
+        if st.button(trial_btn_label, use_container_width=True, type="primary"):
+            st.session_state["show_trial_register"] = True
+            st.rerun()
+        st.markdown("<div style='height:0.4rem;'></div>", unsafe_allow_html=True)
+        plans_btn_label = "See Plans & Pricing" if login_lang == "EN" else "Ver Planos e Preços"
+        if st.button(plans_btn_label, use_container_width=True):
             st.session_state["show_pricing"] = True
             st.rerun()
 
@@ -417,6 +427,166 @@ def _login_page() -> None:
           {_t("login_hint")}
         </p>
         """, unsafe_allow_html=True)
+    st.stop()
+
+
+def _page_trial_register() -> None:
+    """Free trial registration page — 7 days, no credit card."""
+    lang  = st.session_state.get("lang", "PT")
+    is_en = lang == "EN"
+
+    st.markdown("""
+    <style>
+    [data-testid="stAppViewContainer"] { background: #0A1628; }
+    [data-testid="stSidebar"] { display: none; }
+    </style>
+    """, unsafe_allow_html=True)
+
+    col_back, _, col_lang = st.columns([1, 7, 1])
+    with col_back:
+        if st.button("Back" if is_en else "Voltar", key="trial_back"):
+            st.session_state["show_trial_register"] = False
+            st.session_state["show_landing"] = True
+            st.rerun()
+    with col_lang:
+        if st.button("PT" if is_en else "EN", key="trial_lang"):
+            st.session_state["lang"] = "PT" if is_en else "EN"
+            st.rerun()
+
+    _, col_form, _ = st.columns([1, 1.6, 1])
+    with col_form:
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        st.markdown(f"""
+        <div style="text-align:center; margin-bottom:2rem;">
+          <span style="font-size:3rem;">💊</span>
+          <h1 style="color:#4DB6AC; font-size:1.8rem; margin:0.5rem 0 0.25rem;">PharmaIntel BR</h1>
+          <p style="color:#E2EAF4; font-size:1.1rem; font-weight:600; margin:0.5rem 0 0.25rem;">
+            {"7-Day Free Trial" if is_en else "Teste Gratis por 7 Dias"}
+          </p>
+          <p style="color:#8899AA; font-size:0.85rem;">
+            {"Full Starter plan access · No credit card required" if is_en else "Acesso completo ao plano Starter · Sem cartão de crédito"}
+          </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # What's included
+        included = [
+            ("📊", "Import Dashboard" if is_en else "Dashboard de Importações"),
+            ("🏛️", "ANVISA Monitoring" if is_en else "Monitoramento ANVISA"),
+            ("🤖", "AI Agent (GPT-4o mini)"),
+            ("🧬", "Patent Tracker" if is_en else "Rastreador de Patentes"),
+            ("🏢", "Company Intelligence" if is_en else "Mapa de Empresas"),
+        ]
+        st.markdown(f"""
+        <div style="background:#112240; border:1px solid #1E3A5F; border-radius:12px; padding:1rem 1.5rem; margin-bottom:1.5rem;">
+          <p style="color:#4DB6AC; font-size:0.8rem; font-weight:600; margin:0 0 0.75rem; letter-spacing:1px;">
+            {"INCLUDED IN YOUR TRIAL" if is_en else "INCLUIDO NO SEU TESTE"}
+          </p>
+          {''.join(f'<div style="color:#B0BEC5; font-size:0.85rem; padding:0.2rem 0;">✓ &nbsp;{icon} {name}</div>' for icon, name in included)}
+        </div>
+        """, unsafe_allow_html=True)
+
+        with st.form("trial_register_form", clear_on_submit=False):
+            name_label  = "Full Name" if is_en else "Nome Completo"
+            email_label = "Email"
+            pass_label  = "Password (min. 8 characters)" if is_en else "Senha (mín. 8 caracteres)"
+            pass2_label = "Confirm Password" if is_en else "Confirmar Senha"
+
+            full_name = st.text_input(name_label, placeholder="John Smith" if is_en else "João Silva")
+            email     = st.text_input(email_label, placeholder="your@email.com" if is_en else "seu@email.com")
+            password  = st.text_input(pass_label,  type="password")
+            password2 = st.text_input(pass2_label, type="password")
+
+            submit_label = "Start My Free Trial" if is_en else "Iniciar Meu Teste Gratis"
+            submitted = st.form_submit_button(submit_label, use_container_width=True, type="primary")
+
+            if submitted:
+                errors = []
+                if not full_name.strip():
+                    errors.append("Name is required." if is_en else "Nome é obrigatório.")
+                if not email or "@" not in email:
+                    errors.append("Valid email required." if is_en else "Email válido é obrigatório.")
+                if len(password) < 8:
+                    errors.append("Password must be at least 8 characters." if is_en else "Senha deve ter mínimo 8 caracteres.")
+                if password != password2:
+                    errors.append("Passwords don't match." if is_en else "Senhas não coincidem.")
+
+                if errors:
+                    for e in errors:
+                        st.error(e)
+                else:
+                    try:
+                        from src.db.database import init_db, get_user_by_email, create_trial_user
+                        init_db()
+                        existing = get_user_by_email(email.strip())
+                        if existing:
+                            already_msg = "An account with this email already exists. Please sign in." if is_en else "Já existe uma conta com este email. Faça login."
+                            st.warning(already_msg)
+                        else:
+                            create_trial_user(email=email.strip(), password=password, full_name=full_name.strip())
+                            st.session_state["show_trial_register"] = False
+                            st.session_state["show_trial_success"]  = True
+                            st.session_state["trial_email"]         = email.strip()
+                            st.rerun()
+                    except Exception as exc:
+                        st.error(f"{'Error creating account' if is_en else 'Erro ao criar conta'}: {exc}")
+
+        st.markdown(f"""
+        <p style="text-align:center; color:#8899AA; font-size:0.75rem; margin-top:1rem;">
+          {"After 7 days you can upgrade to a paid plan to keep your access." if is_en else "Após 7 dias você pode assinar um plano pago para manter o acesso."}
+        </p>
+        """, unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        already_label = "Already have an account?" if is_en else "Já tem conta?"
+        st.markdown(f'<p style="text-align:center; color:#8899AA; font-size:0.85rem;">{already_label}</p>', unsafe_allow_html=True)
+        if st.button("Sign In" if is_en else "Fazer Login", use_container_width=True):
+            st.session_state["show_trial_register"] = False
+            st.rerun()
+    st.stop()
+
+
+def _page_trial_success() -> None:
+    """Success screen after trial registration."""
+    lang  = st.session_state.get("lang", "PT")
+    is_en = lang == "EN"
+    email = st.session_state.get("trial_email", "")
+
+    st.markdown("""
+    <style>
+    [data-testid="stAppViewContainer"] { background: #0A1628; }
+    [data-testid="stSidebar"] { display: none; }
+    </style>
+    """, unsafe_allow_html=True)
+
+    _, col, _ = st.columns([1, 2, 1])
+    with col:
+        st.markdown("<br><br><br>", unsafe_allow_html=True)
+        st.markdown(f"""
+        <div style="text-align:center; background:#112240; border:1px solid #00897B;
+                    border-radius:16px; padding:3rem 2rem; box-shadow:0 0 30px rgba(0,137,123,0.2);">
+          <div style="font-size:4rem; margin-bottom:1rem;">🎉</div>
+          <h2 style="color:#4DB6AC; margin:0 0 0.5rem;">
+            {"Trial activated!" if is_en else "Teste ativado!"}
+          </h2>
+          <p style="color:#8899AA; font-size:0.9rem; margin-bottom:1.5rem;">
+            {"Your 7-day free trial is ready. Sign in with your email and password." if is_en
+              else "Seu teste gratuito de 7 dias está pronto. Faça login com seu email e senha."}
+          </p>
+          <div style="background:#0A1628; border-radius:8px; padding:0.75rem 1rem; margin-bottom:1.5rem; color:#4DB6AC; font-size:0.9rem;">
+            {email}
+          </div>
+          <p style="color:#B0BEC5; font-size:0.8rem;">
+            {"Full Starter plan · 7 days · No credit card" if is_en else "Plano Starter completo · 7 dias · Sem cartão"}
+          </p>
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        go_label = "Go to Sign In" if is_en else "Ir para o Login"
+        if st.button(go_label, use_container_width=True, type="primary"):
+            st.session_state["show_trial_success"] = False
+            st.session_state["show_landing"]       = False
+            st.rerun()
     st.stop()
 
 
@@ -755,7 +925,13 @@ def _page_landing() -> None:
         st.markdown("<br><br>", unsafe_allow_html=True)
         st.markdown(f'<p style="color:#E2EAF4; font-weight:600; font-size:1rem;">{"Ready to start?" if is_en else "Pronto para começar?"}</p>', unsafe_allow_html=True)
 
-        if st.button("Subscribe Now" if is_en else "Assinar Agora", use_container_width=True, type="primary"):
+        trial_cta = "Start Free 7-Day Trial" if is_en else "Teste Gratis — 7 Dias"
+        if st.button(trial_cta, use_container_width=True, type="primary"):
+            st.session_state["show_trial_register"] = True
+            st.session_state["show_landing"] = False
+            st.rerun()
+        st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)
+        if st.button("See Plans & Pricing" if is_en else "Ver Planos e Preços", use_container_width=True):
             st.session_state["show_pricing"] = True
             st.session_state["show_landing"] = False
             st.rerun()
@@ -766,7 +942,7 @@ def _page_landing() -> None:
 
         st.markdown(f"""
         <p style="color:#8899AA; font-size:0.75rem; text-align:center; margin-top:1rem;">
-          {"Cancel anytime · Email support" if is_en else "Cancele a qualquer momento · Suporte por email"}
+          {"7-day free trial · No credit card required" if is_en else "7 dias gratis · Sem cartão de crédito"}
         </p>
         """, unsafe_allow_html=True)
 
@@ -783,7 +959,11 @@ def _page_landing() -> None:
 
 # Gate: show pricing page if requested (unauthenticated)
 if not st.session_state.get("authenticated", False):
-    if st.session_state.get("show_pricing", False):
+    if st.session_state.get("show_trial_success", False):
+        _page_trial_success()
+    elif st.session_state.get("show_trial_register", False):
+        _page_trial_register()
+    elif st.session_state.get("show_pricing", False):
         _page_pricing()
     elif st.session_state.get("show_landing", True):
         _page_landing()
@@ -1832,10 +2012,36 @@ def sidebar() -> tuple[str, int]:
         st.markdown(f'<span class="{"badge-ok" if groq_key else "badge-warn"}">Groq: {"OK" if groq_key else "Missing"}</span><br>', unsafe_allow_html=True)
         st.markdown(f'<span class="{"badge-ok" if ctrade_key else "badge-warn"}">Comtrade: {"OK" if ctrade_key else "Missing"}</span>', unsafe_allow_html=True)
 
+        # Trial banner
+        is_trial     = st.session_state.get("is_trial", False)
+        trial_days   = st.session_state.get("trial_days_left", 0)
+        sidebar_lang = st.session_state.get("lang", "PT")
+        if is_trial:
+            pct = int((trial_days / 7) * 100)
+            bar_color = "#4DB6AC" if pct > 40 else ("#f0a500" if pct > 15 else "#e53935")
+            trial_label = f"{'Trial' if sidebar_lang == 'EN' else 'Teste'}: {trial_days} {'days left' if sidebar_lang == 'EN' else 'dias restantes'}"
+            st.markdown(f"""
+            <div style="background:#112240; border:1px solid #f0a500; border-radius:8px;
+                        padding:0.75rem 1rem; margin:0.5rem 0;">
+              <p style="color:#f0a500; font-size:0.75rem; font-weight:600; margin:0 0 0.4rem;">
+                {trial_label}
+              </p>
+              <div style="background:#0A1628; border-radius:4px; height:6px; overflow:hidden;">
+                <div style="background:{bar_color}; width:{pct}%; height:100%; border-radius:4px;"></div>
+              </div>
+            </div>
+            """, unsafe_allow_html=True)
+            upgrade_label = "Upgrade to Full Plan" if sidebar_lang == "EN" else "Fazer Upgrade"
+            if st.button(upgrade_label, use_container_width=True, type="primary"):
+                st.session_state["authenticated"]       = False
+                st.session_state["show_pricing"]        = True
+                st.session_state["show_landing"]        = False
+                st.rerun()
+
         # Subscription info
         plan   = st.session_state.get("subscriber_plan", "")
         period = st.session_state.get("subscriber_period", "")
-        if plan:
+        if plan and not is_trial:
             from src.payments.stripe_client import PLANS, PERIOD_LABEL_PT
             plan_name   = PLANS.get(plan, {}).get("name", plan.title())
             period_name = PERIOD_LABEL_PT.get(period, period)
@@ -1860,6 +2066,9 @@ def sidebar() -> tuple[str, int]:
             st.session_state.pop("subscriber_period",  None)
             st.session_state.pop("subscriber_email",   None)
             st.session_state.pop("stripe_customer_id", None)
+            st.session_state.pop("is_trial",           None)
+            st.session_state.pop("trial_days_left",    None)
+            st.session_state["show_landing"] = True
             st.rerun()
 
     return page_key, year

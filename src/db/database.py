@@ -78,6 +78,30 @@ def create_user(
         return user
 
 
+def create_trial_user(email: str, password: str, full_name: str = "") -> "User":
+    """Create a free-trial account (7 days, Starter plan, no payment required)."""
+    from datetime import datetime, timezone, timedelta
+    from src.db.models import User, TRIAL_DAYS
+    now = datetime.now(timezone.utc)
+    with SessionLocal() as s:
+        user = User(
+            email=email.lower().strip(),
+            password_hash=User.hash_password(password),
+            full_name=full_name,
+            plan="starter",
+            period="trial",
+            is_active=True,
+            is_trial=True,
+            trial_start=now,
+            subscription_status="trialing",
+            subscription_end=now + timedelta(days=TRIAL_DAYS),
+        )
+        s.add(user)
+        s.commit()
+        s.refresh(user)
+        return user
+
+
 def update_subscription(
     stripe_customer_id: str,
     subscription_id: str,

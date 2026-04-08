@@ -17,6 +17,8 @@ from datetime import datetime, timezone
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
 from sqlalchemy.orm import DeclarativeBase
 
+TRIAL_DAYS = 7
+
 
 class Base(DeclarativeBase):
     pass
@@ -37,6 +39,8 @@ class User(Base):
     stripe_subscription_id = Column(String(100), default="")
     subscription_status   = Column(String(50), default="")  # active | canceled | past_due | trialing
     subscription_end      = Column(DateTime, nullable=True)
+    is_trial        = Column(Boolean, default=False)
+    trial_start     = Column(DateTime, nullable=True)
     created_at      = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at      = Column(DateTime, default=lambda: datetime.now(timezone.utc),
                              onupdate=lambda: datetime.now(timezone.utc))
@@ -54,9 +58,20 @@ class User(Base):
         return "".join(secrets.choice(alphabet) for _ in range(length))
 
     @property
+    def trial_days_remaining(self) -> int:
+        """Days left in free trial. Returns 0 if not a trial or expired."""
+        if not self.is_trial or not self.trial_start:
+            return 0
+        start = self.trial_start.replace(tzinfo=timezone.utc) if self.trial_start.tzinfo is None else self.trial_start
+        elapsed = (datetime.now(timezone.utc) - start).days
+        return max(0, TRIAL_DAYS - elapsed)
+
+    @property
     def has_active_subscription(self) -> bool:
         if not self.is_active:
             return False
+        if self.is_trial:
+            return self.trial_days_remaining > 0
         if self.subscription_status not in ("active", "trialing"):
             return False
         if self.subscription_end and datetime.now(timezone.utc) > self.subscription_end.replace(tzinfo=timezone.utc):
