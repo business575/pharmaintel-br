@@ -2748,10 +2748,22 @@ def _page_admin_director(_year: int = 2025) -> None:
         agent_d = _init_director()
 
     # Manual reinit button
-    if st.button("🔄 Reiniciar Diretora IA", type="secondary"):
-        st.session_state.pop("director_agent", None)
-        st.session_state.pop("director_history", None)
-        st.rerun()
+    col_r, col_d = st.columns([1, 2])
+    with col_r:
+        if st.button("🔄 Reiniciar Diretora IA", type="secondary"):
+            st.session_state.pop("director_agent", None)
+            st.session_state.pop("director_history", None)
+            st.rerun()
+    with col_d:
+        import os as _os
+        ant_key = bool(_os.getenv("ANTHROPIC_API_KEY", ""))
+        groq_key_d = bool(_os.getenv("GROQ_API_KEY", ""))
+        online = getattr(agent_d, "is_online", False)
+        st.caption(
+            f"Anthropic: {'✅' if ant_key else '❌'} | "
+            f"Groq: {'✅' if groq_key_d else '❌'} | "
+            f"Online: {'✅' if online else '❌'}"
+        )
 
     # Daily brief button
     brief_label = "Briefing Diário" if lang == "PT" else "Daily Briefing"
