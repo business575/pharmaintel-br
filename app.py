@@ -2730,15 +2730,28 @@ def _page_admin_director(_year: int = 2025) -> None:
 
     if "director_history" not in st.session_state:
         st.session_state["director_history"] = []
-    if "director_agent" not in st.session_state:
+
+    # Always reinitialize if not online (picks up newly added API keys)
+    def _init_director():
         try:
             from src.agents.director_agent import DirectorAgent
-            st.session_state["director_agent"] = DirectorAgent()
+            agent = DirectorAgent()
+            st.session_state["director_agent"] = agent
+            return agent
         except Exception as exc:
             st.error(f"DirectorAgent init error: {exc}")
             st.session_state["director_agent"] = None
+            return None
 
     agent_d = st.session_state.get("director_agent")
+    if agent_d is None or not getattr(agent_d, "is_online", False):
+        agent_d = _init_director()
+
+    # Manual reinit button
+    if st.button("🔄 Reiniciar Diretora IA", type="secondary"):
+        st.session_state.pop("director_agent", None)
+        st.session_state.pop("director_history", None)
+        st.rerun()
 
     # Daily brief button
     brief_label = "Briefing Diário" if lang == "PT" else "Daily Briefing"
