@@ -22,6 +22,13 @@ except ImportError:
     ANTHROPIC_AVAILABLE = False
     _anthropic = None  # type: ignore
 
+try:
+    from groq import Groq as _Groq
+    GROQ_AVAILABLE = True
+except ImportError:
+    GROQ_AVAILABLE = False
+    _Groq = None  # type: ignore
+
 PLAN_PRICES = {"starter": 497, "pro": 997, "enterprise": 2497}
 GOAL = 50_000.0
 END_DATE = "2026-04-30"
@@ -360,31 +367,95 @@ _TOOL_MAP = {
 # ---------------------------------------------------------------------------
 
 class DirectorAgent:
-    """AI Sales Director powered by Claude Sonnet with tool calling."""
+    """AI Sales Director — Anthropic primary, Groq fallback."""
 
-    MODEL = "claude-sonnet-4-6"
+    MODEL_ANTHROPIC = "claude-sonnet-4-6"
+    MODEL_GROQ      = "llama-3.3-70b-versatile"
 
     def __init__(self):
-        self._client = None
+        self._client      = None   # Anthropic
+        self._groq_client = None   # Groq fallback
         self._history: list[dict] = []
+
         if ANTHROPIC_AVAILABLE:
             api_key = os.getenv("ANTHROPIC_API_KEY", "")
             if api_key:
                 self._client = _anthropic.Anthropic(api_key=api_key)
 
+        if not self._client and GROQ_AVAILABLE:
+            groq_key = os.getenv("GROQ_API_KEY", "")
+            if groq_key:
+                self._groq_client = _Groq(api_key=groq_key)
+
+    @property
+    def is_online(self) -> bool:
+        return self._client is not None or self._groq_client is not None
+
     def _get_system(self, lang: str) -> str:
         return _SYSTEM_EN if lang == "EN" else _SYSTEM_PT
 
+    def _build_context_prompt(self, message: str, lang: str) -> str:
+        """Inject live pipeline data into prompt for Groq (no tool calling)."""
+        try:
+            lm = _get_lead_manager()
+            stats = lm.get_pipeline_stats()
+            progress = lm.get_days_to_goal()
+            hot = lm.get_hot_leads()
+            hot_list = "\n".join(
+                f"  - {l.email} ({l.country_hint or 'BR'}, {l.questions_asked} perguntas)"
+                for l in hot[:5]
+            ) or ("  (none)" if lang == "EN" else "  (nenhum)")
+            ctx = (
+                f"\n\n[PIPELINE DATA]\n"
+                f"Total leads: {stats.get('total', 0)}\n"
+                f"Hot leads: {len(hot)}\n"
+                f"Revenue: R${progress.get('revenue', 0):,.0f} / R${GOAL:,.0f}\n"
+                f"Remaining: R${progress.get('remaining', GOAL):,.0f} in {progress.get('days_remaining', 22)} days\n"
+                f"Hot leads list:\n{hot_list}\n"
+                f"Status breakdown: {json.dumps(stats.get('by_status', {}))}\n"
+            )
+        except Exception:
+            ctx = ""
+        return message + ctx
+
+    def _chat_groq(self, message: str, lang: str) -> str:
+        """Chat via Groq with context injection instead of tool calling."""
+        system = self._get_system(lang)
+        enriched = self._build_context_prompt(message, lang)
+        messages = [{"role": "system", "content": system}]
+        # Include last 6 history messages for context
+        for m in self._history[-6:]:
+            if isinstance(m.get("content"), str):
+                messages.append({"role": m["role"], "content": m["content"]})
+        messages.append({"role": "user", "content": enriched})
+        response = self._groq_client.chat.completions.create(
+            model=self.MODEL_GROQ,
+            messages=messages,
+            max_tokens=1024,
+            temperature=0.4,
+        )
+        return response.choices[0].message.content or ""
+
     def chat(self, message: str, lang: str = "PT") -> str:
         """Send a message and return the director's response."""
-        if not self._client:
+        if not self._client and not self._groq_client:
             return self._fallback_response(message, lang)
 
         self._history.append({"role": "user", "content": message})
 
+        # Use Groq if Anthropic not available
+        if not self._client and self._groq_client:
+            try:
+                text = self._chat_groq(message, lang)
+                self._history.append({"role": "assistant", "content": text})
+                return text
+            except Exception as exc:
+                logger.error("Groq director error: %s", exc)
+                return self._fallback_response(message, lang)
+
         try:
             response = self._client.messages.create(
-                model=self.MODEL,
+                model=self.MODEL_ANTHROPIC,
                 max_tokens=2048,
                 system=self._get_system(lang),
                 tools=_TOOLS,
@@ -416,7 +487,7 @@ class DirectorAgent:
                 self._history.append({"role": "user", "content": tool_results})
 
                 response = self._client.messages.create(
-                    model=self.MODEL,
+                    model=self.MODEL_ANTHROPIC,
                     max_tokens=2048,
                     system=self._get_system(lang),
                     tools=_TOOLS,
