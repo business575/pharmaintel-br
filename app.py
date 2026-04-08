@@ -710,7 +710,7 @@ def _page_landing() -> None:
 
     with cta_col:
         st.markdown(f'<p style="color:#4DB6AC; font-weight:600; font-size:0.85rem; letter-spacing:1px;">{"DATA SOURCES" if is_en else "FONTES DE DADOS"}</p>', unsafe_allow_html=True)
-        sources = ["MDIC / Comex Stat", "ANVISA Open Data", "UN Comtrade", "Banco Central do Brasil", "ComprasNet"]
+        sources = ["MDIC / Comex Stat", "ANVISA Open Data", "UN Comtrade", "BPS / Min. Saúde", "ComprasNet"]
         for s in sources:
             st.markdown(f'<span class="source-badge">{s}</span>', unsafe_allow_html=True)
 
