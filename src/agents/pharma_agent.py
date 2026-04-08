@@ -1,13 +1,19 @@
 """
 pharma_agent.py
 ===============
-PharmaIntel BR — Agente IA com Groq + Llama 3.3 70B.
+PharmaIntel BR — Agente IA com OpenAI GPT-4o mini.
 
 Arquitetura: agentic loop com tool calling nativo.
   1. Usuário envia pergunta
   2. LLM decide qual(is) ferramenta(s) usar
   3. Ferramentas executam queries nos dados processados
   4. LLM sintetiza resposta estratégica em português
+
+Controle de orçamento:
+  - Custo monitorado por mês em data/ai_budget.json
+  - Limite = 10% da receita mensal (assinaturas ativas no SQLite)
+  - Bloqueio automático ao atingir o limite
+  - Alerta ao atingir 80% do limite
 """
 
 from __future__ import annotations
@@ -19,31 +25,153 @@ import os
 import re
 import time
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
 import pandas as pd
 
 try:
-    from groq import Groq
-    GROQ_AVAILABLE = True
+    from openai import OpenAI
+    OPENAI_AVAILABLE = True
 except ImportError:
-    GROQ_AVAILABLE = False
-    Groq = None  # type: ignore
+    OPENAI_AVAILABLE = False
+    OpenAI = None  # type: ignore
 
 logger = logging.getLogger(__name__)
 
 PROCESSED_DIR = Path(__file__).resolve().parents[2] / "data" / "processed"
 PATENTS_PATH  = Path(__file__).resolve().parents[2] / "data" / "patents.json"
-GROQ_MODEL    = "llama-3.3-70b-versatile"
+BUDGET_PATH   = Path(__file__).resolve().parents[2] / "data" / "ai_budget.json"
+
+OPENAI_MODEL   = "gpt-4o-mini"
 MAX_ITERATIONS = 6
-MAX_HISTORY    = 12          # reduzido de 20 → economiza tokens por requisição
-MAX_TOKENS     = 1024        # reduzido de 2048 → ~50% menos tokens por resposta
-MAX_RETRIES    = 3           # tentativas em caso de rate limit
-CACHE_TTL_S    = 3600        # cache de respostas: 1 hora
+MAX_HISTORY    = 12
+MAX_TOKENS     = 1024
+MAX_RETRIES    = 3
+CACHE_TTL_S    = 3600  # 1 hora
+
+# GPT-4o mini pricing (USD per token)
+COST_INPUT_PER_TOKEN  = 0.150 / 1_000_000   # $0.150 / 1M tokens
+COST_OUTPUT_PER_TOKEN = 0.600 / 1_000_000   # $0.600 / 1M tokens
 
 # ---------------------------------------------------------------------------
-# Response cache — evita chamar Groq para perguntas idênticas
+# Budget tracker
+# ---------------------------------------------------------------------------
+
+def _current_month() -> str:
+    return datetime.now(tz=timezone.utc).strftime("%Y-%m")
+
+def _load_budget() -> dict:
+    month = _current_month()
+    if BUDGET_PATH.exists():
+        try:
+            data = json.loads(BUDGET_PATH.read_text(encoding="utf-8"))
+            if data.get("month") == month:
+                return data
+        except Exception:
+            pass
+    # New month or missing file
+    return {"month": month, "tokens_input": 0, "tokens_output": 0, "cost_usd": 0.0}
+
+def _save_budget(budget: dict) -> None:
+    BUDGET_PATH.parent.mkdir(parents=True, exist_ok=True)
+    BUDGET_PATH.write_text(json.dumps(budget, indent=2), encoding="utf-8")
+
+def _add_usage(tokens_input: int, tokens_output: int) -> dict:
+    """Record token usage and return updated budget dict."""
+    budget = _load_budget()
+    budget["tokens_input"]  += tokens_input
+    budget["tokens_output"] += tokens_output
+    budget["cost_usd"] = round(
+        budget["tokens_input"]  * COST_INPUT_PER_TOKEN +
+        budget["tokens_output"] * COST_OUTPUT_PER_TOKEN,
+        4,
+    )
+    _save_budget(budget)
+    return budget
+
+def _get_monthly_revenue_usd() -> float:
+    """
+    Calculate current monthly revenue from active subscriptions in SQLite.
+    Returns USD value based on plan prices.
+    """
+    # USD monthly prices per plan (from stripe_client.py)
+    PLAN_USD = {
+        "starter":    199.00,
+        "pro":        399.00,
+        "enterprise": 699.00,
+    }
+    # Period multipliers (monthly equivalent)
+    PERIOD_FACTOR = {
+        "monthly":   1,
+        "quarterly": 3,
+        "biannual":  6,
+        "annual":    12,
+    }
+    try:
+        from src.db.database import get_session
+        from src.db.models import User
+        with get_session() as session:
+            users = session.query(User).filter(
+                User.is_active == True,
+                User.subscription_status.in_(["active", "complete"]),
+            ).all()
+        revenue = 0.0
+        for u in users:
+            monthly = PLAN_USD.get(u.plan or "", 0)
+            factor  = PERIOD_FACTOR.get(u.period or "monthly", 1)
+            revenue += monthly * factor / factor  # normalize to monthly
+        return revenue
+    except Exception as exc:
+        logger.debug("Revenue calc error: %s", exc)
+        return 0.0
+
+def _budget_limit_usd() -> float:
+    """10% of monthly revenue, minimum $5 (so dev/testing always works)."""
+    revenue = _get_monthly_revenue_usd()
+    return max(revenue * 0.10, 5.0)
+
+def _check_budget() -> tuple[bool, str]:
+    """
+    Returns (allowed, message).
+    allowed=True → proceed with API call.
+    allowed=False → budget exceeded, return message to user.
+    """
+    budget = _load_budget()
+    limit  = _budget_limit_usd()
+    cost   = budget["cost_usd"]
+    pct    = (cost / limit * 100) if limit > 0 else 0
+
+    if cost >= limit:
+        return False, (
+            f"⚠️ **Limite de orçamento IA atingido este mês.**\n\n"
+            f"Gasto: **US$ {cost:.2f}** / Limite: **US$ {limit:.2f}** (10% da receita)\n\n"
+            f"O limite será renovado em 1º do próximo mês. "
+            f"Para aumentar o limite, adicione mais assinantes ou ajuste o percentual."
+        )
+    if pct >= 80:
+        logger.warning("AI budget at %.0f%% (US$ %.2f / US$ %.2f)", pct, cost, limit)
+
+    return True, ""
+
+def get_budget_status() -> dict:
+    """Public function — used by dashboard to show budget panel."""
+    budget = _load_budget()
+    limit  = _budget_limit_usd()
+    cost   = budget["cost_usd"]
+    return {
+        "month":          budget["month"],
+        "cost_usd":       cost,
+        "limit_usd":      limit,
+        "pct_used":       round(cost / limit * 100, 1) if limit > 0 else 0,
+        "tokens_input":   budget["tokens_input"],
+        "tokens_output":  budget["tokens_output"],
+        "remaining_usd":  round(max(limit - cost, 0), 4),
+    }
+
+# ---------------------------------------------------------------------------
+# Response cache — perguntas idênticas não consomem tokens
 # ---------------------------------------------------------------------------
 _response_cache: dict[str, tuple[float, "AgentResponse"]] = {}
 
@@ -59,21 +187,23 @@ def _cache_get(key: str) -> Optional["AgentResponse"]:
     return None
 
 def _cache_set(key: str, resp: "AgentResponse") -> None:
-    # Limita o cache a 200 entradas para não vazar memória
     if len(_response_cache) >= 200:
         oldest = min(_response_cache, key=lambda k: _response_cache[k][0])
         del _response_cache[oldest]
     _response_cache[key] = (time.time(), resp)
 
 def _parse_wait_seconds(err_str: str) -> float:
-    """Parse seconds to wait from Groq rate limit error message."""
+    """Parse retry-after seconds from OpenAI rate limit error."""
     m = re.search(r"try again in ([\d]+)m([\d.]+)s", err_str)
     if m:
         return int(m.group(1)) * 60 + float(m.group(2))
     m = re.search(r"try again in ([\d.]+)s", err_str)
     if m:
         return float(m.group(1))
-    return 60.0  # default: wait 60s
+    m = re.search(r"after ([\d]+) second", err_str)
+    if m:
+        return float(m.group(1))
+    return 30.0
 
 SYSTEM_PROMPT = """Você é o **PharmaIntel AI** — especialista em mercado farmacêutico brasileiro com profundo conhecimento em:
 
@@ -966,19 +1096,19 @@ class PharmaAgent:
 
     def __init__(self, year: int = 2024, api_key: str = "") -> None:
         self.year = year
-        self._api_key = api_key or os.getenv("GROQ_API_KEY", "")
+        self._api_key = api_key or os.getenv("OPENAI_API_KEY", "")
         self._client: Optional[Any] = None
         self._history: list[dict] = []
         self._executor = ToolExecutor(year=year)
 
-        if GROQ_AVAILABLE and self._api_key:
+        if OPENAI_AVAILABLE and self._api_key:
             try:
-                self._client = Groq(api_key=self._api_key)
-                logger.info("Groq ready — model: %s", GROQ_MODEL)
+                self._client = OpenAI(api_key=self._api_key)
+                logger.info("OpenAI ready — model: %s", OPENAI_MODEL)
             except Exception as exc:
-                logger.error("Groq init failed: %s", exc)
+                logger.error("OpenAI init failed: %s", exc)
         else:
-            reason = "groq not installed" if not GROQ_AVAILABLE else "GROQ_API_KEY not set"
+            reason = "openai not installed" if not OPENAI_AVAILABLE else "OPENAI_API_KEY not set"
             logger.warning("Agent in fallback mode: %s", reason)
 
     @property
@@ -989,6 +1119,11 @@ class PharmaAgent:
         if not self.is_available:
             return self._fallback(message)
 
+        # ── Verificação de orçamento ──────────────────────────────────────
+        allowed, budget_msg = _check_budget()
+        if not allowed:
+            return AgentResponse(text=budget_msg, error="budget_exceeded")
+
         # ── Cache hit — pergunta idêntica respondida recentemente ─────────
         ck = _cache_key(message, self.year)
         cached = _cache_get(ck)
@@ -997,13 +1132,13 @@ class PharmaAgent:
             return cached
 
         self._history.append({"role": "user", "content": message})
-        # Mantém apenas as últimas MAX_HISTORY trocas → economiza tokens
         if len(self._history) > MAX_HISTORY * 2:
             self._history = self._history[-MAX_HISTORY * 2:]
 
         messages = [{"role": "system", "content": SYSTEM_PROMPT}] + self._history
         tool_calls_made: list[str] = []
-        tokens_used = 0
+        tokens_input_total  = 0
+        tokens_output_total = 0
 
         for _ in range(MAX_ITERATIONS):
             # ── Retry com backoff em caso de rate limit ───────────────────
@@ -1011,52 +1146,47 @@ class PharmaAgent:
             for attempt in range(MAX_RETRIES):
                 try:
                     resp = self._client.chat.completions.create(
-                        model=GROQ_MODEL,
+                        model=OPENAI_MODEL,
                         messages=messages,
                         tools=TOOLS,
                         tool_choice="auto",
                         temperature=0.3,
                         max_tokens=MAX_TOKENS,
                     )
-                    break  # sucesso — sai do retry loop
+                    break
                 except Exception as exc:
                     err_str = str(exc)
                     is_rate_limit = "rate_limit" in err_str or "429" in err_str
 
                     if is_rate_limit and attempt < MAX_RETRIES - 1:
-                        wait_s = _parse_wait_seconds(err_str)
-                        wait_s = min(wait_s, 65)  # nunca espera mais de 65s
+                        wait_s = min(_parse_wait_seconds(err_str), 65)
                         logger.warning(
-                            "Groq rate limit — aguardando %.1fs (tentativa %d/%d)",
+                            "OpenAI rate limit — aguardando %.1fs (tentativa %d/%d)",
                             wait_s, attempt + 1, MAX_RETRIES,
                         )
                         time.sleep(wait_s)
                         continue
 
-                    # Rate limit esgotado após retries, ou outro erro
-                    logger.error("Groq API error: %s", err_str)
+                    logger.error("OpenAI API error: %s", err_str)
                     if is_rate_limit:
                         wait_s = _parse_wait_seconds(err_str)
-                        mins = int(wait_s // 60)
-                        secs = int(wait_s % 60)
+                        mins, secs = int(wait_s // 60), int(wait_s % 60)
                         wait_str = f"{mins}m {secs}s" if mins else f"{secs}s"
-                        result = AgentResponse(
+                        return AgentResponse(
                             text=(
-                                f"⏳ **Limite de requisições Groq atingido.**\n\n"
-                                f"Aguarde **{wait_str}** e tente novamente.\n\n"
-                                f"*Dica: perguntas repetidas são respondidas do cache sem consumir tokens.*"
+                                f"⏳ **Limite temporário da API atingido.**\n\n"
+                                f"Aguarde **{wait_str}** e tente novamente."
                             ),
                             error=err_str,
                         )
-                    else:
-                        result = AgentResponse(text="Erro ao conectar ao agente IA. Tente novamente.", error=err_str)
-                    return result
+                    return AgentResponse(text="Erro ao conectar ao agente IA. Tente novamente.", error=err_str)
 
             if resp is None:
                 return AgentResponse(text="Erro ao conectar ao agente IA. Tente novamente.", error="no response")
 
             if resp.usage:
-                tokens_used += resp.usage.total_tokens
+                tokens_input_total  += resp.usage.prompt_tokens
+                tokens_output_total += resp.usage.completion_tokens
             choice = resp.choices[0]
 
             if choice.finish_reason == "tool_calls":
@@ -1080,18 +1210,28 @@ class PharmaAgent:
 
             text = choice.message.content or ""
             self._history.append({"role": "assistant", "content": text})
-            result = AgentResponse(text=text, tool_calls_made=tool_calls_made, tokens_used=tokens_used)
 
-            # Só cacheia respostas bem-sucedidas
+            # Registra uso e custo
+            budget = _add_usage(tokens_input_total, tokens_output_total)
+            total_tokens = tokens_input_total + tokens_output_total
+            logger.info(
+                "OpenAI usage — in=%d out=%d cost=US$%.4f | mensal=US$%.4f/US$%.4f",
+                tokens_input_total, tokens_output_total,
+                total_tokens * COST_INPUT_PER_TOKEN,
+                budget["cost_usd"], _budget_limit_usd(),
+            )
+
+            result = AgentResponse(text=text, tool_calls_made=tool_calls_made, tokens_used=total_tokens)
             if text:
                 _cache_set(ck, result)
-
             return result
 
+        # Registra mesmo em caso de max iterations
+        _add_usage(tokens_input_total, tokens_output_total)
         return AgentResponse(
             text="Limite de iterações atingido. Tente reformular a pergunta.",
             tool_calls_made=tool_calls_made,
-            tokens_used=tokens_used,
+            tokens_used=tokens_input_total + tokens_output_total,
         )
 
     def reset(self) -> None:
@@ -1101,11 +1241,10 @@ class PharmaAgent:
         return AgentResponse(
             text=(
                 "**Agente IA indisponível**\n\n"
-                "Configure `GROQ_API_KEY` no arquivo `.env` para ativar o agente.\n\n"
-                "Chave gratuita em: https://console.groq.com\n\n"
+                "Configure `OPENAI_API_KEY` no arquivo `.env` ou nas variáveis do Render.\n\n"
                 f"*Pergunta recebida:* {message}"
             ),
-            error="GROQ_API_KEY not configured",
+            error="OPENAI_API_KEY not configured",
         )
 
 
