@@ -872,17 +872,17 @@ def _page_demo_agent() -> None:
             <div style="background:#0A1628; border:1px solid #1E3A5F; border-radius:10px; padding:1rem 1.5rem; min-width:140px;">
               <div style="color:#4DB6AC; font-weight:700; font-size:0.9rem;">Starter</div>
               <div style="color:#E2EAF4; font-size:1.3rem; font-weight:700; margin:0.25rem 0;">R$ 497<span style="color:#8899AA; font-size:0.7rem;">/{'mo' if is_en else 'mês'}</span></div>
-              <div style="color:#8899AA; font-size:0.72rem;">{'Data + AI' if is_en else 'Dados + IA'}</div>
+              <div style="color:#8899AA; font-size:0.72rem;">{'Strategic Intelligence' if is_en else 'Inteligência Estratégica'}</div>
             </div>
             <div style="background:#0A1628; border:2px solid #00897B; border-radius:10px; padding:1rem 1.5rem; min-width:140px;">
               <div style="color:#00897B; font-weight:700; font-size:0.9rem;">Pro ★</div>
               <div style="color:#E2EAF4; font-size:1.3rem; font-weight:700; margin:0.25rem 0;">R$ 997<span style="color:#8899AA; font-size:0.7rem;">/{'mo' if is_en else 'mês'}</span></div>
-              <div style="color:#8899AA; font-size:0.72rem;">{'Advanced AI' if is_en else 'IA Avançada'}</div>
+              <div style="color:#8899AA; font-size:0.72rem;">{'Advanced Strategic AI' if is_en else 'IA Avançada Estratégica'}</div>
             </div>
             <div style="background:#0A1628; border:1px solid #26C6DA; border-radius:10px; padding:1rem 1.5rem; min-width:140px;">
               <div style="color:#26C6DA; font-weight:700; font-size:0.9rem;">Enterprise</div>
               <div style="color:#E2EAF4; font-size:1.3rem; font-weight:700; margin:0.25rem 0;">R$ 2.497<span style="color:#8899AA; font-size:0.7rem;">/{'mo' if is_en else 'mês'}</span></div>
-              <div style="color:#8899AA; font-size:0.72rem;">{'AI + Full API' if is_en else 'IA + API Completa'}</div>
+              <div style="color:#8899AA; font-size:0.72rem;">{'PhD AI · 99% Accuracy' if is_en else 'IA PhD · 99% Precisão'}</div>
             </div>
           </div>
         </div>
@@ -948,7 +948,7 @@ def _page_trial_register() -> None:
         included = [
             ("📊", "Import Dashboard" if is_en else "Dashboard de Importações"),
             ("🏛️", "ANVISA Monitoring" if is_en else "Monitoramento ANVISA"),
-            ("🤖", "AI Agent" if is_en else "Agente IA"),
+            ("🤖", "Strategic Intelligence" if is_en else "Inteligência Estratégica"),
             ("🧬", "Patent Tracker" if is_en else "Rastreador de Patentes"),
             ("🏢", "Company Intelligence" if is_en else "Mapa de Empresas"),
         ]

@@ -39,15 +39,15 @@ PLANS: dict[str, dict] = {
     "starter": {
         "name":         "Starter",
         "color":        "#4DB6AC",
-        "description":  "Comece agora — dados e alertas para seu negócio",
-        "description_en": "Start now — data and alerts for your business",
-        "ai_model":     "AI",
+        "description":  "Inteligência estratégica — insights precisos para decisões rápidas",
+        "description_en": "Strategic intelligence — accurate insights for fast decisions",
+        "ai_model":     "Inteligência Estratégica",
         "features": [
             "Dashboard completo de importações",
             "NCMs ilimitados monitorados",
             "Alertas ANVISA básicos",
             "Dados Comex Stat em tempo real",
-            "Agente IA integrado",
+            "Insights estratégicos de mercado com acuracidade",
             "Suporte por email",
         ],
         "features_en": [
@@ -55,7 +55,7 @@ PLANS: dict[str, dict] = {
             "Unlimited NCM/HS codes monitored",
             "Basic ANVISA alerts",
             "Real-time Comex Stat data",
-            "Integrated AI Agent",
+            "Accurate strategic market insights",
             "Email support",
         ],
         "prices": {
@@ -68,12 +68,12 @@ PLANS: dict[str, dict] = {
     "pro": {
         "name":         "Pro",
         "color":        "#00897B",
-        "description":  "Análise precisa — IA superior para decisões estratégicas",
-        "description_en": "Precise analysis — superior AI for strategic decisions",
-        "ai_model":     "Advanced AI",
+        "description":  "IA avançada e estratégica — análise profunda para vantagem competitiva",
+        "description_en": "Advanced strategic AI — deep analysis for competitive advantage",
+        "ai_model":     "IA Avançada Estratégica",
         "features": [
             "Tudo do Starter",
-            "Agente IA de alta precisão",
+            "Agente IA avançado com raciocínio estratégico profundo",
             "Alertas ANVISA completos + vencimentos",
             "Patentes e oportunidades de biossimilares",
             "Dados UN Comtrade",
@@ -82,7 +82,7 @@ PLANS: dict[str, dict] = {
         ],
         "features_en": [
             "Everything in Starter",
-            "High-accuracy AI Agent",
+            "Advanced AI Agent with deep strategic reasoning",
             "Full ANVISA alerts + expiry tracking",
             "Patent expiration and biosimilar opportunities",
             "UN Comtrade global data",
@@ -99,11 +99,13 @@ PLANS: dict[str, dict] = {
     "enterprise": {
         "name":         "Enterprise",
         "color":        "#26C6DA",
-        "description":  "Sua equipe toda — API, white-label e suporte dedicado",
-        "description_en": "Your whole team — API, white-label and dedicated support",
-        "ai_model":     "Enterprise AI + API",
+        "description":  "IA nível PhD — precisão de 99%, velocidade e profundidade sem igual",
+        "description_en": "PhD-level AI — 99% accuracy, unmatched speed and strategic depth",
+        "ai_model":     "IA PhD · 99% Precisão",
         "features": [
             "Tudo do Pro",
+            "IA nível PhD com 99% de acuracidade nas análises",
+            "Velocidade e precisão estratégica superiores",
             "Acesso à API REST completa",
             "White-label disponível",
             "Múltiplos usuários e perfis",
@@ -113,6 +115,8 @@ PLANS: dict[str, dict] = {
         ],
         "features_en": [
             "Everything in Pro",
+            "PhD-level AI with 99% analysis accuracy",
+            "Superior strategic speed and precision",
             "Full REST API access",
             "White-label available",
             "Multiple users and profiles",
