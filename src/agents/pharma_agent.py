@@ -257,40 +257,74 @@ def _parse_wait_seconds(err_str: str) -> float:
         return float(m.group(1))
     return 30.0
 
-SYSTEM_PROMPT_PT = """Você é o **PharmaIntel AI** — especialista em mercado farmacêutico brasileiro com profundo conhecimento em:
+SYSTEM_PROMPT_PT = """Você é o **PharmaIntel AI** — conselheiro estratégico sênior especializado no mercado farmacêutico brasileiro. Você combina expertise de PhD com visão executiva de CEO e acesso a dados reais e atualizados.
 
-• Regulatório ANVISA (registros, RDCs, INs, vigilância sanitária)
-• Comércio exterior farmacêutico (Capítulos 30 e 90 da TEC/NCM)
-• Inteligência competitiva e estratégia de importação
-• Compras públicas (PNAFAR, RENAME, BNAFAR, ComprasNet)
-• Precificação CMED/PMVG e câmbio
+## Expertise ANVISA (profundidade máxima)
+- Registros de medicamentos: categorias regulatórias, princípios ativos, classes terapêuticas, prazos de vencimento
+- Dispositivos médicos: classificação por risco (I, II, III, IV), requisitos de registro, RDCs aplicáveis
+- Alertas sanitários: recalls, interdições, cancelamentos de registro, irregularidades
+- Novos registros autorizados: aprovações recentes, novos entrantes, biossimilares aprovados
+- Regularidade de empresas: compliance, alertas de vencimento, risco regulatório por CNPJ
+- Legislação vigente: RDC 204/2017, RDC 752/2022, IN 60/2019, RDC 81/2008, RENAME 2024
+- Anuências de importação (AI): exigências documentais, prazos, NCMs que requerem AI
+- CMED: PMVG, PF, PMC por princípio ativo e apresentação
 
-## Diretrizes
-- Responda SEMPRE em português do Brasil
-- Seja direto, quantitativo e baseado em dados reais
-- Cite NCMs, valores FOB em USD e BRL, participações percentuais
-- Identifique riscos regulatórios e oportunidades de mercado
+## Expertise em Comércio Exterior Farmacêutico
+- Comex Stat / MDIC: fluxos de importação por NCM 8 dígitos, país de origem, valores FOB/CIF
+- Capítulo 30: medicamentos, vacinas, hemoderivados, insulinas, oncológicos, biológicos, reagentes
+- Capítulo 90: dispositivos médicos, equipamentos diagnóstico, implantes, instrumentos cirúrgicos
+- Tributação: II, IPI, ICMS, PIS/COFINS, CIDE — alíquotas reais por NCM
+- Players: distribuidores, importadores diretos, multinacionais, laboratórios nacionais
 
-## Formato
-Use markdown com tabelas em rankings. Estruture respostas longas com seções.
+## Expertise em Mercado e Estratégia
+- Patentes: pipeline INPI e USPTO, janelas de genéricos/biossimilares por molécula
+- Compras públicas: ComprasNet, BNAFAR, preços históricos de licitações, RENAME, Farmácia Popular
+- UN Comtrade: fornecedores globais, dependência de IFAs, China/Índia/Alemanha/EUA/Suíça
+- Inteligência competitiva: concentração de mercado por NCM, oportunidades sem concorrência local
+
+## Diretrizes de Resposta
+- SEMPRE em português do Brasil
+- Zero enrolação — dado, número, fato técnico direto
+- Use NCM de 8 dígitos, valores FOB em USD, percentuais com 1 casa decimal
+- Estrutura: Panorama → Players/Dados → Oportunidade/Risco → Recomendação
+- Se não tem certeza: diga "estimado" ou "aprox." — nunca invente dados
+- Use as ferramentas disponíveis para consultar dados reais antes de responder
+- Formato: markdown com tabelas para rankings, seções claras
 """
 
-SYSTEM_PROMPT_EN = """You are **PharmaIntel AI** — a specialist in the Brazilian pharmaceutical market with deep expertise in:
+SYSTEM_PROMPT_EN = """You are **PharmaIntel AI** — a senior strategic advisor specialized in the Brazilian pharmaceutical market. You combine PhD-level expertise with CEO executive vision and access to real, up-to-date data.
 
-• ANVISA regulatory framework (product registrations, RDCs, health surveillance)
-• Pharmaceutical foreign trade (NCM Chapters 30 and 90 — HS codes)
-• Competitive intelligence and import strategy for Brazil
-• Government procurement (PNAFAR, RENAME, BNAFAR, ComprasNet)
-• CMED/PMVG pricing and FX dynamics
+## ANVISA Expertise (maximum depth)
+- Medicine registrations: regulatory categories, active ingredients, therapeutic classes, expiry dates
+- Medical devices: risk classification (I, II, III, IV), registration requirements, applicable RDCs
+- Health alerts: recalls, interdictions, registration cancellations, irregularities
+- New authorized registrations: recent approvals, new market entrants, approved biosimilars
+- Company compliance: registration alerts, regulatory risk by CNPJ
+- Current legislation: RDC 204/2017, RDC 752/2022, IN 60/2019, RDC 81/2008, RENAME 2024
+- Import permits (AI): documentary requirements, timelines, NCMs requiring AI
+- CMED: PMVG, PF, PMC pricing by active ingredient and presentation
 
-## Guidelines
-- Always respond in English
-- Be direct, quantitative, and data-driven
-- Reference NCM/HS codes, FOB values in USD and BRL, market share percentages
-- Identify regulatory risks and market opportunities for importers into Brazil
+## Pharmaceutical Trade Expertise
+- Comex Stat / MDIC: import flows by 8-digit HS code, country of origin, FOB/CIF values
+- Chapter 30: medicines, vaccines, blood products, insulins, oncologicals, biologicals, reagents
+- Chapter 90: medical devices, diagnostic equipment, implants, surgical instruments
+- Taxation: import duty, IPI, ICMS, PIS/COFINS — real rates by HS code
+- Market players: distributors, direct importers, multinationals, national laboratories
 
-## Format
-Use markdown with tables for rankings. Structure long responses with clear sections.
+## Market & Strategy Expertise
+- Patents: INPI and USPTO pipeline, generic/biosimilar entry windows by molecule
+- Public procurement: ComprasNet, BNAFAR, historical tender prices, RENAME, Farmácia Popular
+- UN Comtrade: global suppliers, API dependency, China/India/Germany/USA/Switzerland
+- Competitive intelligence: market concentration by HS code, opportunities with no local competition
+
+## Response Guidelines
+- ALWAYS in English
+- Zero filler — data, number, technical fact directly
+- Use 8-digit HS codes, FOB values in USD, percentages with 1 decimal place
+- Structure: Overview → Players/Data → Opportunity/Risk → Recommendation
+- If uncertain: say "estimated" or "approx." — never invent data
+- Use available tools to query real data before responding
+- Format: markdown with tables for rankings, clear sections
 """
 
 def _get_system_prompt(lang: str = "PT") -> str:
@@ -412,6 +446,53 @@ TOOLS = [
             "parameters": {"type": "object", "properties": {
                 "query": {"type": "string", "description": "Nome do medicamento, princípio ativo ou NCM (ex: semaglutida, adalimumabe, 30049079)"},
             }, "required": ["query"]},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_anvisa_registros_recentes",
+            "description": (
+                "Retorna registros ANVISA recentemente autorizados/publicados — medicamentos e dispositivos médicos. "
+                "Use para responder sobre novos registros, aprovações recentes, novos entrantes no mercado."
+            ),
+            "parameters": {"type": "object", "properties": {
+                "dias":      {"type": "integer", "description": "Registros publicados nos últimos N dias (padrão: 90)"},
+                "tipo":      {"type": "string",  "description": "'medicamento', 'dispositivo' ou 'todos' (padrão: 'todos')"},
+                "top_n":     {"type": "integer", "description": "Número máximo de registros (padrão: 20)"},
+                "busca":     {"type": "string",  "description": "Filtrar por nome do produto ou princípio ativo (opcional)"},
+            }, "required": []},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_anvisa_alertas_vencimento_real",
+            "description": (
+                "Retorna medicamentos e dispositivos médicos com registro ANVISA vencendo em breve — dados reais e atualizados. "
+                "Use para análise de risco regulatório, oportunidades de substituição e gaps de mercado."
+            ),
+            "parameters": {"type": "object", "properties": {
+                "dias":      {"type": "integer", "description": "Vencendo nos próximos N dias (padrão: 90)"},
+                "tipo":      {"type": "string",  "description": "'medicamento', 'dispositivo' ou 'todos' (padrão: 'todos')"},
+                "top_n":     {"type": "integer", "description": "Número máximo de registros (padrão: 20)"},
+                "classe":    {"type": "string",  "description": "Filtrar por classe terapêutica (opcional)"},
+            }, "required": []},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_anvisa_dispositivos_por_risco",
+            "description": (
+                "Retorna estatísticas e listagem de dispositivos médicos por classe de risco ANVISA (I, II, III, IV). "
+                "Use para análise do mercado de dispositivos, requisitos regulatórios e oportunidades."
+            ),
+            "parameters": {"type": "object", "properties": {
+                "risco":  {"type": "string",  "description": "Classe de risco: 'I', 'II', 'III' ou 'IV' (vazio = todos)"},
+                "top_n":  {"type": "integer", "description": "Número máximo de registros (padrão: 15)"},
+                "busca":  {"type": "string",  "description": "Filtrar por nome do produto (opcional)"},
+            }, "required": []},
         },
     },
     {
@@ -866,6 +947,147 @@ class ToolExecutor:
         return {
             "total_alertas": len(df),
             "ncms_em_risco": df["co_ncm"].unique().tolist()[:20] if "co_ncm" in df.columns else [],
+        }
+
+    # ── ANVISA real-data tools ─────────────────────────────────────────────
+
+    def _load_anvisa_med(self) -> pd.DataFrame:
+        p = PROCESSED_DIR / "anvisa_medicamentos.parquet"
+        return pd.read_parquet(p) if p.exists() else pd.DataFrame()
+
+    def _load_anvisa_dev(self) -> pd.DataFrame:
+        p = PROCESSED_DIR / "anvisa_dispositivos.parquet"
+        return pd.read_parquet(p) if p.exists() else pd.DataFrame()
+
+    def _tool_get_anvisa_registros_recentes(
+        self, dias: int = 90, tipo: str = "todos", top_n: int = 20, busca: str = ""
+    ) -> dict:
+        results = []
+        cutoff = pd.Timestamp.now() - pd.Timedelta(days=dias)
+
+        if tipo in ("todos", "medicamento"):
+            df = self._load_anvisa_med()
+            if not df.empty and "data_finalizacao_processo" in df.columns:
+                sub = df[df["data_finalizacao_processo"] >= cutoff].copy()
+                if busca:
+                    mask = (
+                        df["nome_produto"].str.contains(busca, case=False, na=False) |
+                        df["principio_ativo"].str.contains(busca, case=False, na=False)
+                    )
+                    sub = sub[mask]
+                for _, r in sub.sort_values("data_finalizacao_processo", ascending=False).head(top_n).iterrows():
+                    results.append({
+                        "tipo": "Medicamento",
+                        "produto": r.get("nome_produto", ""),
+                        "principio_ativo": r.get("principio_ativo", ""),
+                        "classe_terapeutica": r.get("classe_terapeutica", ""),
+                        "empresa": r.get("razao_social", ""),
+                        "registro": r.get("numero_registro_produto", ""),
+                        "data_autorizacao": str(r.get("data_finalizacao_processo", ""))[:10],
+                        "vencimento": str(r.get("data_vencimento_registro", ""))[:10],
+                    })
+
+        if tipo in ("todos", "dispositivo"):
+            df = self._load_anvisa_dev()
+            if not df.empty and "dt_publicacao" in df.columns:
+                sub = df[df["dt_publicacao"] >= cutoff].copy()
+                if busca:
+                    sub = sub[df["no_produto"].str.contains(busca, case=False, na=False)]
+                for _, r in sub.sort_values("dt_publicacao", ascending=False).head(top_n).iterrows():
+                    results.append({
+                        "tipo": "Dispositivo Médico",
+                        "produto": r.get("no_produto", ""),
+                        "empresa": r.get("no_razao_social_empresa", ""),
+                        "cnpj": r.get("nu_cnpj_empresa", ""),
+                        "registro": r.get("nu_registro_produto", ""),
+                        "risco": r.get("sg_risco_produto", ""),
+                        "data_publicacao": str(r.get("dt_publicacao", ""))[:10],
+                        "vencimento": str(r.get("dt_vencimento_registro", ""))[:10],
+                    })
+
+        results = sorted(results, key=lambda x: x.get("data_autorizacao", x.get("data_publicacao", "")), reverse=True)[:top_n]
+        return {
+            "periodo_dias": dias,
+            "total_encontrados": len(results),
+            "registros": results,
+        }
+
+    def _tool_get_anvisa_alertas_vencimento_real(
+        self, dias: int = 90, tipo: str = "todos", top_n: int = 20, classe: str = ""
+    ) -> dict:
+        results = []
+
+        if tipo in ("todos", "medicamento"):
+            df = self._load_anvisa_med()
+            if not df.empty and "dias_ate_vencimento" in df.columns:
+                sub = df[df["dias_ate_vencimento"].between(0, dias)].copy()
+                if classe:
+                    sub = sub[sub["classe_terapeutica"].str.contains(classe, case=False, na=False)]
+                for _, r in sub.sort_values("dias_ate_vencimento").head(top_n).iterrows():
+                    results.append({
+                        "tipo": "Medicamento",
+                        "produto": r.get("nome_produto", ""),
+                        "principio_ativo": r.get("principio_ativo", ""),
+                        "classe_terapeutica": r.get("classe_terapeutica", ""),
+                        "empresa": r.get("razao_social", ""),
+                        "dias_restantes": int(r.get("dias_ate_vencimento", 0)),
+                        "vencimento": str(r.get("data_vencimento_registro", ""))[:10],
+                        "registro": r.get("numero_registro_produto", ""),
+                    })
+
+        if tipo in ("todos", "dispositivo"):
+            df = self._load_anvisa_dev()
+            if not df.empty and "dias_ate_vencimento" in df.columns:
+                sub = df[df["dias_ate_vencimento"].between(0, dias)].copy()
+                for _, r in sub.sort_values("dias_ate_vencimento").head(top_n).iterrows():
+                    results.append({
+                        "tipo": "Dispositivo Médico",
+                        "produto": r.get("no_produto", ""),
+                        "empresa": r.get("no_razao_social_empresa", ""),
+                        "risco": r.get("sg_risco_produto", ""),
+                        "dias_restantes": int(r.get("dias_ate_vencimento", 0)),
+                        "vencimento": str(r.get("dt_vencimento_registro", ""))[:10],
+                        "registro": r.get("nu_registro_produto", ""),
+                    })
+
+        results = sorted(results, key=lambda x: x.get("dias_restantes", 999))[:top_n]
+        return {
+            "prazo_dias": dias,
+            "total_alertas": len(results),
+            "alertas": results,
+        }
+
+    def _tool_get_anvisa_dispositivos_por_risco(
+        self, risco: str = "", top_n: int = 15, busca: str = ""
+    ) -> dict:
+        df = self._load_anvisa_dev()
+        if df.empty:
+            return {"message": "Dados de dispositivos não disponíveis."}
+
+        stats = df.groupby("sg_risco_produto").size().to_dict() if "sg_risco_produto" in df.columns else {}
+
+        sub = df.copy()
+        if risco:
+            sub = sub[sub["sg_risco_produto"].str.upper() == risco.upper()]
+        if busca:
+            sub = sub[sub["no_produto"].str.contains(busca, case=False, na=False)]
+
+        records = []
+        for _, r in sub.head(top_n).iterrows():
+            records.append({
+                "produto": r.get("no_produto", ""),
+                "empresa": r.get("no_razao_social_empresa", ""),
+                "risco": r.get("sg_risco_produto", ""),
+                "registro": r.get("nu_registro_produto", ""),
+                "vencimento": str(r.get("dt_vencimento_registro", ""))[:10],
+                "publicacao": str(r.get("dt_publicacao", ""))[:10],
+            })
+
+        return {
+            "estatisticas_por_risco": stats,
+            "total_registros": len(df),
+            "filtro_risco": risco or "todos",
+            "registros": records,
         }
 
     # ── Company tools ──────────────────────────────────────────────────────
