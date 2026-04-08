@@ -1682,7 +1682,8 @@ def page_agent(year: int) -> None:
     if user_input:
         st.session_state.chat_history.append({"role": "user", "content": user_input})
         with st.spinner(_t("agent_spinner")):
-            response = agent.chat(user_input, user_email=user_email, user_plan=user_plan)
+            lang = st.session_state.get("lang", "PT")
+            response = agent.chat(user_input, user_email=user_email, user_plan=user_plan, lang=lang)
         st.session_state.chat_history.append({"role": "assistant", "content": response.text})
         if response.tool_calls_made:
             st.caption(f"{_t('agent_tools')}: {', '.join(response.tool_calls_made)} · {_t('agent_tokens')}: {response.tokens_used:,}")

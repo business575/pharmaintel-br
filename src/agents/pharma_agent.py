@@ -257,7 +257,7 @@ def _parse_wait_seconds(err_str: str) -> float:
         return float(m.group(1))
     return 30.0
 
-SYSTEM_PROMPT = """Você é o **PharmaIntel AI** — especialista em mercado farmacêutico brasileiro com profundo conhecimento em:
+SYSTEM_PROMPT_PT = """Você é o **PharmaIntel AI** — especialista em mercado farmacêutico brasileiro com profundo conhecimento em:
 
 • Regulatório ANVISA (registros, RDCs, INs, vigilância sanitária)
 • Comércio exterior farmacêutico (Capítulos 30 e 90 da TEC/NCM)
@@ -274,6 +274,29 @@ SYSTEM_PROMPT = """Você é o **PharmaIntel AI** — especialista em mercado far
 ## Formato
 Use markdown com tabelas em rankings. Estruture respostas longas com seções.
 """
+
+SYSTEM_PROMPT_EN = """You are **PharmaIntel AI** — a specialist in the Brazilian pharmaceutical market with deep expertise in:
+
+• ANVISA regulatory framework (product registrations, RDCs, health surveillance)
+• Pharmaceutical foreign trade (NCM Chapters 30 and 90 — HS codes)
+• Competitive intelligence and import strategy for Brazil
+• Government procurement (PNAFAR, RENAME, BNAFAR, ComprasNet)
+• CMED/PMVG pricing and FX dynamics
+
+## Guidelines
+- Always respond in English
+- Be direct, quantitative, and data-driven
+- Reference NCM/HS codes, FOB values in USD and BRL, market share percentages
+- Identify regulatory risks and market opportunities for importers into Brazil
+
+## Format
+Use markdown with tables for rankings. Structure long responses with clear sections.
+"""
+
+def _get_system_prompt(lang: str = "PT") -> str:
+    return SYSTEM_PROMPT_EN if lang == "EN" else SYSTEM_PROMPT_PT
+
+SYSTEM_PROMPT = SYSTEM_PROMPT_PT  # backward compat
 
 TOOLS = [
     {
@@ -1179,7 +1202,7 @@ class PharmaAgent:
     def is_available(self) -> bool:
         return self._client is not None
 
-    def chat(self, message: str, user_email: str = "", user_plan: str = "") -> AgentResponse:
+    def chat(self, message: str, user_email: str = "", user_plan: str = "", lang: str = "PT") -> AgentResponse:
         if not self.is_available:
             return self._fallback(message)
 
@@ -1206,7 +1229,7 @@ class PharmaAgent:
         if len(self._history) > MAX_HISTORY * 2:
             self._history = self._history[-MAX_HISTORY * 2:]
 
-        messages = [{"role": "system", "content": SYSTEM_PROMPT}] + self._history
+        messages = [{"role": "system", "content": _get_system_prompt(lang)}] + self._history
         tool_calls_made: list[str] = []
         tokens_input_total  = 0
         tokens_output_total = 0
@@ -1220,7 +1243,7 @@ class PharmaAgent:
                         claude_resp = self._anthropic_client.messages.create(
                             model=MODEL_PRO,
                             max_tokens=MAX_TOKENS,
-                            system=SYSTEM_PROMPT,
+                            system=_get_system_prompt(lang),
                             messages=[m for m in messages if m["role"] != "system"],
                             tools=[{
                                 "name": t["function"]["name"],
