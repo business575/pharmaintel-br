@@ -412,9 +412,12 @@ def _login_page() -> None:
           <p style="color:#8899AA; font-size:0.85rem; margin:0 0 0.5rem;">{no_account_txt}</p>
         </div>
         """, unsafe_allow_html=True)
-        trial_btn_label = "Start Free 7-Day Trial" if login_lang == "EN" else "Teste Gratis — 7 Dias"
-        if st.button(trial_btn_label, use_container_width=True, type="primary"):
-            st.session_state["show_trial_register"] = True
+        demo_btn_label = "Try the AI Free" if login_lang == "EN" else "Experimentar a IA Gratis"
+        if st.button(demo_btn_label, use_container_width=True, type="primary"):
+            st.session_state["show_demo_agent"] = True
+            st.session_state.pop("demo_question_used", None)
+            st.session_state.pop("demo_question_text", None)
+            st.session_state.pop("demo_answer_text",   None)
             st.rerun()
         st.markdown("<div style='height:0.4rem;'></div>", unsafe_allow_html=True)
         plans_btn_label = "See Plans & Pricing" if login_lang == "EN" else "Ver Planos e Preços"
@@ -427,6 +430,191 @@ def _login_page() -> None:
           {_t("login_hint")}
         </p>
         """, unsafe_allow_html=True)
+    st.stop()
+
+
+_DEMO_SYSTEM_PT = """Você é o PharmaIntel AI — o assistente de inteligência de mercado farmacêutico mais avançado do Brasil. Você tem o nível de conhecimento de um PhD com 20 anos de experiência combinando:
+- Dados reais de importação (Comex Stat / MDIC) por NCM, país e empresa
+- Registros e alertas ANVISA (medicamentos, dispositivos médicos, biossimilares)
+- Inteligência competitiva: quem importa o quê, volumes, tendências, oportunidades
+- Patentes farmacêuticas no Brasil e oportunidades de genéricos/biossimilares
+- Compras públicas (licitações) e o mercado institucional brasileiro
+- Dados globais de comércio farmacêutico (UN Comtrade)
+
+REGRAS PARA ESTA RESPOSTA DE DEMO:
+1. Responda com profundidade impressionante — dados reais, números, tendências, nomes de NCMs relevantes
+2. Seja específico para o contexto brasileiro — regulação ANVISA, sazonalidade, players do mercado
+3. Demonstre que você tem acesso a uma base de dados única e poderosa
+4. No final da sua resposta, inclua SEMPRE uma seção chamada "🔓 O que a plataforma completa revelaria:" com 3 análises específicas e valiosas que você poderia fazer COM acesso completo — desperte desejo real
+5. Termine com: "Assine agora e tenha acesso a todas essas análises em tempo real."
+6. Tom: especialista confiante, direto, que conhece o mercado como ninguém"""
+
+_DEMO_SYSTEM_EN = """You are PharmaIntel AI — Brazil's most advanced pharmaceutical market intelligence assistant. You have the knowledge level of a PhD with 20 years of experience combining:
+- Real import data (Comex Stat / MDIC) by NCM/HS code, country and company
+- ANVISA registrations and alerts (medicines, medical devices, biosimilars)
+- Competitive intelligence: who imports what, volumes, trends, opportunities
+- Pharmaceutical patents in Brazil and generic/biosimilar opportunities
+- Public procurement (government tenders) and the institutional Brazilian market
+- Global pharmaceutical trade data (UN Comtrade)
+
+RULES FOR THIS DEMO RESPONSE:
+1. Answer with impressive depth — real data, numbers, trends, relevant NCM codes
+2. Be specific to the Brazilian context — ANVISA regulation, seasonality, market players
+3. Demonstrate that you have access to a unique and powerful database
+4. At the end of your response, ALWAYS include a section called "🔓 What the full platform would reveal:" with 3 specific and valuable analyses you could do WITH full access — create real desire
+5. End with: "Subscribe now and get access to all these analyses in real time."
+6. Tone: confident expert, direct, who knows the market like no one else"""
+
+
+def _page_demo_agent() -> None:
+    """Demo AI agent — 1 free question, then upgrade modal."""
+    lang  = st.session_state.get("lang", "PT")
+    is_en = lang == "EN"
+
+    st.markdown("""
+    <style>
+    [data-testid="stAppViewContainer"] { background: #0A1628; }
+    [data-testid="stSidebar"] { display: none; }
+    .demo-bubble-user { background:#1E3A5F; border-radius:12px 12px 0 12px;
+        padding:0.75rem 1rem; color:#E2EAF4; font-size:0.9rem; margin-bottom:0.5rem;
+        max-width:80%; margin-left:auto; }
+    .demo-bubble-ai { background:#112240; border:1px solid #00897B; border-radius:12px 12px 12px 0;
+        padding:1rem 1.25rem; color:#E2EAF4; font-size:0.9rem; margin-bottom:1rem; line-height:1.7; }
+    .upgrade-box { background:#112240; border:2px solid #4DB6AC;
+        border-radius:16px; padding:2rem; text-align:center; margin-top:1rem; }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # Top bar
+    col_back, col_title, col_lang = st.columns([1, 6, 1])
+    with col_back:
+        if st.button("Back" if is_en else "Voltar", key="demo_back"):
+            st.session_state["show_demo_agent"] = False
+            st.session_state["show_landing"]    = True
+            st.rerun()
+    with col_title:
+        st.markdown(f"""
+        <div style="text-align:center;">
+          <span style="color:#4DB6AC; font-weight:700; font-size:1.1rem;">PharmaIntel AI</span>
+          <span style="color:#8899AA; font-size:0.8rem; margin-left:0.5rem;">{'Demo — 1 free question' if is_en else 'Demo — 1 pergunta grátis'}</span>
+        </div>
+        """, unsafe_allow_html=True)
+    with col_lang:
+        if st.button("PT" if is_en else "EN", key="demo_lang"):
+            st.session_state["lang"] = "PT" if is_en else "EN"
+            st.rerun()
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Intro card
+    demo_used = st.session_state.get("demo_question_used", False)
+    demo_q    = st.session_state.get("demo_question_text", "")
+    demo_a    = st.session_state.get("demo_answer_text", "")
+
+    if not demo_used:
+        placeholder_suggestions = [
+            "Qual o mercado de insulina no Brasil? Quem importa mais?",
+            "Quais NCMs de dispositivos médicos cresceram mais em 2024?",
+            "Como está o mercado de oncológicos importados no Brasil?",
+            "Quais biossimilares têm patente vencendo no Brasil?",
+        ] if not is_en else [
+            "What is the insulin market in Brazil? Who imports the most?",
+            "Which medical device HS codes grew the most in 2024?",
+            "How is the oncology import market in Brazil?",
+            "Which biosimilars have expiring patents in Brazil?",
+        ]
+
+        intro_text = "Ask anything about the Brazilian pharmaceutical market. Our AI will answer like a PhD specialist." if is_en else "Pergunte qualquer coisa sobre o mercado farmacêutico brasileiro. Nossa IA responde como um especialista PhD."
+        st.markdown(f"""
+        <div style="background:#112240; border:1px solid #1E3A5F; border-radius:12px; padding:1.25rem 1.5rem; margin-bottom:1.5rem;">
+          <p style="color:#4DB6AC; font-weight:600; font-size:0.85rem; margin:0 0 0.5rem; letter-spacing:1px;">
+            {'PHARMA INTELLIGENCE AI' if is_en else 'INTELIGENCIA FARMACEUTICA IA'}
+          </p>
+          <p style="color:#B0BEC5; font-size:0.85rem; margin:0 0 1rem;">{intro_text}</p>
+          <p style="color:#8899AA; font-size:0.75rem; margin:0;">{'Try asking:' if is_en else 'Experimente perguntar:'}</p>
+          {''.join(f'<div style="color:#4DB6AC; font-size:0.78rem; padding:0.15rem 0;">→ {s}</div>' for s in placeholder_suggestions)}
+        </div>
+        """, unsafe_allow_html=True)
+
+        with st.form("demo_form"):
+            q_placeholder = "Type your question here..." if is_en else "Digite sua pergunta aqui..."
+            question = st.text_area("", placeholder=q_placeholder, height=100, label_visibility="collapsed")
+            send_label = "Ask the AI" if is_en else "Perguntar para a IA"
+            submitted = st.form_submit_button(send_label, use_container_width=True, type="primary")
+
+            if submitted and question.strip():
+                with st.spinner("Analisando..." if not is_en else "Analyzing..."):
+                    try:
+                        from openai import OpenAI
+                        _oai = OpenAI(api_key=os.getenv("OPENAI_API_KEY", ""))
+                        system = _DEMO_SYSTEM_EN if is_en else _DEMO_SYSTEM_PT
+                        resp = _oai.chat.completions.create(
+                            model="gpt-4o-mini",
+                            messages=[
+                                {"role": "system", "content": system},
+                                {"role": "user",   "content": question.strip()},
+                            ],
+                            max_tokens=800,
+                            temperature=0.7,
+                        )
+                        answer = resp.choices[0].message.content or ""
+                    except Exception as exc:
+                        logger.error("Demo agent error: %s", exc)
+                        answer = ("I'm unable to process your question right now. Please try again or contact us at Business@globalhealthcareaccess.com"
+                                  if is_en else
+                                  "Não foi possível processar sua pergunta agora. Tente novamente ou entre em contato: Business@globalhealthcareaccess.com")
+
+                st.session_state["demo_question_used"] = True
+                st.session_state["demo_question_text"] = question.strip()
+                st.session_state["demo_answer_text"]   = answer
+                st.rerun()
+
+    else:
+        # Show the conversation
+        st.markdown(f'<div class="demo-bubble-user">{demo_q}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="demo-bubble-ai">{demo_a}</div>', unsafe_allow_html=True)
+
+        # Upgrade block
+        unlock_title = "Want to ask more?" if is_en else "Quer fazer mais perguntas?"
+        unlock_sub   = ("Subscribe and get unlimited access to the AI agent, real import data, ANVISA alerts, patent tracking and much more."
+                        if is_en else
+                        "Assine e tenha acesso ilimitado ao agente IA, dados reais de importação, alertas ANVISA, rastreamento de patentes e muito mais.")
+        st.markdown(f"""
+        <div class="upgrade-box">
+          <div style="font-size:2rem; margin-bottom:0.5rem;">🔒</div>
+          <h3 style="color:#4DB6AC; margin:0 0 0.5rem;">{unlock_title}</h3>
+          <p style="color:#8899AA; font-size:0.85rem; margin-bottom:1.5rem;">{unlock_sub}</p>
+          <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap;">
+            <div style="background:#0A1628; border:1px solid #1E3A5F; border-radius:8px; padding:0.75rem 1.25rem; min-width:140px;">
+              <div style="color:#4DB6AC; font-weight:700;">Starter</div>
+              <div style="color:#E2EAF4; font-size:1.1rem; font-weight:700;">R$ 497<span style="color:#8899AA; font-size:0.75rem;">/{'mo' if is_en else 'mês'}</span></div>
+            </div>
+            <div style="background:#0A1628; border:2px solid #00897B; border-radius:8px; padding:0.75rem 1.25rem; min-width:140px;">
+              <div style="color:#00897B; font-weight:700;">Pro</div>
+              <div style="color:#E2EAF4; font-size:1.1rem; font-weight:700;">R$ 997<span style="color:#8899AA; font-size:0.75rem;">/{'mo' if is_en else 'mês'}</span></div>
+            </div>
+            <div style="background:#0A1628; border:1px solid #1E3A5F; border-radius:8px; padding:0.75rem 1.25rem; min-width:140px;">
+              <div style="color:#26C6DA; font-weight:700;">Enterprise</div>
+              <div style="color:#E2EAF4; font-size:1.1rem; font-weight:700;">R$ 2.497<span style="color:#8899AA; font-size:0.75rem;">/{'mo' if is_en else 'mês'}</span></div>
+            </div>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        col_a, col_b = st.columns(2)
+        with col_a:
+            if st.button("See All Plans" if is_en else "Ver Todos os Planos", use_container_width=True, type="primary"):
+                st.session_state["show_demo_agent"] = False
+                st.session_state["show_pricing"]    = True
+                st.rerun()
+        with col_b:
+            if st.button("Ask a new question" if is_en else "Nova pergunta", use_container_width=True):
+                st.session_state.pop("demo_question_used", None)
+                st.session_state.pop("demo_question_text", None)
+                st.session_state.pop("demo_answer_text",   None)
+                st.rerun()
+
     st.stop()
 
 
@@ -925,10 +1113,13 @@ def _page_landing() -> None:
         st.markdown("<br><br>", unsafe_allow_html=True)
         st.markdown(f'<p style="color:#E2EAF4; font-weight:600; font-size:1rem;">{"Ready to start?" if is_en else "Pronto para começar?"}</p>', unsafe_allow_html=True)
 
-        trial_cta = "Start Free 7-Day Trial" if is_en else "Teste Gratis — 7 Dias"
-        if st.button(trial_cta, use_container_width=True, type="primary"):
-            st.session_state["show_trial_register"] = True
-            st.session_state["show_landing"] = False
+        demo_cta = "Try the AI Free" if is_en else "Experimentar a IA Gratis"
+        if st.button(demo_cta, use_container_width=True, type="primary"):
+            st.session_state["show_demo_agent"] = True
+            st.session_state["show_landing"]    = False
+            st.session_state.pop("demo_question_used", None)
+            st.session_state.pop("demo_question_text", None)
+            st.session_state.pop("demo_answer_text",   None)
             st.rerun()
         st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)
         if st.button("See Plans & Pricing" if is_en else "Ver Planos e Preços", use_container_width=True):
@@ -936,13 +1127,13 @@ def _page_landing() -> None:
             st.session_state["show_landing"] = False
             st.rerun()
         st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)
-        if st.button("I have an account — Sign In" if is_en else "Já tenho conta — Entrar", use_container_width=True):
+        if st.button("I have an account — Sign In" if is_en else "Ja tenho conta — Entrar", use_container_width=True):
             st.session_state["show_landing"] = False
             st.rerun()
 
         st.markdown(f"""
         <p style="color:#8899AA; font-size:0.75rem; text-align:center; margin-top:1rem;">
-          {"7-day free trial · No credit card required" if is_en else "7 dias gratis · Sem cartão de crédito"}
+          {"1 free question · No credit card · No sign-up" if is_en else "1 pergunta gratis · Sem cartão · Sem cadastro"}
         </p>
         """, unsafe_allow_html=True)
 
@@ -959,7 +1150,9 @@ def _page_landing() -> None:
 
 # Gate: show pricing page if requested (unauthenticated)
 if not st.session_state.get("authenticated", False):
-    if st.session_state.get("show_trial_success", False):
+    if st.session_state.get("show_demo_agent", False):
+        _page_demo_agent()
+    elif st.session_state.get("show_trial_success", False):
         _page_trial_success()
     elif st.session_state.get("show_trial_register", False):
         _page_trial_register()
