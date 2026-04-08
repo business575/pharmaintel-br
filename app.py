@@ -210,6 +210,27 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "Existe algum alerta de compliance ANVISA?",
             "Qual o preço médio por kg dos principais NCMs?",
         ],
+        # Admin Director
+        "nav_director":       "Diretora IA",
+        "header_director":    "Diretora IA — Centro de Comando",
+        "director_goal":      "Meta",
+        "director_total_leads": "Leads Totais",
+        "director_hot_leads": "Leads Quentes",
+        "director_revenue":   "Receita Acumulada",
+        "director_days_left": "Dias Restantes",
+        "director_pipeline":  "Pipeline de Vendas",
+        "director_hot_table": "Leads Quentes — Prioridade de Contato",
+        "director_chat":      "Chat com a Diretora IA",
+        "director_run_seq":   "Executar Sequências de Email",
+        "director_all_leads": "Todos os Leads",
+        "director_mark_contacted": "Marcar Contatado",
+        "director_draft_msg": "Rascunhar Mensagem",
+        "director_brief":     "Briefing Diário",
+        "director_suggestions": [
+            "Qual o próximo lead para contatar?",
+            "Quantos faltam para R$50k?",
+            "Rascunha mensagem para o lead mais quente",
+        ],
     },
     "EN": {
         # Navigation
@@ -278,6 +299,27 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "Which countries lead pharmaceutical imports?",
             "Are there any ANVISA compliance alerts?",
             "What is the average price per kg for key NCMs?",
+        ],
+        # Admin Director
+        "nav_director":       "AI Director",
+        "header_director":    "AI Director — Command Center",
+        "director_goal":      "Goal",
+        "director_total_leads": "Total Leads",
+        "director_hot_leads": "Hot Leads",
+        "director_revenue":   "Revenue",
+        "director_days_left": "Days Left",
+        "director_pipeline":  "Sales Pipeline",
+        "director_hot_table": "Hot Leads — Contact Priority",
+        "director_chat":      "Chat with AI Director",
+        "director_run_seq":   "Run Email Sequences",
+        "director_all_leads": "All Leads",
+        "director_mark_contacted": "Mark Contacted",
+        "director_draft_msg": "Draft Message",
+        "director_brief":     "Daily Briefing",
+        "director_suggestions": [
+            "Which lead should I contact next?",
+            "How many sales to reach R$50k?",
+            "Draft message for hottest lead",
         ],
     },
 }
@@ -2404,6 +2446,262 @@ def page_agent(year: int) -> None:
 
 
 # ===========================================================================
+# Admin Director Page
+# ===========================================================================
+
+def _page_admin_director(_year: int = 2025) -> None:
+    """Admin-only Sales Director command center."""
+    lang = st.session_state.get("lang", "PT")
+
+    st.markdown(f"""
+    <h1 style="color:#4DB6AC; margin-bottom:0.25rem;">
+      {"Diretora IA — Centro de Comando" if lang == "PT" else "AI Director — Command Center"}
+    </h1>
+    <p style="color:#8899AA; font-size:0.9rem; margin-bottom:1.5rem;">
+      {"Sprint de 22 dias · Meta R$50.000 até 30 de abril de 2026" if lang == "PT" else "22-day sprint · Goal R$50,000 by April 30, 2026"}
+    </p>
+    """, unsafe_allow_html=True)
+
+    # Load lead manager
+    try:
+        from src.crm.lead_manager import LeadManager
+        lm = LeadManager()
+        stats = lm.get_pipeline_stats()
+        progress = lm.get_days_to_goal()
+    except Exception as exc:
+        st.error(f"LeadManager error: {exc}")
+        return
+
+    # -----------------------------------------------------------------------
+    # Goal progress bar
+    # -----------------------------------------------------------------------
+    revenue = progress.get("revenue", 0)
+    goal = progress.get("goal", 50000)
+    pct = progress.get("pct", 0)
+    remaining = progress.get("remaining", goal)
+    days_left = progress.get("days_remaining", 22)
+
+    bar_color = "#4DB6AC" if pct >= 60 else ("#f0a500" if pct >= 20 else "#e53935")
+    goal_label = "Meta" if lang == "PT" else "Goal"
+    st.markdown(f"""
+    <div style="background:#112240; border:1px solid #1E3A5F; border-radius:10px; padding:1rem 1.5rem; margin-bottom:1.5rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+        <span style="color:#E8EDF5; font-weight:600;">{goal_label}: R${revenue:,.0f} / R${goal:,.0f}</span>
+        <span style="color:{bar_color}; font-weight:700; font-size:1.1rem;">{pct:.1f}%</span>
+      </div>
+      <div style="background:#0A1628; border-radius:6px; height:12px; overflow:hidden;">
+        <div style="background:{bar_color}; width:{min(pct,100):.1f}%; height:100%; border-radius:6px;
+                    transition:width 0.5s ease;"></div>
+      </div>
+      <div style="color:#8899AA; font-size:0.78rem; margin-top:0.4rem;">
+        {"Faltam" if lang == "PT" else "Remaining"} R${remaining:,.0f} · {days_left} {"dias" if lang == "PT" else "days"}
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # -----------------------------------------------------------------------
+    # 4 KPI cards
+    # -----------------------------------------------------------------------
+    total_leads = stats.get("total", 0)
+    hot_leads = stats.get("hot", 0)
+
+    kc1, kc2, kc3, kc4 = st.columns(4)
+    kpi_style = 'style="background:#112240;border:1px solid #1E3A5F;border-radius:10px;padding:1rem;text-align:center;"'
+    with kc1:
+        st.markdown(f'<div {kpi_style}><p style="color:#8899AA;font-size:0.75rem;margin:0;">{"Leads Totais" if lang == "PT" else "Total Leads"}</p><h2 style="color:#4DB6AC;margin:0.25rem 0 0;">{total_leads}</h2></div>', unsafe_allow_html=True)
+    with kc2:
+        st.markdown(f'<div {kpi_style}><p style="color:#8899AA;font-size:0.75rem;margin:0;">{"Leads Quentes" if lang == "PT" else "Hot Leads"}</p><h2 style="color:#FF6B6B;margin:0.25rem 0 0;">{hot_leads}</h2></div>', unsafe_allow_html=True)
+    with kc3:
+        st.markdown(f'<div {kpi_style}><p style="color:#8899AA;font-size:0.75rem;margin:0;">{"Receita Acumulada" if lang == "PT" else "Revenue"}</p><h2 style="color:#4DB6AC;margin:0.25rem 0 0;">R${revenue:,.0f}</h2></div>', unsafe_allow_html=True)
+    with kc4:
+        dl_color = "#e53935" if days_left <= 5 else ("#f0a500" if days_left <= 10 else "#4DB6AC")
+        st.markdown(f'<div {kpi_style}><p style="color:#8899AA;font-size:0.75rem;margin:0;">{"Dias Restantes" if lang == "PT" else "Days Left"}</p><h2 style="color:{dl_color};margin:0.25rem 0 0;">{days_left}</h2></div>', unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # -----------------------------------------------------------------------
+    # Pipeline visual
+    # -----------------------------------------------------------------------
+    st.markdown(f"### {'Pipeline de Vendas' if lang == 'PT' else 'Sales Pipeline'}")
+    by_status = stats.get("by_status", {})
+    pipe_cols = st.columns(4)
+    pipe_stages = [
+        ("new",        "Novos" if lang == "PT" else "New",            "#8899AA"),
+        ("demo_tested","Demo Testado" if lang == "PT" else "Demo'd",  "#f0a500"),
+        ("contacted",  "Contatado" if lang == "PT" else "Contacted",  "#4DB6AC"),
+        ("subscribed", "Assinante" if lang == "PT" else "Subscriber", "#66BB6A"),
+    ]
+    for col, (status_key, label, color) in zip(pipe_cols, pipe_stages):
+        count = by_status.get(status_key, 0)
+        with col:
+            st.markdown(f"""
+            <div style="background:#112240;border:1px solid #1E3A5F;border-radius:10px;
+                        padding:1rem;text-align:center;">
+              <p style="color:{color};font-size:0.8rem;font-weight:600;margin:0;">{label}</p>
+              <h3 style="color:#E8EDF5;margin:0.3rem 0 0;font-size:2rem;">{count}</h3>
+            </div>
+            """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # -----------------------------------------------------------------------
+    # Hot leads table
+    # -----------------------------------------------------------------------
+    st.markdown(f"### {'Leads Quentes — Prioridade de Contato' if lang == 'PT' else 'Hot Leads — Contact Priority'}")
+    try:
+        hot = lm.get_hot_leads()
+        if not hot:
+            st.info("Nenhum lead quente ainda." if lang == "PT" else "No hot leads yet.")
+        else:
+            for lead in hot[:10]:
+                temp_color = "#FF6B6B" if lead.temperature == "hot" else "#f0a500"
+                temp_label = "HOT" if lead.temperature == "hot" else "WARM"
+                with st.container():
+                    col_info, col_act1, col_act2 = st.columns([5, 1.5, 1.5])
+                    with col_info:
+                        st.markdown(f"""
+                        <div style="background:#112240;border:1px solid #1E3A5F;border-radius:8px;padding:0.75rem 1rem;">
+                          <span style="background:{temp_color};color:#fff;padding:2px 8px;border-radius:4px;font-size:0.72rem;font-weight:700;">{temp_label}</span>
+                          <span style="color:#E8EDF5;margin-left:0.75rem;font-weight:600;">{lead.email}</span>
+                          <span style="color:#8899AA;font-size:0.8rem;margin-left:0.5rem;">· {lead.questions_asked} {"perguntas" if lang == "PT" else "questions"} · {lead.lang}</span>
+                          {f'<span style="color:#4DB6AC;font-size:0.75rem;margin-left:0.5rem;">{lead.country_hint}</span>' if lead.country_hint else ''}
+                          <br><span style="color:#8899AA;font-size:0.72rem;">{lead.timestamp[:10] if lead.timestamp else "—"}</span>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    with col_act1:
+                        btn_label = "Contatado" if lang == "PT" else "Contacted"
+                        if st.button(btn_label, key=f"contact_{lead.email}", use_container_width=True):
+                            lm.mark_contacted(lead.email)
+                            st.success(f"{lead.email} {'marcado como contatado' if lang == 'PT' else 'marked as contacted'}")
+                            st.rerun()
+                    with col_act2:
+                        msg_label = "Mensagem" if lang == "PT" else "Message"
+                        if st.button(msg_label, key=f"msg_{lead.email}", use_container_width=True):
+                            st.session_state[f"show_draft_{lead.email}"] = True
+                    # Show draft if requested
+                    if st.session_state.get(f"show_draft_{lead.email}"):
+                        from src.agents.director_agent import _tool_draft_whatsapp
+                        draft = _tool_draft_whatsapp(lead.email, lead.lang)
+                        st.code(draft, language=None)
+    except Exception as exc:
+        st.error(f"Hot leads error: {exc}")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # -----------------------------------------------------------------------
+    # Email sequences
+    # -----------------------------------------------------------------------
+    st.markdown(f"### {'Sequências de Email' if lang == 'PT' else 'Email Sequences'}")
+    run_label = "Executar Sequências de Email" if lang == "PT" else "Run Email Sequences"
+    if st.button(run_label, type="primary", use_container_width=False):
+        with st.spinner("Processando..." if lang == "PT" else "Processing..."):
+            try:
+                from src.crm.email_sequencer import EmailSequencer
+                seq = EmailSequencer()
+                result = seq.run_sequences()
+                st.success(
+                    f"{'Enviados' if lang == 'PT' else 'Sent'}: {result['sent']} · "
+                    f"{'Ignorados' if lang == 'PT' else 'Skipped'}: {result['skipped']} · "
+                    f"Erros: {result['errors']}"
+                )
+                if result.get("detail"):
+                    with st.expander("Detalhes" if lang == "PT" else "Details"):
+                        st.json(result["detail"])
+            except Exception as exc:
+                st.error(f"Sequencer error: {exc}")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # -----------------------------------------------------------------------
+    # Director AI Chat
+    # -----------------------------------------------------------------------
+    st.markdown(f"### {'Chat com a Diretora IA' if lang == 'PT' else 'Chat with AI Director'}")
+
+    if "director_history" not in st.session_state:
+        st.session_state["director_history"] = []
+    if "director_agent" not in st.session_state:
+        try:
+            from src.agents.director_agent import DirectorAgent
+            st.session_state["director_agent"] = DirectorAgent()
+        except Exception as exc:
+            st.error(f"DirectorAgent init error: {exc}")
+            st.session_state["director_agent"] = None
+
+    agent_d = st.session_state.get("director_agent")
+
+    # Daily brief button
+    brief_label = "Briefing Diário" if lang == "PT" else "Daily Briefing"
+    if st.button(brief_label, type="secondary"):
+        if agent_d:
+            with st.spinner("Gerando briefing..." if lang == "PT" else "Generating briefing..."):
+                brief = agent_d.get_daily_brief(lang=lang)
+            st.session_state["director_history"].append({"role": "assistant", "content": brief})
+            st.rerun()
+
+    # Suggestion chips
+    suggestions = TRANSLATIONS[lang].get("director_suggestions", [])
+    sug_cols = st.columns(len(suggestions))
+    for col, sug in zip(sug_cols, suggestions):
+        if col.button(sug[:35] + "…" if len(sug) > 35 else sug, key=f"dsug_{sug[:20]}"):
+            st.session_state["director_pending"] = sug
+
+    # Chat history
+    st.markdown("---")
+    for msg in st.session_state["director_history"]:
+        if msg["role"] == "user":
+            st.markdown(f'<div style="background:#1E3A5F;border-radius:8px;padding:0.75rem 1rem;margin:0.5rem 0;"><b style="color:#4DB6AC;">{"Você" if lang == "PT" else "You"}:</b> {msg["content"]}</div>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div style="background:#112240;border:1px solid #1E3A5F;border-radius:8px;padding:0.75rem 1rem;margin:0.5rem 0;">{msg["content"]}</div>', unsafe_allow_html=True)
+
+    # Input
+    placeholder = "Faça uma pergunta para a Diretora IA..." if lang == "PT" else "Ask the AI Director..."
+    user_input = st.chat_input(placeholder)
+    if "director_pending" in st.session_state:
+        user_input = st.session_state.pop("director_pending")
+
+    if user_input and agent_d:
+        st.session_state["director_history"].append({"role": "user", "content": user_input})
+        with st.spinner("Diretora analisando..." if lang == "PT" else "Director analyzing..."):
+            resp = agent_d.chat(user_input, lang=lang)
+        st.session_state["director_history"].append({"role": "assistant", "content": resp})
+        st.rerun()
+
+    if st.session_state["director_history"]:
+        clear_label = "Limpar conversa" if lang == "PT" else "Clear conversation"
+        if st.button(clear_label, type="secondary"):
+            st.session_state["director_history"] = []
+            if agent_d:
+                agent_d.reset()
+            st.rerun()
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # -----------------------------------------------------------------------
+    # All leads raw table
+    # -----------------------------------------------------------------------
+    with st.expander(f"{'Todos os Leads' if lang == 'PT' else 'All Leads'} ({total_leads})"):
+        all_leads = lm.get_all_leads()
+        if all_leads:
+            rows = []
+            for lead in all_leads:
+                rows.append({
+                    "Email": lead.email,
+                    "Status": lead.status,
+                    "Temp": lead.temperature,
+                    "Q": lead.questions_asked,
+                    "Lang": lead.lang,
+                    "Country": lead.country_hint,
+                    "Last Contact": lead.last_contact or "—",
+                    "Follow-ups": lead.follow_up_count,
+                    "Captured": lead.timestamp[:10] if lead.timestamp else "—",
+                })
+            import pandas as pd
+            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+        else:
+            st.info("Nenhum lead capturado ainda." if lang == "PT" else "No leads captured yet.")
+
+
+# ===========================================================================
 # Sidebar & Navigation
 # ===========================================================================
 
@@ -2427,18 +2725,24 @@ def sidebar() -> tuple[str, int]:
         """, unsafe_allow_html=True)
 
         # Navigation — translated labels mapped to internal keys
-        nav_labels = [_t(k) for k in _NAV_T_KEYS]
+        _is_admin = (
+            st.session_state.get("auth_user") == _APP_USERNAME
+            or st.session_state.get("is_admin")
+        )
+        nav_keys_active = _NAV_KEYS + (["director"] if _is_admin else [])
+        nav_t_keys_active = _NAV_T_KEYS + (["nav_director"] if _is_admin else [])
+        nav_labels = [_t(k) for k in nav_t_keys_active]
         # Preserve current page across language switches using internal key
         current_key = st.session_state.get("page_key", "overview")
-        current_idx = _NAV_KEYS.index(current_key) if current_key in _NAV_KEYS else 0
+        current_idx = nav_keys_active.index(current_key) if current_key in nav_keys_active else 0
         selected_idx = st.radio(
             "nav",
-            options=range(len(_NAV_KEYS)),
+            options=range(len(nav_keys_active)),
             format_func=lambda i: nav_labels[i],
             index=current_idx,
             label_visibility="collapsed",
         )
-        page_key = _NAV_KEYS[selected_idx]
+        page_key = nav_keys_active[selected_idx]
         st.session_state["page_key"] = page_key
 
         st.markdown("<hr style='border-color:#1E3A5F;'>", unsafe_allow_html=True)
@@ -2544,11 +2848,16 @@ def main() -> None:
         "comtrade":   page_comtrade,
         "etl":        page_etl,
         "agent":      page_agent,
+        "director":   _page_admin_director,
     }
 
     fn = pages.get(page_key)
     if fn:
-        fn(year)
+        # director page doesn't use `year`
+        if page_key == "director":
+            fn()
+        else:
+            fn(year)
 
 
 if __name__ == "__main__":
