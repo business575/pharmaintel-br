@@ -630,18 +630,10 @@ def _page_demo_agent() -> None:
         """, unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
-        col_a, col_b = st.columns(2)
-        with col_a:
-            if st.button("See All Plans" if is_en else "Ver Todos os Planos", use_container_width=True, type="primary"):
-                st.session_state["show_demo_agent"] = False
-                st.session_state["show_pricing"]    = True
-                st.rerun()
-        with col_b:
-            if st.button("Ask a new question" if is_en else "Nova pergunta", use_container_width=True):
-                st.session_state.pop("demo_question_used", None)
-                st.session_state.pop("demo_question_text", None)
-                st.session_state.pop("demo_answer_text",   None)
-                st.rerun()
+        if st.button("See All Plans" if is_en else "Ver Todos os Planos", use_container_width=True, type="primary"):
+            st.session_state["show_demo_agent"] = False
+            st.session_state["show_pricing"]    = True
+            st.rerun()
 
     st.stop()
 
