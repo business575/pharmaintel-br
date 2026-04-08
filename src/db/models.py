@@ -79,6 +79,26 @@ class User(Base):
         return True
 
 
+class DemoLead(Base):
+    """Demo leads captured from the free AI demo."""
+    __tablename__ = "demo_leads"
+
+    id             = Column(Integer, primary_key=True)
+    email          = Column(String(255), unique=True, nullable=False, index=True)
+    lang           = Column(String(5), default="PT")
+    status         = Column(String(30), default="new")        # new|demo_tested|contacted|subscribed|lost
+    temperature    = Column(String(10), default="cold")       # hot|warm|cold
+    questions_asked = Column(Integer, default=0)
+    country_hint   = Column(String(100), default="")
+    notes          = Column(Text, default="")
+    follow_up_count = Column(Integer, default=0)
+    emails_sent    = Column(Text, default="[]")               # JSON list of days sent
+    last_contact   = Column(DateTime, nullable=True)
+    created_at     = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at     = Column(DateTime, default=lambda: datetime.now(timezone.utc),
+                            onupdate=lambda: datetime.now(timezone.utc))
+
+
 class WebhookEvent(Base):
     """Log of processed Stripe webhook events to prevent duplicates."""
     __tablename__ = "webhook_events"

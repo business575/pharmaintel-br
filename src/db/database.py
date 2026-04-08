@@ -128,6 +128,84 @@ def update_subscription(
         return True
 
 
+def save_demo_lead(
+    email: str,
+    lang: str = "PT",
+    status: str = "new",
+    temperature: str = "cold",
+    questions_asked: int = 0,
+    country_hint: str = "",
+) -> None:
+    """Create or update a demo lead in the database."""
+    import json
+    from src.db.models import DemoLead
+    from datetime import datetime, timezone
+    with SessionLocal() as s:
+        lead = s.query(DemoLead).filter(DemoLead.email == email.lower().strip()).first()
+        if lead:
+            if questions_asked > lead.questions_asked:
+                lead.questions_asked = questions_asked
+            if temperature in ("hot", "warm") and lead.temperature == "cold":
+                lead.temperature = temperature
+            if status != "new":
+                lead.status = status
+            lead.updated_at = datetime.now(timezone.utc)
+        else:
+            lead = DemoLead(
+                email=email.lower().strip(),
+                lang=lang,
+                status=status,
+                temperature=temperature,
+                questions_asked=questions_asked,
+                country_hint=country_hint,
+                emails_sent="[]",
+            )
+            s.add(lead)
+        s.commit()
+
+
+def get_demo_leads() -> list:
+    """Return all demo leads as dicts."""
+    import json
+    from src.db.models import DemoLead
+    with SessionLocal() as s:
+        leads = s.query(DemoLead).order_by(DemoLead.created_at.desc()).all()
+        result = []
+        for l in leads:
+            result.append({
+                "email": l.email,
+                "lang": l.lang,
+                "status": l.status,
+                "temperature": l.temperature,
+                "questions_asked": l.questions_asked,
+                "country_hint": l.country_hint,
+                "notes": l.notes,
+                "follow_up_count": l.follow_up_count,
+                "emails_sent": json.loads(l.emails_sent or "[]"),
+                "last_contact": l.last_contact.isoformat() if l.last_contact else None,
+                "timestamp": l.created_at.isoformat(),
+            })
+        return result
+
+
+def update_demo_lead(email: str, **kwargs) -> None:
+    """Update fields on a demo lead."""
+    import json
+    from src.db.models import DemoLead
+    from datetime import datetime, timezone
+    with SessionLocal() as s:
+        lead = s.query(DemoLead).filter(DemoLead.email == email.lower().strip()).first()
+        if not lead:
+            return
+        for k, v in kwargs.items():
+            if k == "emails_sent" and isinstance(v, list):
+                v = json.dumps(v)
+            if hasattr(lead, k):
+                setattr(lead, k, v)
+        lead.updated_at = datetime.now(timezone.utc)
+        s.commit()
+
+
 def webhook_seen(event_id: str) -> bool:
     """Return True if this Stripe event was already processed."""
     from src.db.models import WebhookEvent

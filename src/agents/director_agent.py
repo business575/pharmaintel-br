@@ -362,7 +362,7 @@ _TOOL_MAP = {
 class DirectorAgent:
     """AI Sales Director powered by Claude Sonnet with tool calling."""
 
-    MODEL = "claude-sonnet-4-5"
+    MODEL = "claude-sonnet-4-6"
 
     def __init__(self):
         self._client = None

@@ -86,26 +86,21 @@ class LeadManager:
         self._load()
 
     def _load(self) -> None:
-        """Load leads from demo_leads.json and merge with DB subscribers."""
-        # Load JSON leads
-        if LEADS_FILE.exists():
-            try:
-                raw = json.loads(LEADS_FILE.read_text(encoding="utf-8"))
-                if isinstance(raw, list):
-                    for item in raw:
-                        try:
-                            lead = Lead.from_dict(item)
-                            self._leads[lead.email.lower()] = lead
-                        except Exception as exc:
-                            logger.warning("Skipping malformed lead: %s", exc)
-            except Exception as exc:
-                logger.warning("Failed to load demo_leads.json: %s", exc)
-
-        # Merge active subscribers from SQLite
+        """Load leads from SQLite DB (demo_leads table + users table)."""
         try:
-            from src.db.database import init_db, SessionLocal
+            from src.db.database import init_db, get_demo_leads, SessionLocal
             from src.db.models import User
             init_db()
+
+            # Load demo leads from DB
+            for item in get_demo_leads():
+                try:
+                    lead = Lead.from_dict(item)
+                    self._leads[lead.email.lower()] = lead
+                except Exception as exc:
+                    logger.warning("Skipping malformed lead: %s", exc)
+
+            # Merge active subscribers
             with SessionLocal() as s:
                 users = s.query(User).filter(User.subscription_status == "active").all()
                 for u in users:
@@ -113,14 +108,25 @@ class LeadManager:
                     if email in self._leads:
                         self._leads[email].status = LeadStatus.SUBSCRIBED
                     else:
-                        lead = Lead(
+                        self._leads[email] = Lead(
                             email=email,
                             status=LeadStatus.SUBSCRIBED,
                             temperature=LeadTemperature.HOT,
                         )
-                        self._leads[email] = lead
         except Exception as exc:
-            logger.debug("DB merge skipped: %s", exc)
+            logger.warning("DB load failed: %s", exc)
+            # Fallback to JSON if DB not available
+            if LEADS_FILE.exists():
+                try:
+                    raw = json.loads(LEADS_FILE.read_text(encoding="utf-8"))
+                    for item in (raw if isinstance(raw, list) else []):
+                        try:
+                            lead = Lead.from_dict(item)
+                            self._leads[lead.email.lower()] = lead
+                        except Exception:
+                            pass
+                except Exception:
+                    pass
 
     def get_all_leads(self) -> list[Lead]:
         """Return all leads sorted by timestamp descending."""
@@ -288,12 +294,19 @@ class LeadManager:
         return True
 
     def save(self) -> None:
-        """Persist leads to demo_leads.json (excluding DB-only subscribers)."""
+        """Persist leads to SQLite DB."""
         try:
-            data = [lead.to_dict() for lead in self._leads.values()]
-            LEADS_FILE.write_text(
-                json.dumps(data, ensure_ascii=False, indent=2),
-                encoding="utf-8",
-            )
+            from src.db.database import update_demo_lead
+            for lead in self._leads.values():
+                if lead.status != LeadStatus.SUBSCRIBED:
+                    update_demo_lead(
+                        lead.email,
+                        status=lead.status.value,
+                        temperature=lead.temperature.value,
+                        questions_asked=lead.questions_asked,
+                        notes=lead.notes,
+                        follow_up_count=lead.follow_up_count,
+                        emails_sent=lead.emails_sent,
+                    )
         except Exception as exc:
             logger.error("Failed to save leads: %s", exc)

@@ -583,27 +583,13 @@ DEMO_MAX_QUESTIONS = 2
 
 
 def _save_demo_lead(email: str, lang: str = "PT") -> None:
-    """Save demo lead to JSON file and send welcome email."""
-    import json
-    leads_path = ROOT / "data" / "demo_leads.json"
-    leads_path.parent.mkdir(parents=True, exist_ok=True)
-    leads = []
-    if leads_path.exists():
-        try:
-            leads = json.loads(leads_path.read_text())
-        except Exception:
-            leads = []
-    # avoid duplicates
-    existing = [l["email"] for l in leads]
-    if email not in existing:
-        leads.append({
-            "email": email,
-            "lang": lang,
-            "timestamp": __import__("datetime").datetime.utcnow().isoformat(),
-            "follow_up_sent": False,
-        })
-        leads_path.write_text(json.dumps(leads, indent=2))
-    # fire-and-forget welcome email
+    """Save demo lead to SQLite DB (persists on Render) and send welcome email."""
+    try:
+        from src.db.database import init_db, save_demo_lead as _db_save
+        init_db()
+        _db_save(email=email, lang=lang, status="new", temperature="cold")
+    except Exception as exc:
+        logger.warning("Failed to save demo lead to DB: %s", exc)
     try:
         _send_demo_email(email, lang, "welcome")
     except Exception as exc:
