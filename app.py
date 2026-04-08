@@ -545,19 +545,16 @@ def _page_demo_agent() -> None:
             if submitted and question.strip():
                 with st.spinner("Analisando..." if not is_en else "Analyzing..."):
                     try:
-                        from openai import OpenAI
-                        _oai = OpenAI(api_key=os.getenv("OPENAI_API_KEY", ""))
+                        import anthropic as _anthropic
+                        _ant = _anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
                         system = _DEMO_SYSTEM_EN if is_en else _DEMO_SYSTEM_PT
-                        resp = _oai.chat.completions.create(
-                            model="gpt-4o-mini",
-                            messages=[
-                                {"role": "system", "content": system},
-                                {"role": "user",   "content": question.strip()},
-                            ],
+                        resp = _ant.messages.create(
+                            model="claude-haiku-4-5-20251001",
                             max_tokens=800,
-                            temperature=0.7,
+                            system=system,
+                            messages=[{"role": "user", "content": question.strip()}],
                         )
-                        answer = resp.choices[0].message.content or ""
+                        answer = resp.content[0].text if resp.content else ""
                     except Exception as exc:
                         logger.error("Demo agent error: %s", exc)
                         answer = ("I'm unable to process your question right now. Please try again or contact us at Business@globalhealthcareaccess.com"
