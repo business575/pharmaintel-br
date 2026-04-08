@@ -505,7 +505,16 @@ class DirectorAgent:
 
         except Exception as exc:
             logger.error("DirectorAgent.chat error: %s", exc)
-            return self._fallback_response(message, lang)
+            # Try Groq as emergency fallback before showing offline message
+            if self._groq_client:
+                try:
+                    text = self._chat_groq(message, lang)
+                    self._history.append({"role": "assistant", "content": text})
+                    return text
+                except Exception as exc2:
+                    logger.error("Groq emergency fallback failed: %s", exc2)
+            err_msg = f"[Erro API: {type(exc).__name__}: {str(exc)[:200]}]"
+            return err_msg
 
     def get_daily_brief(self, lang: str = "PT") -> str:
         """Generate a daily briefing with pipeline status and priorities."""
