@@ -99,6 +99,29 @@ class DemoLead(Base):
                             onupdate=lambda: datetime.now(timezone.utc))
 
 
+class Prospect(Base):
+    """Cold outreach prospects — companies to contact for sales."""
+    __tablename__ = "prospects"
+
+    id              = Column(Integer, primary_key=True)
+    company_name    = Column(String(255), nullable=False)
+    email           = Column(String(255), nullable=False, index=True)
+    phone           = Column(String(50), default="")
+    contact_role    = Column(String(100), default="")       # Diretor, Regulatory, Supply...
+    segment         = Column(String(100), default="")       # medicamentos, dispositivos, APIs...
+    description     = Column(Text, default="")              # what the company does
+    is_partner      = Column(Boolean, default=False)        # True = strategic partner, not sales target
+    status          = Column(String(30), default="pending") # pending|contacted|replied|converted|lost
+    emails_sent     = Column(Integer, default=0)
+    last_contact    = Column(DateTime, nullable=True)
+    last_email_body = Column(Text, default="")
+    notes           = Column(Text, default="")
+    priority        = Column(String(10), default="high")    # high|medium|low
+    created_at      = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at      = Column(DateTime, default=lambda: datetime.now(timezone.utc),
+                             onupdate=lambda: datetime.now(timezone.utc))
+
+
 class WebhookEvent(Base):
     """Log of processed Stripe webhook events to prevent duplicates."""
     __tablename__ = "webhook_events"

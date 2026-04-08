@@ -210,6 +210,15 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "Existe algum alerta de compliance ANVISA?",
             "Qual o preço médio por kg dos principais NCMs?",
         ],
+        # Outreach
+        "nav_outreach":       "Prospecção",
+        "outreach_title":     "Agente de Prospecção — 10-20 contatos/dia",
+        "outreach_run":       "Disparar emails hoje",
+        "outreach_dry":       "Simular (sem enviar)",
+        "outreach_seed":      "Carregar prospects iniciais",
+        "outreach_pending":   "Aguardando contato",
+        "outreach_contacted": "Contatados",
+        "outreach_no_email":  "Sem email (adicionar manualmente)",
         # Admin Director
         "nav_director":       "Diretora IA",
         "header_director":    "Diretora IA — Centro de Comando",
@@ -300,6 +309,15 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "Are there any ANVISA compliance alerts?",
             "What is the average price per kg for key NCMs?",
         ],
+        # Outreach
+        "nav_outreach":       "Outreach",
+        "outreach_title":     "Outreach Agent — 10-20 contacts/day",
+        "outreach_run":       "Send emails today",
+        "outreach_dry":       "Simulate (no send)",
+        "outreach_seed":      "Load initial prospects",
+        "outreach_pending":   "Pending contact",
+        "outreach_contacted": "Contacted",
+        "outreach_no_email":  "No email (add manually)",
         # Admin Director
         "nav_director":       "AI Director",
         "header_director":    "AI Director — Command Center",
@@ -2432,6 +2450,113 @@ def page_agent(year: int) -> None:
 
 
 # ===========================================================================
+# Outreach Agent Page
+# ===========================================================================
+
+def _page_outreach(_year: int = 2025) -> None:
+    """Admin-only outreach agent — prospect management and daily email dispatch."""
+    lang = st.session_state.get("lang", "PT")
+    is_en = lang == "EN"
+
+    st.markdown(f'<h2 style="color:#4DB6AC;">{_t("outreach_title")}</h2>', unsafe_allow_html=True)
+
+    from src.db.database import init_db, get_prospects, get_prospects_due_today, add_prospect
+    from src.agents.outreach_agent import run_daily_outreach, seed_prospects
+    init_db()
+
+    # ── Top actions ──────────────────────────────────────────────────────────
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        if st.button(f"🚀 {_t('outreach_run')}", type="primary", use_container_width=True):
+            with st.spinner("Enviando emails personalizados..." if not is_en else "Sending personalized emails..."):
+                result = run_daily_outreach(daily_limit=20)
+            st.success(f"✅ {result['sent']} emails enviados | {result['failed']} falhas")
+            if result["contacts"]:
+                for c in result["contacts"]:
+                    st.write(f"  → {c['company']} ({c['email']})")
+    with col2:
+        if st.button(f"🧪 {_t('outreach_dry')}", use_container_width=True):
+            with st.spinner("Simulando..." if not is_en else "Simulating..."):
+                result = run_daily_outreach(daily_limit=20, dry_run=True)
+            st.info(f"Simulação: {result['sent']} emails seriam enviados")
+            for c in result["contacts"]:
+                st.write(f"  → {c['company']} — {c.get('subject','')}")
+    with col3:
+        if st.button(f"📋 {_t('outreach_seed')}", use_container_width=True):
+            n = seed_prospects()
+            st.success(f"{n} prospects carregados na base")
+
+    st.markdown("---")
+
+    # ── Pipeline de prospects ─────────────────────────────────────────────────
+    all_prospects = get_prospects(limit=200)
+    pending   = [p for p in all_prospects if p["status"] == "pending" and p["email"]]
+    contacted = [p for p in all_prospects if p["status"] == "contacted"]
+    no_email  = [p for p in all_prospects if not p["email"]]
+
+    m1, m2, m3 = st.columns(3)
+    m1.metric(_t("outreach_pending"),   len(pending))
+    m2.metric(_t("outreach_contacted"), len(contacted))
+    m3.metric(_t("outreach_no_email"),  len(no_email))
+
+    # ── Pending table ─────────────────────────────────────────────────────────
+    if pending:
+        st.subheader(f"📋 {_t('outreach_pending')} ({len(pending)})")
+        rows = []
+        for p in pending:
+            rows.append({
+                "Empresa": p["company_name"],
+                "Email": p["email"],
+                "Contato": p["contact_role"],
+                "Segmento": p["segment"],
+                "Prioridade": p["priority"],
+            })
+        import pandas as _pd
+        st.dataframe(_pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+    # ── Contacted table ───────────────────────────────────────────────────────
+    if contacted:
+        st.subheader(f"✅ {_t('outreach_contacted')} ({len(contacted)})")
+        rows = []
+        for p in contacted:
+            rows.append({
+                "Empresa": p["company_name"],
+                "Email": p["email"],
+                "Emails Enviados": p["emails_sent"],
+                "Último Contato": (p["last_contact"] or "")[:10],
+            })
+        st.dataframe(_pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+    # ── No email ──────────────────────────────────────────────────────────────
+    if no_email:
+        with st.expander(f"⚠️ {_t('outreach_no_email')} — {len(no_email)} empresas"):
+            for p in no_email:
+                st.write(f"**{p['company_name']}** — {p['contact_role']} — {p['segment']}")
+
+    # ── Add new prospect ──────────────────────────────────────────────────────
+    with st.expander("➕ Adicionar novo prospect"):
+        with st.form("add_prospect_form"):
+            c1, c2 = st.columns(2)
+            company  = c1.text_input("Empresa")
+            email    = c2.text_input("Email")
+            phone    = c1.text_input("Telefone")
+            role     = c2.text_input("Cargo alvo")
+            segment  = st.text_input("Segmento")
+            desc     = st.text_area("Descrição", height=80)
+            is_part  = st.checkbox("Parceiro estratégico (não cliente)")
+            priority = st.selectbox("Prioridade", ["high", "medium", "low"])
+            if st.form_submit_button("Adicionar"):
+                if company and email:
+                    add_prospect(company_name=company, email=email, phone=phone,
+                                 contact_role=role, segment=segment, description=desc,
+                                 is_partner=is_part, priority=priority)
+                    st.success(f"{company} adicionado!")
+                    st.rerun()
+                else:
+                    st.error("Empresa e email são obrigatórios.")
+
+
+# ===========================================================================
 # Admin Director Page
 # ===========================================================================
 
@@ -2715,8 +2840,8 @@ def sidebar() -> tuple[str, int]:
             st.session_state.get("auth_user") == _APP_USERNAME
             or st.session_state.get("is_admin")
         )
-        nav_keys_active = _NAV_KEYS + (["director"] if _is_admin else [])
-        nav_t_keys_active = _NAV_T_KEYS + (["nav_director"] if _is_admin else [])
+        nav_keys_active = _NAV_KEYS + (["outreach", "director"] if _is_admin else [])
+        nav_t_keys_active = _NAV_T_KEYS + (["nav_outreach", "nav_director"] if _is_admin else [])
         nav_labels = [_t(k) for k in nav_t_keys_active]
         # Preserve current page across language switches using internal key
         current_key = st.session_state.get("page_key", "overview")
@@ -2834,13 +2959,14 @@ def main() -> None:
         "comtrade":   page_comtrade,
         "etl":        page_etl,
         "agent":      page_agent,
+        "outreach":   _page_outreach,
         "director":   _page_admin_director,
     }
 
     fn = pages.get(page_key)
     if fn:
-        # director page doesn't use `year`
-        if page_key == "director":
+        # these admin pages don't use `year`
+        if page_key in ("director", "outreach"):
             fn()
         else:
             fn(year)

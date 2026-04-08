@@ -206,6 +206,105 @@ def update_demo_lead(email: str, **kwargs) -> None:
         s.commit()
 
 
+def get_prospects(status: str = None, limit: int = 100) -> list:
+    """Return prospects as list of dicts."""
+    from src.db.models import Prospect
+    with SessionLocal() as s:
+        q = s.query(Prospect)
+        if status:
+            q = q.filter(Prospect.status == status)
+        q = q.order_by(Prospect.created_at.desc()).limit(limit)
+        result = []
+        for p in q.all():
+            result.append({
+                "id": p.id,
+                "company_name": p.company_name,
+                "email": p.email,
+                "phone": p.phone,
+                "contact_role": p.contact_role,
+                "segment": p.segment,
+                "description": p.description,
+                "is_partner": p.is_partner,
+                "status": p.status,
+                "emails_sent": p.emails_sent,
+                "last_contact": p.last_contact.isoformat() if p.last_contact else None,
+                "last_email_body": p.last_email_body,
+                "notes": p.notes,
+                "priority": p.priority,
+            })
+        return result
+
+
+def add_prospect(company_name: str, email: str, phone: str = "", contact_role: str = "",
+                 segment: str = "", description: str = "", is_partner: bool = False,
+                 priority: str = "high") -> None:
+    """Add a new prospect if email not already in DB."""
+    from src.db.models import Prospect
+    with SessionLocal() as s:
+        existing = s.query(Prospect).filter(Prospect.email == email.lower().strip()).first()
+        if existing:
+            return
+        s.add(Prospect(
+            company_name=company_name,
+            email=email.lower().strip(),
+            phone=phone,
+            contact_role=contact_role,
+            segment=segment,
+            description=description,
+            is_partner=is_partner,
+            priority=priority,
+        ))
+        s.commit()
+
+
+def update_prospect(prospect_id: int, **kwargs) -> None:
+    """Update fields on a prospect."""
+    from src.db.models import Prospect
+    from datetime import datetime, timezone
+    with SessionLocal() as s:
+        p = s.query(Prospect).filter(Prospect.id == prospect_id).first()
+        if not p:
+            return
+        for k, v in kwargs.items():
+            if hasattr(p, k):
+                setattr(p, k, v)
+        p.updated_at = datetime.now(timezone.utc)
+        s.commit()
+
+
+def get_prospects_due_today(daily_limit: int = 20) -> list:
+    """Return pending prospects up to daily_limit, not contacted today."""
+    from src.db.models import Prospect
+    from datetime import datetime, timezone, timedelta
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    with SessionLocal() as s:
+        prospects = (
+            s.query(Prospect)
+            .filter(Prospect.status == "pending")
+            .filter(
+                (Prospect.last_contact == None) |
+                (Prospect.last_contact < today_start)
+            )
+            .order_by(Prospect.priority.desc(), Prospect.created_at.asc())
+            .limit(daily_limit)
+            .all()
+        )
+        result = []
+        for p in prospects:
+            result.append({
+                "id": p.id,
+                "company_name": p.company_name,
+                "email": p.email,
+                "phone": p.phone,
+                "contact_role": p.contact_role,
+                "segment": p.segment,
+                "description": p.description,
+                "is_partner": p.is_partner,
+                "priority": p.priority,
+            })
+        return result
+
+
 def webhook_seen(event_id: str) -> bool:
     """Return True if this Stripe event was already processed."""
     from src.db.models import WebhookEvent
