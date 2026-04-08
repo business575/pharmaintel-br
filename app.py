@@ -731,10 +731,26 @@ def _page_landing() -> None:
             """, unsafe_allow_html=True)
 
     with cta_col:
-        st.markdown(f'<p style="color:#4DB6AC; font-weight:600; font-size:0.85rem; letter-spacing:1px;">{"DATA SOURCES" if is_en else "FONTES DE DADOS"}</p>', unsafe_allow_html=True)
-        sources = ["MDIC / Comex Stat", "ANVISA Open Data", "UN Comtrade", "BPS / Min. Saúde", "ComprasNet"]
-        for s in sources:
-            st.markdown(f'<span class="source-badge">{s}</span>', unsafe_allow_html=True)
+        if is_en:
+            st.markdown('<p style="color:#4DB6AC; font-weight:600; font-size:0.85rem; letter-spacing:1px;">DATA INTEGRITY</p>', unsafe_allow_html=True)
+            st.markdown("""
+            <p style="color:#B0BEC5; font-size:0.85rem; line-height:1.6;">
+              All data is sourced from <b style="color:#E2EAF4;">official government databases</b>,
+              updated in real time. Our proprietary integration layer normalizes,
+              validates and cross-references multiple sources so you always have
+              accurate, audit-ready intelligence.
+            </p>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown('<p style="color:#4DB6AC; font-weight:600; font-size:0.85rem; letter-spacing:1px;">INTEGRIDADE DOS DADOS</p>', unsafe_allow_html=True)
+            st.markdown("""
+            <p style="color:#B0BEC5; font-size:0.85rem; line-height:1.6;">
+              Todos os dados são provenientes de <b style="color:#E2EAF4;">bases governamentais oficiais</b>,
+              atualizados em tempo real. Nossa camada de integração proprietária normaliza,
+              valida e cruza múltiplas fontes para que você tenha sempre
+              inteligência precisa e auditável.
+            </p>
+            """, unsafe_allow_html=True)
 
         st.markdown("<br><br>", unsafe_allow_html=True)
         st.markdown(f'<p style="color:#E2EAF4; font-weight:600; font-size:1rem;">{"Ready to start?" if is_en else "Pronto para começar?"}</p>', unsafe_allow_html=True)
