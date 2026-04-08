@@ -514,7 +514,7 @@ def _page_pricing() -> None:
                 if not email or "@" not in email:
                     st.error("Digite um email válido.")
                 elif not is_configured():
-                    st.warning("Pagamentos em configuração — entre em contato: contato@pharmaintel.com.br")
+                    st.warning("Pagamentos em configuração — entre em contato: Business@globalhealthcareaccess.com")
                 else:
                     base_url = "https://pharmaintel-br.onrender.com"
                     result   = create_checkout_session(
@@ -536,7 +536,7 @@ def _page_pricing() -> None:
     st.markdown("""
     <div style="text-align:center; padding:2rem 0; color:#8899AA; font-size:0.8rem;">
       <p>Pagamentos processados com segurança via <b>Stripe</b> · Cancele a qualquer momento</p>
-      <p>Dúvidas? <a href="mailto:contato@pharmaintel.com.br" style="color:#4DB6AC;">contato@pharmaintel.com.br</a></p>
+      <p>Dúvidas? <a href="mailto:Business@globalhealthcareaccess.com" style="color:#4DB6AC;">Business@globalhealthcareaccess.com</a></p>
     </div>
     """, unsafe_allow_html=True)
     st.stop()
