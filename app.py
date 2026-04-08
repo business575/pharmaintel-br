@@ -422,7 +422,10 @@ def _login_page() -> None:
 
 def _page_pricing() -> None:
     """Public pricing page — shown before login."""
-    from src.payments.stripe_client import PLANS, PERIOD_LABEL_PT, is_configured, create_checkout_session
+    from src.payments.stripe_client import PLANS, PERIOD_LABEL_PT, PERIOD_LABEL_EN, is_configured, create_checkout_session
+
+    lang = st.session_state.get("lang", "PT")
+    is_en = lang == "EN"
 
     st.markdown("""
     <style>
@@ -448,26 +451,35 @@ def _page_pricing() -> None:
     </style>
     """, unsafe_allow_html=True)
 
-    # Header
-    col_back, col_title = st.columns([1, 8])
+    # Header row: back button + lang toggle
+    col_back, col_space, col_lang = st.columns([1, 7, 1])
     with col_back:
-        if st.button("Voltar", key="pricing_back"):
+        back_label = "Back" if is_en else "Voltar"
+        if st.button(back_label, key="pricing_back"):
             st.session_state["show_pricing"] = False
             st.rerun()
+    with col_lang:
+        toggle_label = "PT" if is_en else "EN"
+        if st.button(toggle_label, key="pricing_lang_toggle"):
+            st.session_state["lang"] = "PT" if is_en else "EN"
+            st.rerun()
 
-    st.markdown("""
+    page_subtitle = "Choose the right plan for your business" if is_en else "Escolha o plano ideal para sua operação"
+    st.markdown(f"""
     <div style="text-align:center; padding: 2rem 0 1rem;">
       <span style="font-size:2.5rem;">💊</span>
       <h1 style="color:#4DB6AC; font-size:2rem; margin:0.5rem 0 0.25rem;">PharmaIntel BR</h1>
-      <p style="color:#8899AA;">Escolha o plano ideal para sua operação</p>
+      <p style="color:#8899AA;">{page_subtitle}</p>
     </div>
     """, unsafe_allow_html=True)
 
     # Period selector
-    period_options = list(PERIOD_LABEL_PT.values())
-    period_keys    = list(PERIOD_LABEL_PT.keys())
+    period_labels = PERIOD_LABEL_EN if is_en else PERIOD_LABEL_PT
+    period_options = list(period_labels.values())
+    period_keys    = list(period_labels.keys())
+    period_radio_label = "Billing period" if is_en else "Periodicidade"
     selected_label = st.radio(
-        "Periodicidade",
+        period_radio_label,
         period_options,
         index=0,
         horizontal=True,
@@ -480,22 +492,26 @@ def _page_pricing() -> None:
     # Pricing cards
     cols = st.columns(3)
     plan_keys = list(PLANS.keys())
+    popular_label = "MOST POPULAR" if is_en else "MAIS POPULAR"
 
     for col, plan_key in zip(cols, plan_keys):
         plan      = PLANS[plan_key]
         price_info = plan["prices"][selected_period]
         is_pro    = plan_key == "pro"
 
+        features_list = plan.get("features_en", plan["features"]) if is_en else plan["features"]
+        description   = plan.get("description_en", plan["description"]) if is_en else plan["description"]
+
         with col:
             card_class = "price-card featured" if is_pro else "price-card"
             saving_html = f'<span class="saving-badge">{price_info.get("saving","")}</span>' if price_info.get("saving") else ""
-            features_html = "".join(f"<li>{f}</li>" for f in plan["features"])
+            features_html = "".join(f"<li>{f}</li>" for f in features_list)
 
             st.markdown(f"""
             <div class="{card_class}">
-              {"<div style='color:#4DB6AC; font-size:0.75rem; font-weight:600; margin-bottom:0.5rem;'>MAIS POPULAR</div>" if is_pro else "<div style='height:1.2rem;'></div>"}
+              {"<div style='color:#4DB6AC; font-size:0.75rem; font-weight:600; margin-bottom:0.5rem;'>" + popular_label + "</div>" if is_pro else "<div style='height:1.2rem;'></div>"}
               <div class="plan-name">{plan['name']}</div>
-              <div class="plan-desc">{plan['description']}</div>
+              <div class="plan-desc">{description}</div>
               <div class="price-tag">{price_info['label']}</div>
               <div style="color:#26C6DA; font-size:1rem; font-weight:600; margin-top:0.15rem;">{price_info['usd_label']}</div>
               <div class="price-period">{price_info['period_label']}</div>
@@ -506,15 +522,18 @@ def _page_pricing() -> None:
 
             # Checkout button
             email_key = f"email_{plan_key}"
-            email     = st.text_input("Seu email", key=email_key, placeholder="seu@email.com",
+            email_placeholder = "your@email.com" if is_en else "seu@email.com"
+            email     = st.text_input("Email", key=email_key, placeholder=email_placeholder,
                                       label_visibility="collapsed")
-            btn_label = f"Assinar {plan['name']}"
+            btn_label = f"Subscribe to {plan['name']}" if is_en else f"Assinar {plan['name']}"
             if st.button(btn_label, key=f"btn_{plan_key}", use_container_width=True,
                          type="primary" if is_pro else "secondary"):
                 if not email or "@" not in email:
-                    st.error("Digite um email válido.")
+                    err_msg = "Please enter a valid email." if is_en else "Digite um email válido."
+                    st.error(err_msg)
                 elif not is_configured():
-                    st.warning("Pagamentos em configuração — entre em contato: Business@globalhealthcareaccess.com")
+                    contact_msg = "Payments not yet configured — contact: Business@globalhealthcareaccess.com" if is_en else "Pagamentos em configuração — entre em contato: Business@globalhealthcareaccess.com"
+                    st.warning(contact_msg)
                 else:
                     base_url = "https://pharmaintel-br.onrender.com"
                     result   = create_checkout_session(
@@ -525,7 +544,8 @@ def _page_pricing() -> None:
                         cancel_url=f"{base_url}/",
                     )
                     if result.error:
-                        st.error(f"Erro ao iniciar checkout: {result.error}")
+                        err_label = "Checkout error:" if is_en else "Erro ao iniciar checkout:"
+                        st.error(f"{err_label} {result.error}")
                     else:
                         st.markdown(
                             f'<meta http-equiv="refresh" content="0; url={result.url}">',
@@ -533,10 +553,12 @@ def _page_pricing() -> None:
                         )
 
     # Footer
-    st.markdown("""
+    footer_line1 = "Payments securely processed via <b>Stripe</b> · Cancel anytime" if is_en else "Pagamentos processados com segurança via <b>Stripe</b> · Cancele a qualquer momento"
+    footer_line2_label = "Questions?" if is_en else "Dúvidas?"
+    st.markdown(f"""
     <div style="text-align:center; padding:2rem 0; color:#8899AA; font-size:0.8rem;">
-      <p>Pagamentos processados com segurança via <b>Stripe</b> · Cancele a qualquer momento</p>
-      <p>Dúvidas? <a href="mailto:Business@globalhealthcareaccess.com" style="color:#4DB6AC;">Business@globalhealthcareaccess.com</a></p>
+      <p>{footer_line1}</p>
+      <p>{footer_line2_label} <a href="mailto:Business@globalhealthcareaccess.com" style="color:#4DB6AC;">Business@globalhealthcareaccess.com</a></p>
     </div>
     """, unsafe_allow_html=True)
     st.stop()

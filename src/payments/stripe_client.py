@@ -37,10 +37,11 @@ except ImportError:
 
 PLANS: dict[str, dict] = {
     "starter": {
-        "name":        "Starter",
-        "color":       "#4DB6AC",
-        "description": "Comece agora — dados e alertas para seu negócio",
-        "ai_model":    "GPT-4o mini",
+        "name":         "Starter",
+        "color":        "#4DB6AC",
+        "description":  "Comece agora — dados e alertas para seu negócio",
+        "description_en": "Start now — data and alerts for your business",
+        "ai_model":     "GPT-4o mini",
         "features": [
             "Dashboard completo de importações",
             "NCMs ilimitados monitorados",
@@ -48,6 +49,14 @@ PLANS: dict[str, dict] = {
             "Dados Comex Stat em tempo real",
             "Agente IA GPT-4o mini",
             "Suporte por email",
+        ],
+        "features_en": [
+            "Full import dashboard",
+            "Unlimited NCM/HS codes monitored",
+            "Basic ANVISA alerts",
+            "Real-time Comex Stat data",
+            "AI Agent GPT-4o mini",
+            "Email support",
         ],
         "prices": {
             "monthly":   {"brl": 49700,  "usd": 29900,  "label": "R$ 497",   "usd_label": "US$ 299",   "period_label": "por mês"},
@@ -57,10 +66,11 @@ PLANS: dict[str, dict] = {
         },
     },
     "pro": {
-        "name":        "Pro",
-        "color":       "#00897B",
-        "description": "Análise precisa — IA superior para decisões estratégicas",
-        "ai_model":    "Claude Sonnet",
+        "name":         "Pro",
+        "color":        "#00897B",
+        "description":  "Análise precisa — IA superior para decisões estratégicas",
+        "description_en": "Precise analysis — superior AI for strategic decisions",
+        "ai_model":     "Claude Sonnet",
         "features": [
             "Tudo do Starter",
             "Agente IA Claude Sonnet (mais preciso)",
@@ -70,6 +80,15 @@ PLANS: dict[str, dict] = {
             "Relatórios exportáveis PDF/Excel",
             "Suporte prioritário",
         ],
+        "features_en": [
+            "Everything in Starter",
+            "AI Agent Claude Sonnet (higher accuracy)",
+            "Full ANVISA alerts + expiry tracking",
+            "Patent expiration and biosimilar opportunities",
+            "UN Comtrade global data",
+            "Exportable PDF/Excel reports",
+            "Priority support",
+        ],
         "prices": {
             "monthly":   {"brl": 99700,  "usd": 49900,  "label": "R$ 997",   "usd_label": "US$ 499",   "period_label": "por mês"},
             "quarterly": {"brl": 269190, "usd": 134730, "label": "R$ 2.692", "usd_label": "US$ 1.347", "period_label": "a cada 3 meses", "saving": "Economize 10%"},
@@ -78,10 +97,11 @@ PLANS: dict[str, dict] = {
         },
     },
     "enterprise": {
-        "name":        "Enterprise",
-        "color":       "#26C6DA",
-        "description": "Sua equipe toda — API, white-label e suporte dedicado",
-        "ai_model":    "Claude Sonnet + API",
+        "name":         "Enterprise",
+        "color":        "#26C6DA",
+        "description":  "Sua equipe toda — API, white-label e suporte dedicado",
+        "description_en": "Your whole team — API, white-label and dedicated support",
+        "ai_model":     "Claude Sonnet + API",
         "features": [
             "Tudo do Pro",
             "Acesso à API REST completa",
@@ -90,6 +110,15 @@ PLANS: dict[str, dict] = {
             "Relatórios personalizados",
             "Integração ERP/BI",
             "Suporte dedicado + SLA garantido",
+        ],
+        "features_en": [
+            "Everything in Pro",
+            "Full REST API access",
+            "White-label available",
+            "Multiple users and profiles",
+            "Custom reports",
+            "ERP/BI integration",
+            "Dedicated support + guaranteed SLA",
         ],
         "prices": {
             "monthly":   {"brl": 249700, "usd": 149900, "label": "R$ 2.497", "usd_label": "US$ 1.499", "period_label": "por mês"},
@@ -105,6 +134,13 @@ PERIOD_MONTHS = {
     "quarterly": 3,
     "biannual": 6,
     "annual": 12,
+}
+
+PERIOD_LABEL_EN = {
+    "monthly":   "Monthly",
+    "quarterly": "Quarterly",
+    "biannual":  "Biannual",
+    "annual":    "Annual",
 }
 
 PERIOD_LABEL_PT = {
