@@ -193,9 +193,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "login_subtitle":   "Inteligência de Mercado Farmacêutico",
         "login_hint":       "Configure credenciais em <code>.env</code> via APP_USERNAME / APP_PASSWORD",
         # Agent page
-        "agent_active":         "Agente ATIVO — Groq/Llama 3.3 70B",
-        "agent_fallback":       "Modo Fallback — Configure GROQ_API_KEY",
-        "agent_groq_hint":      "Obtenha uma chave gratuita em https://console.groq.com e adicione ao arquivo `.env`",
+        "agent_active":         "Agente ATIVO — OpenAI GPT-4o mini",
+        "agent_fallback":       "Modo Fallback — Configure OPENAI_API_KEY",
+        "agent_groq_hint":      "Adicione OPENAI_API_KEY nas variáveis de ambiente do Render.",
         "agent_suggestions":    "Sugestões:",
         "agent_input":          "Faça uma pergunta sobre o mercado farmacêutico...",
         "agent_spinner":        "PharmaIntel AI está analisando...",
@@ -262,9 +262,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "login_subtitle":   "Pharmaceutical Market Intelligence",
         "login_hint":       "Set credentials in <code>.env</code> via APP_USERNAME / APP_PASSWORD",
         # Agent page
-        "agent_active":         "Agent ACTIVE — Groq/Llama 3.3 70B",
-        "agent_fallback":       "Fallback Mode — Set GROQ_API_KEY",
-        "agent_groq_hint":      "Get a free key at https://console.groq.com and add it to `.env`",
+        "agent_active":         "Agent ACTIVE — OpenAI GPT-4o mini",
+        "agent_fallback":       "Fallback Mode — Set OPENAI_API_KEY",
+        "agent_groq_hint":      "Add OPENAI_API_KEY to Render environment variables.",
         "agent_suggestions":    "Suggestions:",
         "agent_input":          "Ask a question about the pharmaceutical market...",
         "agent_spinner":        "PharmaIntel AI is analyzing...",
@@ -1623,12 +1623,36 @@ def page_agent(year: int) -> None:
 
     agent = st.session_state.agent
 
-    # Status
+    # Status + quota
+    user_email = st.session_state.get("user_email", "")
+    user_plan  = st.session_state.get("user_plan", "")
+
     if agent.is_available:
         st.markdown(f'<span class="badge-ok">{_t("agent_active")}</span>', unsafe_allow_html=True)
     else:
         st.markdown(f'<span class="badge-warn">{_t("agent_fallback")}</span>', unsafe_allow_html=True)
         st.info(_t("agent_groq_hint"))
+
+    # Quota bar
+    if user_email:
+        try:
+            from src.agents.quota import get_user_quota
+            quota = get_user_quota(user_email, user_plan)
+            if not quota["unlimited"]:
+                pct  = quota["pct_used"]
+                used = quota["used"]
+                lim  = quota["limit"]
+                color = "#FF5252" if pct >= 100 else "#FFB300" if pct >= 80 else "#4DB6AC"
+                st.markdown(
+                    f'<div style="margin:8px 0 4px;font-size:0.82rem;color:#aaa;">Mensagens IA este mês: '
+                    f'<b style="color:{color}">{used}/{lim}</b></div>'
+                    f'<div style="background:#1E3A5F;border-radius:4px;height:6px;">'
+                    f'<div style="background:{color};width:{min(pct,100):.0f}%;height:6px;border-radius:4px;"></div>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+        except Exception:
+            pass
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -1658,7 +1682,7 @@ def page_agent(year: int) -> None:
     if user_input:
         st.session_state.chat_history.append({"role": "user", "content": user_input})
         with st.spinner(_t("agent_spinner")):
-            response = agent.chat(user_input)
+            response = agent.chat(user_input, user_email=user_email, user_plan=user_plan)
         st.session_state.chat_history.append({"role": "assistant", "content": response.text})
         if response.tool_calls_made:
             st.caption(f"{_t('agent_tools')}: {', '.join(response.tool_calls_made)} · {_t('agent_tokens')}: {response.tokens_used:,}")

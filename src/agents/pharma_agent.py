@@ -1115,11 +1115,21 @@ class PharmaAgent:
     def is_available(self) -> bool:
         return self._client is not None
 
-    def chat(self, message: str) -> AgentResponse:
+    def chat(self, message: str, user_email: str = "", user_plan: str = "") -> AgentResponse:
         if not self.is_available:
             return self._fallback(message)
 
-        # ── Verificação de orçamento ──────────────────────────────────────
+        # ── Verificação de cota por cliente ───────────────────────────────
+        if user_email:
+            from src.agents.quota import get_user_quota, quota_status_message
+            quota = get_user_quota(user_email, user_plan)
+            if not quota["allowed"]:
+                return AgentResponse(
+                    text=quota_status_message(quota),
+                    error="quota_exceeded",
+                )
+
+        # ── Verificação de orçamento global ───────────────────────────────
         allowed, budget_msg = _check_budget()
         if not allowed:
             return AgentResponse(text=budget_msg, error="budget_exceeded")
@@ -1224,6 +1234,13 @@ class PharmaAgent:
             result = AgentResponse(text=text, tool_calls_made=tool_calls_made, tokens_used=total_tokens)
             if text:
                 _cache_set(ck, result)
+                # Consome 1 mensagem da cota do cliente
+                if user_email:
+                    from src.agents.quota import consume_message, quota_status_message
+                    quota = consume_message(user_email, user_plan)
+                    warn = quota_status_message(quota)
+                    if warn:
+                        result.text = result.text + f"\n\n---\n{warn}"
             return result
 
         # Registra mesmo em caso de max iterations
