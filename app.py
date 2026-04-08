@@ -549,8 +549,8 @@ def _page_demo_agent() -> None:
                         _ant = _anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
                         system = _DEMO_SYSTEM_EN if is_en else _DEMO_SYSTEM_PT
                         resp = _ant.messages.create(
-                            model="claude-haiku-4-5-20251001",
-                            max_tokens=800,
+                            model="claude-sonnet-4-6",
+                            max_tokens=600,
                             system=system,
                             messages=[{"role": "user", "content": question.strip()}],
                         )
