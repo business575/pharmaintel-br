@@ -2126,7 +2126,7 @@ def page_etl(year: int) -> None:
 
     col1, col2, col3 = st.columns([1, 1, 2])
     with col1:
-        run_year = st.selectbox("Ano", [2024, 2023, 2022], index=0)
+        run_year = st.selectbox("Ano", [2026, 2025, 2024, 2023, 2022], index=1)
     with col2:
         force = st.checkbox("Forçar re-download", value=False)
     with col3:
@@ -2180,10 +2180,13 @@ def page_agent(year: int) -> None:
     # Initialize session state
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
-    if "agent" not in st.session_state:
+    # Reinitialize agent if year changed
+    if "agent" not in st.session_state or st.session_state.get("agent_year") != year:
         try:
             from src.agents.pharma_agent import create_agent
-            st.session_state.agent = create_agent(year=year)
+            st.session_state.agent      = create_agent(year=year)
+            st.session_state.agent_year = year
+            st.session_state.chat_history = []  # clear history on year change
         except Exception as exc:
             st.error(f"Erro ao inicializar agente: {exc}")
             return
