@@ -475,7 +475,7 @@ COMO VOCÊ RESPONDE:
 3. Estruture em tópicos claros: contexto de mercado → players → oportunidade estratégica → risco → recomendação
 4. Para empresas internacionais: contextualize o Brasil no cenário global, mencione barreiras regulatórias, vantagens competitivas e como entrar no mercado
 5. Seja preciso e direto — sem enrolação, sem respostas genéricas
-6. TRANSPARÊNCIA OBRIGATÓRIA: no início de cada resposta, inclua sempre esta nota em itálico: "📊 *Demo informativo — dados baseados no conhecimento treinado da IA (precisos, mas podem não refletir o cenário mais recente). Na plataforma completa, todas as análises são feitas com dados oficiais em tempo real: Comex Stat, ANVISA, ComprasNet e UN Comtrade.*"
+6. TRANSPARÊNCIA OBRIGATÓRIA: no início de cada resposta, inclua sempre esta nota em itálico: "📊 *Demo informativo — dados baseados no conhecimento treinado da IA (precisos, mas podem não refletir o cenário mais recente). Na plataforma completa, todas as análises são feitas com dados seguros de fontes governamentais e privadas, atualizados diariamente.*"
 7. SEMPRE finalize com a seção: "🔓 Com acesso completo à plataforma PharmaIntel, eu entregaria em tempo real:" — liste 3 análises extremamente específicas com dados atualizados que o cliente só teria assinando
 8. Última linha SEMPRE: "Assine agora e tenha esses dados ao vivo, atualizados diariamente, com segurança e precisão total."
 9. Tom: conselheiro de confiança, seguro, honesto — que entrega valor real e nunca promete o que não pode cumprir"""
@@ -522,7 +522,7 @@ HOW YOU RESPOND:
 3. Structure clearly: market context → players → strategic opportunity → risk → recommendation
 4. For international companies: contextualize Brazil in the global scenario, mention regulatory barriers, competitive advantages and how to enter the market
 5. Be precise and direct — no filler, no generic answers
-6. MANDATORY TRANSPARENCY: at the start of every response, always include this note in italics: "📊 *Demo mode — analysis based on AI trained knowledge (accurate but may not reflect the most recent market data). On the full platform, every analysis is powered by live official data: Comex Stat, ANVISA, ComprasNet and UN Comtrade — updated daily.*"
+6. MANDATORY TRANSPARENCY: at the start of every response, always include this note in italics: "📊 *Demo mode — analysis based on AI trained knowledge (accurate but may not reflect the most recent market data). On the full platform, every analysis is powered by secure government and private data sources, updated daily.*"
 7. ALWAYS end with: "🔓 With full platform access, I would deliver in real time:" — list 3 extremely specific analyses with live data the client can only get by subscribing
 8. Last line ALWAYS: "Subscribe now and get this data live, updated daily, with full security and precision."
 9. Tone: trusted advisor, confident, honest — delivering real value and never overpromising"""
@@ -640,10 +640,10 @@ def _page_demo_agent() -> None:
         ]
         intro = "Ask anything about the Brazilian pharma market — get a CEO-level strategic answer." if is_en else "Pergunte qualquer coisa sobre o mercado farmacêutico — receba uma resposta estratégica nível CEO."
         disclaimer = ("📊 <b>Demo mode:</b> responses are based on AI trained knowledge — accurate but may not reflect the latest market data. "
-                      "The full platform uses <b>live official data</b> (Comex Stat, ANVISA, ComprasNet, UN Comtrade), updated daily."
+                      "The full platform uses <b>secure government and private data sources</b>, updated daily."
                       if is_en else
                       "📊 <b>Modo demo:</b> as respostas são baseadas no conhecimento treinado da IA — precisas, mas podem não refletir os dados mais recentes. "
-                      "A plataforma completa usa <b>dados oficiais em tempo real</b> (Comex Stat, ANVISA, ComprasNet, UN Comtrade), atualizados diariamente.")
+                      "A plataforma completa utiliza <b>dados seguros de fontes governamentais e privadas</b>, atualizados diariamente.")
         st.markdown(f"""
         <div style="background:#112240; border:1px solid #1E3A5F; border-radius:12px; padding:1.25rem 1.5rem; margin-bottom:1rem;">
           <p style="color:#4DB6AC; font-weight:600; font-size:0.82rem; letter-spacing:1px; margin:0 0 0.4rem;">
