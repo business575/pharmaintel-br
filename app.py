@@ -587,7 +587,11 @@ def _handle_payment_success(session_id: str) -> None:
 
 
 def _page_landing() -> None:
-    """Public landing page — first thing visitors see."""
+    """Public landing page — bilingual PT/EN."""
+
+    lang = st.session_state.get("lang", "PT")
+    is_en = lang == "EN"
+
     st.markdown("""
     <style>
     [data-testid="stAppViewContainer"] { background: #0A1628; }
@@ -613,15 +617,19 @@ def _page_landing() -> None:
     # Top bar
     col_logo, col_nav = st.columns([3, 2])
     with col_logo:
-        st.markdown('<span style="color:#4DB6AC; font-size:1.3rem; font-weight:700;">💊 PharmaIntel BR</span>', unsafe_allow_html=True)
+        st.markdown('<span style="color:#4DB6AC; font-size:1.3rem; font-weight:700;">PharmaIntel AI</span>', unsafe_allow_html=True)
     with col_nav:
-        c1, c2 = st.columns(2)
+        c1, c2, c3 = st.columns(3)
         with c1:
-            if st.button("Entrar", use_container_width=True):
-                st.session_state["show_landing"] = False
+            if st.button("PT | EN", use_container_width=True, key="landing_lang"):
+                st.session_state["lang"] = "EN" if lang == "PT" else "PT"
                 st.rerun()
         with c2:
-            if st.button("Ver Planos", use_container_width=True, type="primary"):
+            if st.button("Sign In" if is_en else "Entrar", use_container_width=True):
+                st.session_state["show_landing"] = False
+                st.rerun()
+        with c3:
+            if st.button("See Plans" if is_en else "Ver Planos", use_container_width=True, type="primary"):
                 st.session_state["show_pricing"] = True
                 st.session_state["show_landing"] = False
                 st.rerun()
@@ -629,26 +637,39 @@ def _page_landing() -> None:
     st.markdown("<br>", unsafe_allow_html=True)
 
     # Hero
-    st.markdown("""
-    <div style="text-align:center; padding: 3rem 1rem 2rem;">
-      <div class="hero-title">
-        Inteligência Farmacêutica<br>
-        <span class="hero-accent">para o Mercado Brasileiro</span>
-      </div>
-      <p class="hero-sub">
-        Monitore importações, rastreie registros ANVISA e descubra oportunidades<br>
-        de mercado com dados reais e IA — tudo em uma plataforma.
-      </p>
-    </div>
-    """, unsafe_allow_html=True)
+    if is_en:
+        hero_html = """
+        <div style="text-align:center; padding: 3rem 1rem 2rem;">
+          <div class="hero-title">
+            Pharmaceutical Intelligence<br>
+            <span class="hero-accent">for the Brazilian Market</span>
+          </div>
+          <p class="hero-sub">
+            Monitor imports, track ANVISA registrations and discover market opportunities<br>
+            with real data and AI — all in one platform.
+          </p>
+        </div>"""
+    else:
+        hero_html = """
+        <div style="text-align:center; padding: 3rem 1rem 2rem;">
+          <div class="hero-title">
+            Inteligência Farmacêutica<br>
+            <span class="hero-accent">para o Mercado Brasileiro</span>
+          </div>
+          <p class="hero-sub">
+            Monitore importações, rastreie registros ANVISA e descubra oportunidades<br>
+            de mercado com dados reais e IA — tudo em uma plataforma.
+          </p>
+        </div>"""
+    st.markdown(hero_html, unsafe_allow_html=True)
 
     # Stats
     s1, s2, s3, s4 = st.columns(4)
     stats = [
-        ("US$ 12.35B", "Importações Cap. 30 · 2024"),
-        ("42.926", "Registros ANVISA"),
-        ("817", "Empresas Mapeadas"),
-        ("208", "NCMs Monitorados"),
+        ("US$ 12.35B", "Chapter 30 Imports · 2024" if is_en else "Importações Cap. 30 · 2024"),
+        ("42.926",     "ANVISA Registrations"       if is_en else "Registros ANVISA"),
+        ("817",        "Companies Mapped"            if is_en else "Empresas Mapeadas"),
+        ("208",        "NCM/HS Codes Monitored"      if is_en else "NCMs Monitorados"),
     ]
     for col, (num, lbl) in zip([s1, s2, s3, s4], stats):
         col.markdown(f'<div class="stat-box"><div class="stat-num">{num}</div><div class="stat-lbl">{lbl}</div></div>', unsafe_allow_html=True)
@@ -659,14 +680,25 @@ def _page_landing() -> None:
     f_col, cta_col = st.columns([3, 2])
 
     with f_col:
-        st.markdown('<p style="color:#4DB6AC; font-weight:600; font-size:0.85rem; letter-spacing:1px;">FUNCIONALIDADES</p>', unsafe_allow_html=True)
-        features = [
-            ("📊", "Dashboard de Importações", "Dados Comex Stat em tempo real por NCM, país e período"),
-            ("🏛️", "Monitoramento ANVISA", "Registros ativos, vencimentos e alertas de compliance"),
-            ("🤖", "Agente IA", "Análise estratégica com Llama 3.3 70B — pergunte em português"),
-            ("🌍", "Contexto Global", "Dados UN Comtrade para benchmarking internacional"),
-            ("🏢", "Mapa de Empresas", "817 importadores mapeados com CNPJ e portfólio de produtos"),
-        ]
+        st.markdown(f'<p style="color:#4DB6AC; font-weight:600; font-size:0.85rem; letter-spacing:1px;">{"FEATURES" if is_en else "FUNCIONALIDADES"}</p>', unsafe_allow_html=True)
+        if is_en:
+            features = [
+                ("📊", "Import Dashboard",        "Real-time Comex Stat data by NCM/HS code, country and period"),
+                ("🏛️", "ANVISA Monitoring",       "Active registrations, expiry alerts and compliance tracking"),
+                ("🤖", "AI Agent",                "Strategic analysis with GPT-4o mini / Claude Sonnet — ask in English"),
+                ("🌍", "Global Context",           "UN Comtrade data for international benchmarking"),
+                ("🏢", "Company Intelligence",     "817 importers mapped with CNPJ and product portfolio"),
+                ("🧬", "Patent Tracker",           "Expiry dates and biosimilar opportunities for key molecules"),
+            ]
+        else:
+            features = [
+                ("📊", "Dashboard de Importações", "Dados Comex Stat em tempo real por NCM, país e período"),
+                ("🏛️", "Monitoramento ANVISA",     "Registros ativos, vencimentos e alertas de compliance"),
+                ("🤖", "Agente IA",                "Análise estratégica com GPT-4o mini / Claude Sonnet"),
+                ("🌍", "Contexto Global",           "Dados UN Comtrade para benchmarking internacional"),
+                ("🏢", "Mapa de Empresas",          "817 importadores mapeados com CNPJ e portfólio"),
+                ("🧬", "Patentes",                  "Vencimentos e oportunidades de biossimilares"),
+            ]
         for icon, title, desc in features:
             st.markdown(f"""
             <div class="feature-item">
@@ -677,34 +709,35 @@ def _page_landing() -> None:
             """, unsafe_allow_html=True)
 
     with cta_col:
-        st.markdown('<p style="color:#4DB6AC; font-weight:600; font-size:0.85rem; letter-spacing:1px;">FONTES DE DADOS</p>', unsafe_allow_html=True)
-        sources = ["MDIC / Comex Stat", "ANVISA Dados Abertos", "UN Comtrade", "Banco Central do Brasil", "ComprasNet"]
+        st.markdown(f'<p style="color:#4DB6AC; font-weight:600; font-size:0.85rem; letter-spacing:1px;">{"DATA SOURCES" if is_en else "FONTES DE DADOS"}</p>', unsafe_allow_html=True)
+        sources = ["MDIC / Comex Stat", "ANVISA Open Data", "UN Comtrade", "Banco Central do Brasil", "ComprasNet"]
         for s in sources:
             st.markdown(f'<span class="source-badge">{s}</span>', unsafe_allow_html=True)
 
         st.markdown("<br><br>", unsafe_allow_html=True)
-        st.markdown('<p style="color:#E2EAF4; font-weight:600; font-size:1rem;">Pronto para começar?</p>', unsafe_allow_html=True)
-        if st.button("Assinar Agora", use_container_width=True, type="primary"):
+        st.markdown(f'<p style="color:#E2EAF4; font-weight:600; font-size:1rem;">{"Ready to start?" if is_en else "Pronto para começar?"}</p>', unsafe_allow_html=True)
+
+        if st.button("Subscribe Now" if is_en else "Assinar Agora", use_container_width=True, type="primary"):
             st.session_state["show_pricing"] = True
             st.session_state["show_landing"] = False
             st.rerun()
         st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)
-        if st.button("Já tenho conta — Entrar", use_container_width=True):
+        if st.button("I have an account — Sign In" if is_en else "Já tenho conta — Entrar", use_container_width=True):
             st.session_state["show_landing"] = False
             st.rerun()
 
-        st.markdown("""
+        st.markdown(f"""
         <p style="color:#8899AA; font-size:0.75rem; text-align:center; margin-top:1rem;">
-          Cancele a qualquer momento · Suporte por email
+          {"Cancel anytime · Email support" if is_en else "Cancele a qualquer momento · Suporte por email"}
         </p>
         """, unsafe_allow_html=True)
 
     # Footer
-    st.markdown("""
+    st.markdown(f"""
     <hr style="border-color:#1E3A5F; margin:3rem 0 1rem;">
     <div style="text-align:center; color:#8899AA; font-size:0.8rem; padding-bottom:2rem;">
-      © 2026 PharmaIntel BR · Dados públicos brasileiros ·
-      <a href="mailto:contato@pharmaintel.com.br" style="color:#4DB6AC;">contato@pharmaintel.com.br</a>
+      © 2026 PharmaIntel AI · {"Brazilian public data" if is_en else "Dados públicos brasileiros"} ·
+      <a href="mailto:Business@globalhealthcareaccess.com" style="color:#4DB6AC;">Business@globalhealthcareaccess.com</a>
     </div>
     """, unsafe_allow_html=True)
     st.stop()
