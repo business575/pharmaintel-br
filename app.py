@@ -557,9 +557,7 @@ def _page_demo_agent() -> None:
                         answer = resp.content[0].text if resp.content else ""
                     except Exception as exc:
                         logger.error("Demo agent error: %s", exc)
-                        answer = ("I'm unable to process your question right now. Please try again or contact us at Business@globalhealthcareaccess.com"
-                                  if is_en else
-                                  "Não foi possível processar sua pergunta agora. Tente novamente ou entre em contato: Business@globalhealthcareaccess.com")
+                        answer = f"[DEBUG] Erro: {exc}"
 
                 st.session_state["demo_question_used"] = True
                 st.session_state["demo_question_text"] = question.strip()
