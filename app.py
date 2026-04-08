@@ -540,6 +540,100 @@ HOW YOU RESPOND:
 DEMO_MAX_QUESTIONS = 2
 
 
+def _save_demo_lead(email: str, lang: str = "PT") -> None:
+    """Save demo lead to JSON file and send welcome email."""
+    import json
+    leads_path = ROOT / "data" / "demo_leads.json"
+    leads_path.parent.mkdir(parents=True, exist_ok=True)
+    leads = []
+    if leads_path.exists():
+        try:
+            leads = json.loads(leads_path.read_text())
+        except Exception:
+            leads = []
+    # avoid duplicates
+    existing = [l["email"] for l in leads]
+    if email not in existing:
+        leads.append({
+            "email": email,
+            "lang": lang,
+            "timestamp": __import__("datetime").datetime.utcnow().isoformat(),
+            "follow_up_sent": False,
+        })
+        leads_path.write_text(json.dumps(leads, indent=2))
+    # fire-and-forget welcome email
+    try:
+        _send_demo_email(email, lang, "welcome")
+    except Exception as exc:
+        logger.warning("Welcome email failed: %s", exc)
+
+
+def _send_demo_email(email: str, lang: str, kind: str) -> None:
+    """Send demo-related emails via Resend API."""
+    import httpx
+    api_key = os.getenv("RESEND_API_KEY", "")
+    if not api_key:
+        return
+
+    is_en = lang == "EN"
+
+    if kind == "welcome":
+        subject = "Your PharmaIntel AI demo is ready" if is_en else "Seu demo PharmaIntel AI está pronto"
+        body = f"""
+<div style="font-family:sans-serif; max-width:560px; margin:0 auto; background:#0A1628; color:#E2EAF4; padding:2rem; border-radius:12px;">
+  <h2 style="color:#4DB6AC; margin-bottom:0.5rem;">PharmaIntel AI</h2>
+  <p style="color:#8899AA; margin-top:0;">{"Brazil Pharmaceutical Market Intelligence" if is_en else "Inteligência de Mercado Farmacêutico Brasileiro"}</p>
+  <hr style="border-color:#1E3A5F; margin:1.5rem 0;">
+  <p>{"Hi," if is_en else "Olá,"}</p>
+  <p>{"Your free demo is active. Ask the AI anything about the Brazilian pharma market — import flows, ANVISA registrations, patent expiries, biosimilar opportunities." if is_en else "Seu demo gratuito está ativo. Pergunte à IA qualquer coisa sobre o mercado farmacêutico brasileiro — importações, registros ANVISA, vencimento de patentes, oportunidades de biossimilares."}</p>
+  <div style="text-align:center; margin:2rem 0;">
+    <a href="https://pharmaintel-br.onrender.com" style="background:#00897B; color:#fff; padding:0.75rem 2rem; border-radius:8px; text-decoration:none; font-weight:700;">
+      {"Open Platform" if is_en else "Abrir Plataforma"}
+    </a>
+  </div>
+  <p style="color:#8899AA; font-size:0.85rem;">{"Questions? Reply to this email." if is_en else "Dúvidas? Responda este email."}</p>
+  <p style="color:#8899AA; font-size:0.85rem;">Vinicius Figueiredo<br>PharmaIntel BR<br>Business@globalhealthcareaccess.com</p>
+</div>
+"""
+    elif kind == "followup":
+        subject = "Did the AI answer your question? Here's what else it can do" if is_en else "A IA respondeu sua dúvida? Veja o que mais ela faz"
+        body = f"""
+<div style="font-family:sans-serif; max-width:560px; margin:0 auto; background:#0A1628; color:#E2EAF4; padding:2rem; border-radius:12px;">
+  <h2 style="color:#4DB6AC; margin-bottom:0.5rem;">PharmaIntel AI</h2>
+  <hr style="border-color:#1E3A5F; margin:1.5rem 0;">
+  <p>{"Hi," if is_en else "Olá,"}</p>
+  <p>{"You tested the PharmaIntel AI demo. Here's what subscribers get with full access:" if is_en else "Você testou o demo do PharmaIntel AI. Veja o que os assinantes têm com acesso completo:"}</p>
+  <ul style="color:#B0BEC5; line-height:2;">
+    <li>{"Unlimited AI queries with real-time data" if is_en else "Consultas ilimitadas à IA com dados em tempo real"}</li>
+    <li>{"ANVISA registration alerts and expiry tracking" if is_en else "Alertas de registro ANVISA e vencimentos"}</li>
+    <li>{"Import dashboard: $24B in tracked flows" if is_en else "Dashboard de importações: $24B em fluxos monitorados"}</li>
+    <li>{"Patent expiry windows for biosimilar entry" if is_en else "Janelas de patentes para entrada de biossimilares"}</li>
+    <li>{"Government procurement opportunities" if is_en else "Oportunidades de licitações públicas"}</li>
+  </ul>
+  <div style="text-align:center; margin:2rem 0;">
+    <a href="https://pharmaintel-br.onrender.com" style="background:#00897B; color:#fff; padding:0.75rem 2rem; border-radius:8px; text-decoration:none; font-weight:700;">
+      {"See Plans & Subscribe" if is_en else "Ver Planos e Assinar"}
+    </a>
+  </div>
+  <p style="color:#8899AA; font-size:0.85rem;">Vinicius Figueiredo<br>PharmaIntel BR<br>Business@globalhealthcareaccess.com</p>
+</div>
+"""
+    else:
+        return
+
+    httpx.post(
+        "https://api.resend.com/emails",
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        json={
+            "from": "PharmaIntel AI <noreply@pharmaintel-br.onrender.com>",
+            "to": [email],
+            "subject": subject,
+            "html": body,
+        },
+        timeout=10,
+    )
+
+
 def _call_demo_ai(question: str, history: list, is_en: bool) -> str:
     """Call AI for demo — Anthropic first, Groq fallback."""
     system = _DEMO_SYSTEM_EN if is_en else _DEMO_SYSTEM_PT
@@ -617,9 +711,43 @@ def _page_demo_agent() -> None:
             st.rerun()
 
     # Session state
+    demo_email   = st.session_state.get("demo_email", "")      # captured lead email
     demo_count   = st.session_state.get("demo_count", 0)       # questions used
     demo_history = st.session_state.get("demo_history", [])    # [{q, a}, ...]
     locked       = demo_count >= DEMO_MAX_QUESTIONS
+
+    # ── Email gate (show before demo) ─────────────────────────────────────
+    if not demo_email:
+        _, col_gate, _ = st.columns([1, 2, 1])
+        with col_gate:
+            st.markdown("<br>", unsafe_allow_html=True)
+            gate_title = "Enter your email to start" if is_en else "Digite seu email para começar"
+            gate_sub   = "Free · No password · No credit card" if is_en else "Grátis · Sem senha · Sem cartão"
+            st.markdown(f"""
+            <div style="text-align:center; margin-bottom:1.5rem;">
+              <span style="font-size:2.5rem;">💊</span>
+              <h2 style="color:#4DB6AC; margin:0.5rem 0 0.25rem;">PharmaIntel AI</h2>
+              <p style="color:#E2EAF4; font-size:1rem; font-weight:600; margin:0 0 0.25rem;">{gate_title}</p>
+              <p style="color:#8899AA; font-size:0.82rem;">{gate_sub}</p>
+            </div>
+            """, unsafe_allow_html=True)
+            with st.form("demo_email_gate"):
+                email_input = st.text_input(
+                    "Email",
+                    placeholder="your@email.com" if is_en else "seu@email.com",
+                    label_visibility="collapsed",
+                )
+                btn_label = "Start Free Demo" if is_en else "Iniciar Demo Grátis"
+                submitted = st.form_submit_button(btn_label, use_container_width=True, type="primary")
+                if submitted:
+                    if not email_input or "@" not in email_input:
+                        st.error("Please enter a valid email." if is_en else "Digite um email válido.")
+                    else:
+                        st.session_state["demo_email"] = email_input.strip().lower()
+                        _save_demo_lead(email_input.strip().lower(), lang)
+                        st.rerun()
+        st.stop()
+        return
 
     # Header
     remaining = max(0, DEMO_MAX_QUESTIONS - demo_count)
@@ -733,6 +861,14 @@ def _page_demo_agent() -> None:
         """, unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
+        # Send follow-up email once when demo locks
+        if not st.session_state.get("demo_followup_sent") and demo_email:
+            try:
+                _send_demo_email(demo_email, lang, "followup")
+                st.session_state["demo_followup_sent"] = True
+            except Exception:
+                pass
+
         if st.button("See All Plans & Subscribe" if is_en else "Ver Planos e Assinar", use_container_width=True, type="primary"):
             st.session_state["show_demo_agent"] = False
             st.session_state["show_pricing"]    = True
