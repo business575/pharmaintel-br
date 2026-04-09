@@ -309,6 +309,16 @@ def seed_prospects() -> None:
             "priority": "high",
         },
         {
+            "company_name": "Global Swiss Group",
+            "email": "charyyeva.t@global-swiss.ch",
+            "phone": "+41 79 2933822",
+            "contact_role": "General Manager of Sales — USA / Canada / LATAM",
+            "segment": "Distribuição farmacêutica internacional, LATAM",
+            "description": "Global Swiss Group — Suíça. Tatyana Charyyeva gerencia vendas para USA, Canada e LATAM. Contactada via LinkedIn. Potencial cliente Enterprise para inteligência do mercado farmacêutico brasileiro.",
+            "is_partner": False,
+            "priority": "high",
+        },
+        {
             "company_name": "Grupo Cimed",
             "email": "marisa.tomazela@grupocimed.com.br",
             "phone": "",
