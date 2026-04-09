@@ -23,6 +23,52 @@ DAILY_LIMIT = 20
 # Email templates
 # ---------------------------------------------------------------------------
 
+def _is_international(company: dict) -> bool:
+    """Detect international prospects by email domain or description."""
+    email = company.get("email", "")
+    desc  = company.get("description", "").lower()
+    intl_tlds = (".ch", ".us", ".uk", ".de", ".fr", ".cn", ".in", ".jp", ".ca", ".au")
+    return any(email.endswith(t) for t in intl_tlds) or "switzerland" in desc or "suíça" in desc
+
+
+def _build_email_en(company: dict, ai_body: str) -> tuple[str, str]:
+    """Return (subject, html_body) in EN with USD pricing."""
+    role = company.get("contact_role", "Team")
+    name = company.get("company_name", "")
+    subject = f"Brazilian Pharma Market Intelligence for {name}"
+    html = f"""
+<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1a1a2e;">
+  <div style="background:#0A1628;padding:24px;border-radius:8px 8px 0 0;text-align:center;">
+    <h2 style="color:#4DB6AC;margin:0;">PharmaIntel BR</h2>
+    <p style="color:#B0BEC5;margin:4px 0 0;font-size:13px;">Brazilian Pharmaceutical Market Intelligence</p>
+  </div>
+  <div style="background:#ffffff;padding:28px;border:1px solid #e0e0e0;border-top:none;">
+    <p>Hello <strong>{role}</strong> at <strong>{name}</strong>,</p>
+    {ai_body}
+    <div style="background:#f5f9ff;border-left:4px solid #4DB6AC;padding:16px;margin:20px 0;border-radius:4px;">
+      <p style="margin:0 0 8px;font-weight:600;color:#0A1628;">Plans starting at <strong>US$ 299/month</strong>:</p>
+      <p style="margin:0;font-size:13px;color:#333;">
+        Starter: US$ 299/mo · Pro: US$ 499/mo · Enterprise: US$ 1,499/mo
+      </p>
+    </div>
+    <div style="background:#f5f9ff;border-left:4px solid #00897B;padding:16px;margin:20px 0;border-radius:4px;">
+      <p style="margin:0;font-weight:600;color:#0A1628;">Try the free AI demo:</p>
+      <a href="{DEMO_URL}" style="color:#00897B;font-size:15px;">{DEMO_URL}</a>
+    </div>
+    <p>Available for a 15-minute call this week.</p>
+    <p>Best regards,<br>
+    <strong>Vinicius</strong><br>
+    PharmaIntel BR<br>
+    <span style="color:#888;font-size:12px;">Strategic intelligence for pharma importers in Brazil</span>
+    </p>
+  </div>
+  <div style="background:#f5f5f5;padding:12px;text-align:center;font-size:11px;color:#999;border-radius:0 0 8px 8px;">
+    To unsubscribe, reply with "Remove".
+  </div>
+</div>"""
+    return subject, html
+
+
 def _build_email_pt(company: dict, ai_body: str) -> tuple[str, str]:
     """Return (subject, html_body) in PT."""
     role   = company.get("contact_role", "Equipe")
@@ -98,6 +144,19 @@ Descrição: {description}
 Contexto: PharmaIntel BR é uma plataforma SaaS de inteligência de mercado farmacêutico brasileiro (Comex Stat, ANVISA, ComprasNet).
 A parceria seria para co-venda ou referência de clientes importadores.
 Tom: profissional, direto, proposta de valor clara. Sem exageros. Apenas os parágrafos em HTML (<p> tags)."""
+    elif lang == "EN":
+        prompt = f"""Write 2 short paragraphs (max 80 words each) for a cold sales email to:
+Company: {name}
+Segment: {segment}
+Description: {description}
+Target contact: {role}
+
+Product: PharmaIntel BR — SaaS platform with real-time Brazilian pharma import data (Comex Stat),
+ANVISA monitoring (17,247 registrations), expiry alerts, competitor analysis and strategic AI.
+Plans: Starter US$299/mo · Pro US$499/mo · Enterprise US$1,499/mo.
+
+Mention 1-2 specific benefits for this company's profile.
+Tone: executive, direct, no fluff. Output only the paragraphs in HTML (<p> tags)."""
     else:
         prompt = f"""Escreva 2 parágrafos curtos (máx 80 palavras cada) de prospecção de vendas para:
 Empresa: {name}
@@ -203,12 +262,18 @@ def run_daily_outreach(daily_limit: int = DAILY_LIMIT, dry_run: bool = False) ->
         email      = company["email"]
         is_partner = company.get("is_partner", False)
 
+        # Detect language
+        intl = _is_international(company)
+        lang = "EN" if intl else "PT"
+
         # Generate personalized body
-        body = _generate_email_body(company)
+        body = _generate_email_body(company, lang=lang)
 
         # Build email
         if is_partner:
             subject, html = _build_partner_email_pt(company, body)
+        elif intl:
+            subject, html = _build_email_en(company, body)
         else:
             subject, html = _build_email_pt(company, body)
 
