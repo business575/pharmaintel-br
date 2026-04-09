@@ -363,23 +363,37 @@ def _t(key: str) -> str:
 # Page config — MUST be first Streamlit call
 # ---------------------------------------------------------------------------
 st.set_page_config(
-    page_title="PharmaIntel BR — Inteligência Farmacêutica",
+    page_title="PharmaIntel BR | Pharmaceutical Intelligence for Brazil",
     page_icon="💊",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# SEO meta tags
+# SEO meta tags + force title override (Streamlit default title is "Streamlit")
 st.markdown("""
-<meta name="description" content="Plataforma de inteligência de mercado farmacêutico brasileiro. Monitore importações, registros ANVISA, licitações e oportunidades com IA.">
-<meta name="keywords" content="farmacêutico, importação, ANVISA, NCM, Comex Stat, inteligência de mercado, medicamentos, dispositivos médicos, Brasil">
+<meta name="description" content="Pharmaceutical market intelligence platform for Brazil. Monitor pharma imports (US$24B market), track 42,000+ ANVISA registrations, and discover opportunities with AI — real Comex Stat and ANVISA data.">
+<meta name="keywords" content="pharmaceutical intelligence Brazil, importação farmacêutica, ANVISA registrations, Comex Stat, NCM 30 90, pharma market Brazil, medicamentos importação, dispositivos médicos">
 <meta name="author" content="PharmaIntel BR">
-<meta property="og:title" content="PharmaIntel BR — Inteligência Farmacêutica">
-<meta property="og:description" content="Dados reais de importação, registros ANVISA e IA para o mercado farmacêutico brasileiro.">
+<meta name="robots" content="index, follow">
+<meta property="og:title" content="PharmaIntel BR | Pharmaceutical Intelligence for Brazil">
+<meta property="og:description" content="Monitor US$24B pharma import market, track 42,000+ ANVISA registrations and discover opportunities — real data + AI.">
 <meta property="og:type" content="website">
-<meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="PharmaIntel BR">
-<meta name="twitter:description" content="Inteligência de mercado farmacêutico com dados ANVISA e Comex Stat.">
+<meta property="og:url" content="https://pharmaceuticaai.com">
+<meta property="og:site_name" content="PharmaIntel BR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="PharmaIntel BR | Pharmaceutical Intelligence for Brazil">
+<meta name="twitter:description" content="Monitor Brazil's US$24B pharma import market with real ANVISA and Comex Stat data + AI analysis.">
+<script>
+  // Force page title — overrides Streamlit's default "Streamlit" title
+  document.title = "PharmaIntel BR | Pharmaceutical Intelligence for Brazil";
+  // Keep overriding in case Streamlit resets it
+  const _titleObserver = new MutationObserver(() => {
+    if (document.title !== "PharmaIntel BR | Pharmaceutical Intelligence for Brazil") {
+      document.title = "PharmaIntel BR | Pharmaceutical Intelligence for Brazil";
+    }
+  });
+  _titleObserver.observe(document.querySelector("title") || document.head, {childList: true, subtree: true, characterData: true});
+</script>
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
