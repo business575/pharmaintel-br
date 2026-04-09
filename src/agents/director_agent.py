@@ -480,7 +480,8 @@ class DirectorAgent:
             if api_key:
                 self._client = _anthropic.Anthropic(api_key=api_key)
 
-        if not self._client and GROQ_AVAILABLE:
+        # Always initialize Groq if key is available — used as primary (fast, reliable)
+        if GROQ_AVAILABLE:
             groq_key = os.getenv("GROQ_API_KEY", "")
             if groq_key:
                 self._groq_client = _Groq(api_key=groq_key)
