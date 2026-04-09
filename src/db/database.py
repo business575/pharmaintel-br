@@ -305,6 +305,88 @@ def get_prospects_due_today(daily_limit: int = 20) -> list:
         return result
 
 
+def log_quality_check(
+    module: str,
+    check_type: str,
+    result: str,
+    error_level: str = "low",
+    details: str = "",
+    blocked: bool = False,
+) -> int:
+    """Insert a quality log entry. Returns the new row id."""
+    from src.db.models import QualityLog
+    with SessionLocal() as s:
+        entry = QualityLog(
+            module=module,
+            check_type=check_type,
+            result=result,
+            error_level=error_level,
+            details=details,
+            blocked=blocked,
+        )
+        s.add(entry)
+        s.commit()
+        s.refresh(entry)
+        return entry.id
+
+
+def get_quality_logs(module: str = None, limit: int = 200, since_hours: int = 24) -> list:
+    """Return quality log entries as list of dicts."""
+    from src.db.models import QualityLog
+    from datetime import timedelta
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=since_hours)
+    with SessionLocal() as s:
+        q = s.query(QualityLog).filter(QualityLog.timestamp >= cutoff)
+        if module:
+            q = q.filter(QualityLog.module == module)
+        rows = q.order_by(QualityLog.timestamp.desc()).limit(limit).all()
+        return [
+            {
+                "id":          r.id,
+                "module":      r.module,
+                "check_type":  r.check_type,
+                "result":      r.result,
+                "error_level": r.error_level,
+                "details":     r.details,
+                "blocked":     r.blocked,
+                "timestamp":   r.timestamp.isoformat(),
+            }
+            for r in rows
+        ]
+
+
+def get_quality_summary(since_hours: int = 24) -> dict:
+    """Return aggregate quality KPIs for the dashboard."""
+    from src.db.models import QualityLog
+    from datetime import timedelta
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=since_hours)
+    with SessionLocal() as s:
+        all_rows = s.query(QualityLog).filter(QualityLog.timestamp >= cutoff).all()
+    total = len(all_rows)
+    if total == 0:
+        return {"total": 0, "pass": 0, "fail": 0, "warn": 0,
+                "blocked": 0, "critical": 0, "accuracy_pct": 100.0, "by_module": {}}
+    passed   = sum(1 for r in all_rows if r.result == "pass")
+    failed   = sum(1 for r in all_rows if r.result == "fail")
+    warned   = sum(1 for r in all_rows if r.result == "warn")
+    blocked  = sum(1 for r in all_rows if r.blocked)
+    critical = sum(1 for r in all_rows if r.error_level == "critical")
+    by_module: dict = {}
+    for r in all_rows:
+        m = by_module.setdefault(r.module, {"pass": 0, "fail": 0, "warn": 0})
+        m[r.result] = m.get(r.result, 0) + 1
+    return {
+        "total":        total,
+        "pass":         passed,
+        "fail":         failed,
+        "warn":         warned,
+        "blocked":      blocked,
+        "critical":     critical,
+        "accuracy_pct": round(passed / total * 100, 1),
+        "by_module":    by_module,
+    }
+
+
 def webhook_seen(event_id: str) -> bool:
     """Return True if this Stripe event was already processed."""
     from src.db.models import WebhookEvent

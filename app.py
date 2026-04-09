@@ -210,6 +210,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "Existe algum alerta de compliance ANVISA?",
             "Qual o preço médio por kg dos principais NCMs?",
         ],
+        # Quality Control
+        "nav_quality":        "Qualidade",
         # Outreach
         "nav_outreach":       "Prospecção",
         "outreach_title":     "Agente de Prospecção — 10-20 contatos/dia",
@@ -309,6 +311,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "Are there any ANVISA compliance alerts?",
             "What is the average price per kg for key NCMs?",
         ],
+        # Quality Control
+        "nav_quality":        "Quality Control",
         # Outreach
         "nav_outreach":       "Outreach",
         "outreach_title":     "Outreach Agent — 10-20 contacts/day",
@@ -2450,6 +2454,210 @@ def page_agent(year: int) -> None:
 
 
 # ===========================================================================
+# Quality Control Page
+# ===========================================================================
+
+def _page_quality(_year: int = 2025) -> None:
+    """Admin-only Quality Control dashboard — monitors data and AI output accuracy."""
+    lang = st.session_state.get("lang", "PT")
+    is_en = lang == "EN"
+
+    title = "Quality Control — Head of Quality" if is_en else "Controle de Qualidade — Gerente de Qualidade"
+    st.markdown(f'<h2 style="color:#4DB6AC;">{title}</h2>', unsafe_allow_html=True)
+
+    from src.db.database import init_db, get_quality_summary, get_quality_logs
+    init_db()
+
+    # Time range
+    hours_opts = [1, 6, 24, 48, 168]
+    hours_labels = ["1h", "6h", "24h", "48h", "7 dias"]
+    hours = st.selectbox(
+        "Período" if not is_en else "Period",
+        options=hours_opts,
+        format_func=lambda h: hours_labels[hours_opts.index(h)],
+        index=2,
+    )
+
+    summary = get_quality_summary(since_hours=hours)
+    logs    = get_quality_logs(limit=300, since_hours=hours)
+
+    # ── KPI Cards ─────────────────────────────────────────────────────────────
+    k1, k2, k3, k4 = st.columns(4)
+    kpi = 'style="background:#112240;border:1px solid #1E3A5F;border-radius:10px;padding:1rem;text-align:center;margin:0.25rem;"'
+
+    with k1:
+        acc = summary.get("accuracy_pct", 100.0)
+        color = "#4DB6AC" if acc >= 99 else ("#f0a500" if acc >= 90 else "#e53935")
+        label = "Accuracy Rate" if is_en else "Taxa de Precisão"
+        target = "Target: ≥99%"
+        st.markdown(f'<div {kpi}><p style="color:#8899AA;font-size:0.75rem;margin:0;">{label}</p>'
+                    f'<h2 style="color:{color};margin:0.25rem 0 0;">{acc:.1f}%</h2>'
+                    f'<p style="color:#556;font-size:0.68rem;margin:0;">{target}</p></div>',
+                    unsafe_allow_html=True)
+    with k2:
+        crit = summary.get("critical", 0)
+        color = "#e53935" if crit > 0 else "#4DB6AC"
+        label = "Critical Errors" if is_en else "Erros Críticos"
+        st.markdown(f'<div {kpi}><p style="color:#8899AA;font-size:0.75rem;margin:0;">{label}</p>'
+                    f'<h2 style="color:{color};margin:0.25rem 0 0;">{crit}</h2>'
+                    f'<p style="color:#556;font-size:0.68rem;margin:0;">Target: 0</p></div>',
+                    unsafe_allow_html=True)
+    with k3:
+        blk = summary.get("blocked", 0)
+        color = "#f0a500" if blk > 0 else "#4DB6AC"
+        label = "Blocked Outputs" if is_en else "Outputs Bloqueados"
+        st.markdown(f'<div {kpi}><p style="color:#8899AA;font-size:0.75rem;margin:0;">{label}</p>'
+                    f'<h2 style="color:{color};margin:0.25rem 0 0;">{blk}</h2>'
+                    f'<p style="color:#556;font-size:0.68rem;margin:0;">{"100% detected" if is_en else "100% detectados"}</p></div>',
+                    unsafe_allow_html=True)
+    with k4:
+        total = summary.get("total", 0)
+        passed = summary.get("pass", 0)
+        cons = round(passed / total * 100, 1) if total > 0 else 100.0
+        color = "#4DB6AC" if cons >= 95 else "#f0a500"
+        label = "Consistency" if is_en else "Consistência"
+        st.markdown(f'<div {kpi}><p style="color:#8899AA;font-size:0.75rem;margin:0;">{label}</p>'
+                    f'<h2 style="color:{color};margin:0.25rem 0 0;">{cons:.1f}%</h2>'
+                    f'<p style="color:#556;font-size:0.68rem;margin:0;">Target: ≥99%</p></div>',
+                    unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Module breakdown ──────────────────────────────────────────────────────
+    by_module = summary.get("by_module", {})
+    if by_module:
+        st.markdown(f'### {"Breakdown by Module" if is_en else "Breakdown por Módulo"}')
+        try:
+            import plotly.graph_objects as go
+            module_names = list(by_module.keys())
+            pass_v = [by_module[m].get("pass", 0) for m in module_names]
+            fail_v = [by_module[m].get("fail", 0) for m in module_names]
+            warn_v = [by_module[m].get("warn", 0) for m in module_names]
+            fig = go.Figure(data=[
+                go.Bar(name="Pass", x=module_names, y=pass_v, marker_color="#4DB6AC"),
+                go.Bar(name="Warn", x=module_names, y=warn_v, marker_color="#f0a500"),
+                go.Bar(name="Fail", x=module_names, y=fail_v, marker_color="#e53935"),
+            ])
+            fig.update_layout(
+                barmode="stack", paper_bgcolor="#0A1628", plot_bgcolor="#0A1628",
+                font_color="#E2EAF4", legend=dict(orientation="h"),
+                margin=dict(l=20, r=20, t=20, b=20),
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        except Exception:
+            st.json(by_module)
+    else:
+        st.info("Nenhum log de qualidade no período selecionado. As verificações são geradas automaticamente ao usar a plataforma."
+                if not is_en else
+                "No quality logs in the selected period. Checks are generated automatically when using the platform.")
+
+    # ── Log table ─────────────────────────────────────────────────────────────
+    st.markdown(f'### {"Recent Quality Log" if is_en else "Log de Qualidade Recente"}')
+    modules = ["Todos" if not is_en else "All", "imports_data", "anvisa_data", "ai_output", "demo_ai"]
+    mod_filter = st.selectbox("Módulo" if not is_en else "Module", modules)
+    filtered = [
+        r for r in logs
+        if mod_filter in ("Todos", "All") or r["module"] == mod_filter
+    ]
+
+    if filtered:
+        import pandas as _pd
+        df_log = _pd.DataFrame(filtered)[
+            ["timestamp", "module", "check_type", "result", "error_level", "blocked"]
+        ]
+        df_log["timestamp"] = df_log["timestamp"].str[:19]
+
+        def _color_result(val):
+            return {"pass": "color: #4DB6AC", "fail": "color: #e53935", "warn": "color: #f0a500"}.get(val, "")
+
+        st.dataframe(
+            df_log.style.map(_color_result, subset=["result"]),
+            use_container_width=True, height=380, hide_index=True,
+        )
+
+        # Detail expander for flagged rows
+        flagged = [r for r in filtered if r["result"] != "pass"]
+        if flagged:
+            label = f"Ver detalhes ({len(flagged)} alertas/erros)" if not is_en else f"View details ({len(flagged)} alerts/errors)"
+            with st.expander(label):
+                for r in flagged[:20]:
+                    lvl_color = {"critical": "#e53935", "medium": "#f0a500", "low": "#4DB6AC"}.get(r["error_level"], "#fff")
+                    st.markdown(
+                        f'<span style="color:{lvl_color}">●</span> '
+                        f'**{r["module"]} · {r["check_type"]}** — `{r["result"]}` (nível: {r["error_level"]})',
+                        unsafe_allow_html=True,
+                    )
+                    if r.get("details"):
+                        try:
+                            import json as _json
+                            st.json(_json.loads(r["details"]))
+                        except Exception:
+                            st.text(r["details"])
+                    st.markdown("---")
+    else:
+        st.info("Nenhum registro no filtro selecionado." if not is_en else "No records for selected filter.")
+
+    # ── Manual data validation trigger ───────────────────────────────────────
+    st.markdown("---")
+    st.markdown(f'### {"Manual Validation" if is_en else "Validação Manual"}')
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🔍 Validar dados de importação" if not is_en else "🔍 Validate import data", use_container_width=True):
+            with st.spinner("Validando..." if not is_en else "Validating..."):
+                try:
+                    from src.quality.data_validator import PharmaDataValidator
+                    from src.db.database import log_quality_check
+                    vr_path = PROCESSED_DIR / f"pharma_imports_2025.parquet"
+                    if vr_path.exists():
+                        import pandas as _pd2
+                        df_imp = _pd2.read_parquet(vr_path)
+                        validator = PharmaDataValidator()
+                        vr = validator.validate_dataframe(df_imp, module="imports_data")
+                        log_quality_check(
+                            module="imports_data", check_type="manual_validation",
+                            result=vr.result_str, error_level=vr.error_level,
+                            details=vr.to_details_json(), blocked=False,
+                        )
+                        color = "#4DB6AC" if vr.passed else "#e53935"
+                        st.markdown(f'<span style="color:{color}">**Score: {vr.score}/100 — {vr.result_str.upper()}**</span>', unsafe_allow_html=True)
+                        if vr.errors:
+                            for e in vr.errors: st.error(e)
+                        if vr.warnings:
+                            for w in vr.warnings: st.warning(w)
+                    else:
+                        st.warning("Arquivo pharma_imports_2025.parquet não encontrado.")
+                except Exception as exc:
+                    st.error(f"Erro: {exc}")
+    with col2:
+        if st.button("🔍 Validar dados ANVISA" if not is_en else "🔍 Validate ANVISA data", use_container_width=True):
+            with st.spinner("Validando..." if not is_en else "Validating..."):
+                try:
+                    from src.quality.data_validator import PharmaDataValidator
+                    from src.db.database import log_quality_check
+                    vr_path = PROCESSED_DIR / "anvisa_medicamentos.parquet"
+                    if vr_path.exists():
+                        import pandas as _pd2
+                        df_anv = _pd2.read_parquet(vr_path)
+                        validator = PharmaDataValidator()
+                        vr = validator.validate_dataframe(df_anv, module="anvisa_data")
+                        log_quality_check(
+                            module="anvisa_data", check_type="manual_validation",
+                            result=vr.result_str, error_level=vr.error_level,
+                            details=vr.to_details_json(), blocked=False,
+                        )
+                        color = "#4DB6AC" if vr.passed else "#e53935"
+                        st.markdown(f'<span style="color:{color}">**Score: {vr.score}/100 — {vr.result_str.upper()}**</span>', unsafe_allow_html=True)
+                        if vr.errors:
+                            for e in vr.errors: st.error(e)
+                        if vr.warnings:
+                            for w in vr.warnings: st.warning(w)
+                    else:
+                        st.warning("Arquivo anvisa_medicamentos.parquet não encontrado.")
+                except Exception as exc:
+                    st.error(f"Erro: {exc}")
+
+
+# ===========================================================================
 # Outreach Agent Page
 # ===========================================================================
 
@@ -2865,8 +3073,8 @@ def sidebar() -> tuple[str, int]:
             st.session_state.get("auth_user") == _APP_USERNAME
             or st.session_state.get("is_admin")
         )
-        nav_keys_active = _NAV_KEYS + (["outreach", "director"] if _is_admin else [])
-        nav_t_keys_active = _NAV_T_KEYS + (["nav_outreach", "nav_director"] if _is_admin else [])
+        nav_keys_active = _NAV_KEYS + (["outreach", "director", "quality"] if _is_admin else [])
+        nav_t_keys_active = _NAV_T_KEYS + (["nav_outreach", "nav_director", "nav_quality"] if _is_admin else [])
         nav_labels = [_t(k) for k in nav_t_keys_active]
         # Preserve current page across language switches using internal key
         current_key = st.session_state.get("page_key", "overview")
@@ -2986,12 +3194,13 @@ def main() -> None:
         "agent":      page_agent,
         "outreach":   _page_outreach,
         "director":   _page_admin_director,
+        "quality":    _page_quality,
     }
 
     fn = pages.get(page_key)
     if fn:
         # these admin pages don't use `year`
-        if page_key in ("director", "outreach"):
+        if page_key in ("director", "outreach", "quality"):
             fn()
         else:
             fn(year)

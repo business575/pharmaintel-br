@@ -122,6 +122,20 @@ class Prospect(Base):
                              onupdate=lambda: datetime.now(timezone.utc))
 
 
+class QualityLog(Base):
+    """Audit trail for all quality checks — data validation and AI output auditing."""
+    __tablename__ = "quality_logs"
+
+    id          = Column(Integer, primary_key=True, index=True)
+    module      = Column(String(50),  nullable=False, index=True)
+    check_type  = Column(String(100), nullable=False)
+    result      = Column(String(10),  nullable=False)       # pass | fail | warn
+    error_level = Column(String(10),  nullable=False, default="low")  # low | medium | critical
+    details     = Column(Text,        default="")
+    blocked     = Column(Boolean,     default=False)
+    timestamp   = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+
+
 class WebhookEvent(Base):
     """Log of processed Stripe webhook events to prevent duplicates."""
     __tablename__ = "webhook_events"
