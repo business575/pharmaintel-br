@@ -1355,10 +1355,10 @@ def _page_landing() -> None:
     # Stats
     s1, s2, s3, s4 = st.columns(4)
     stats = [
-        ("US$ 12.35B", "Chapter 30 Imports · 2024" if is_en else "Importações Cap. 30 · 2024"),
-        ("42.926",     "ANVISA Registrations"       if is_en else "Registros ANVISA"),
-        ("817",        "Companies Mapped"            if is_en else "Empresas Mapeadas"),
-        ("208",        "NCM/HS Codes Monitored"      if is_en else "NCMs Monitorados"),
+        ("US$ 24.09B", "Pharma Imports · 2025"       if is_en else "Importações Farmacêuticas · 2025"),
+        ("42.926",     "ANVISA Registrations"         if is_en else "Registros ANVISA"),
+        ("8.500+",     "Active Importers"             if is_en else "Importadores Ativos"),
+        ("208",        "NCM/HS Codes Monitored"       if is_en else "NCMs Monitorados"),
     ]
     for col, (num, lbl) in zip([s1, s2, s3, s4], stats):
         col.markdown(f'<div class="stat-box"><div class="stat-num">{num}</div><div class="stat-lbl">{lbl}</div></div>', unsafe_allow_html=True)
@@ -1376,7 +1376,7 @@ def _page_landing() -> None:
                 ("🏛️", "ANVISA Monitoring",       "Active registrations, expiry alerts and compliance tracking"),
                 ("🤖", "AI Agent",                "Proprietary AI for strategic market analysis — ask in English"),
                 ("🌍", "Global Context",           "UN Comtrade data for international benchmarking"),
-                ("🏢", "Company Intelligence",     "817 importers mapped with CNPJ and product portfolio"),
+                ("🏢", "Company Intelligence",     "8,500+ active importers with CNPJ and product portfolio"),
                 ("🧬", "Patent Tracker",           "Expiry dates and biosimilar opportunities for key molecules"),
             ]
         else:
@@ -1385,7 +1385,7 @@ def _page_landing() -> None:
                 ("🏛️", "Monitoramento ANVISA",     "Registros ativos, vencimentos e alertas de compliance"),
                 ("🤖", "Agente IA",                "IA proprietária para análise estratégica de mercado"),
                 ("🌍", "Contexto Global",           "Dados UN Comtrade para benchmarking internacional"),
-                ("🏢", "Mapa de Empresas",          "817 importadores mapeados com CNPJ e portfólio"),
+                ("🏢", "Mapa de Empresas",          "8.500+ importadores ativos com CNPJ e portfólio"),
                 ("🧬", "Patentes",                  "Vencimentos e oportunidades de biossimilares"),
             ]
         for icon, title, desc in features:
