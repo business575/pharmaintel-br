@@ -556,10 +556,20 @@ class DirectorAgent:
         )
         return response.choices[0].message.content or ""
 
+    def _ensure_groq(self) -> None:
+        """Late-init Groq if key is available but client not yet created (session cache fix)."""
+        if self._groq_client is None and GROQ_AVAILABLE:
+            groq_key = os.getenv("GROQ_API_KEY", "")
+            if groq_key:
+                self._groq_client = _Groq(api_key=groq_key)
+
     def chat(self, message: str, lang: str = "PT") -> str:
         """Send a message and return the director's response.
         Priority: Groq (reliable, fast) → Anthropic (full tool calling) → fallback.
         """
+        # Always ensure Groq is initialized — fixes stale session_state instances
+        self._ensure_groq()
+
         if not self._client and not self._groq_client:
             return self._fallback_response(message, lang)
 
@@ -626,7 +636,12 @@ class DirectorAgent:
 
         except Exception as exc:
             logger.error("DirectorAgent.chat error: %s", exc)
-            # Try Groq as emergency fallback before showing offline message
+            exc_str = str(exc)
+            # If Anthropic has no credits, disable it permanently for this session
+            if "credit balance" in exc_str or "402" in exc_str or "400" in exc_str:
+                logger.warning("Anthropic credit/billing error — disabling Anthropic, using Groq only")
+                self._client = None
+            # Try Groq as fallback
             if self._groq_client:
                 try:
                     text = self._chat_groq(message, lang)
@@ -634,8 +649,7 @@ class DirectorAgent:
                     return text
                 except Exception as exc2:
                     logger.error("Groq emergency fallback failed: %s", exc2)
-            err_msg = f"[Erro API: {type(exc).__name__}: {str(exc)[:200]}]"
-            return err_msg
+            return self._fallback_response(message, lang)
 
     def get_daily_brief(self, lang: str = "PT") -> str:
         """Generate a daily briefing with pipeline status and priorities."""
