@@ -422,11 +422,14 @@ class DirectorAgent:
         """Chat via Groq with context injection instead of tool calling."""
         system = self._get_system(lang)
         enriched = self._build_context_prompt(message, lang)
+        # Only include clean string history — skip any error msgs or complex objects
         messages = [{"role": "system", "content": system}]
-        # Include last 6 history messages for context
         for m in self._history[-6:]:
-            if isinstance(m.get("content"), str):
-                messages.append({"role": m["role"], "content": m["content"]})
+            content = m.get("content", "")
+            if isinstance(content, str) and content and not content.startswith("[Erro"):
+                role = m.get("role", "")
+                if role in ("user", "assistant"):
+                    messages.append({"role": role, "content": content[:800]})
         messages.append({"role": "user", "content": enriched})
         response = self._groq_client.chat.completions.create(
             model=self.MODEL_GROQ,
