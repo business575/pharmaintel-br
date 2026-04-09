@@ -35,7 +35,7 @@ END_DATE = "2026-04-30"
 
 _SYSTEM_PT = """Você é a Diretora de Vendas IA da PharmaIntel BR — uma plataforma SaaS B2B de inteligência de mercado farmacêutico brasileiro.
 
-Sua missão é alcançar R$50.000 em receita até 30 de abril de 2026. Hoje estamos na sprint final: 22 dias.
+Sua missão é alcançar R$50.000 em receita até 30 de abril de 2026. Hoje estamos na sprint final.
 
 CONTEXTO DO PRODUTO:
 PharmaIntel BR integra dados de Comex Stat, ANVISA, BPS e ComprasNet para importadores farmacêuticos.
@@ -44,17 +44,29 @@ PLANOS:
 - Starter: R$497/mês — Dashboard básico, 3 NCMs monitorados
 - Pro: R$997/mês — Todos NCMs, alertas ANVISA, ComprasNet
 - Enterprise: R$2.497/mês — API access, white-label, suporte dedicado
+- (Internacional) Starter: US$299 | Pro: US$499 | Enterprise: US$1.499
 
-PÚBLICO: 8.500+ importadores ativos de medicamentos e dispositivos médicos no Brasil.
+PÚBLICO: 8.500+ importadores ativos no Brasil + pipeline global de prospects internacionais.
 
-Você pode analisar leads, priorizar follow-ups, rascunhar mensagens WhatsApp/email, sugerir estratégias e calcular projeções de receita.
+SUAS RESPONSABILIDADES:
+1. PIPELINE DE DEMOS — Analisar leads que testaram a IA, priorizar follow-ups, rascunhar mensagens WhatsApp/email
+2. PIPELINE DE OUTREACH — Gerenciar a lista de prospects (Brasil + internacional), acionar envio de emails frios, monitorar status (pendente → contatado → convertido)
+3. ESTRATÉGIA — Calcular projeções de receita, sugerir ações de maior impacto, criar propostas e scripts de vendas
+
+FERRAMENTAS DISPONÍVEIS:
+- get_pipeline / get_hot_leads / get_daily_target / get_revenue_progress → dados do pipeline de demos
+- draft_whatsapp_message / draft_email_followup → rascunhos personalizados
+- suggest_next_actions → sugestões estratégicas
+- get_prospects → lista de prospects de outreach (status: pending/contacted/converted/all)
+- run_outreach → acionar envio diário de emails frios (até 20/dia)
+- get_outreach_stats → estatísticas do pipeline de outreach
 
 Seja direta, estratégica e orientada a resultados. Use dados reais do pipeline quando disponível.
 Responda em português do Brasil a menos que o usuário escreva em inglês."""
 
 _SYSTEM_EN = """You are the AI Sales Director of PharmaIntel BR — a B2B SaaS platform for Brazilian pharmaceutical market intelligence.
 
-Your mission is to reach R$50,000 in revenue by April 30, 2026. We're in the final sprint: 22 days.
+Your mission is to reach R$50,000 in revenue by April 30, 2026. We're in the final sprint.
 
 PRODUCT CONTEXT:
 PharmaIntel BR integrates Comex Stat, ANVISA, BPS and ComprasNet data for pharmaceutical importers.
@@ -63,10 +75,22 @@ PLANS:
 - Starter: R$497/month — Basic dashboard, 3 NCMs monitored
 - Pro: R$997/month — All NCMs, ANVISA alerts, ComprasNet
 - Enterprise: R$2,497/month — API access, white-label, dedicated support
+- (International) Starter: US$299 | Pro: US$499 | Enterprise: US$1,499
 
-AUDIENCE: 8,500+ active importers of pharmaceuticals and medical devices in Brazil.
+AUDIENCE: 8,500+ active importers in Brazil + global pipeline of international prospects.
 
-You can analyze leads, prioritize follow-ups, draft WhatsApp/email messages, suggest strategies and calculate revenue projections.
+YOUR RESPONSIBILITIES:
+1. DEMO PIPELINE — Analyze leads who tested the AI, prioritize follow-ups, draft WhatsApp/email messages
+2. OUTREACH PIPELINE — Manage the prospect list (Brazil + international), trigger cold email sends, track status (pending → contacted → converted)
+3. STRATEGY — Calculate revenue projections, suggest highest-impact actions, create proposals and sales scripts
+
+AVAILABLE TOOLS:
+- get_pipeline / get_hot_leads / get_daily_target / get_revenue_progress → demo pipeline data
+- draft_whatsapp_message / draft_email_followup → personalized drafts
+- suggest_next_actions → strategic suggestions
+- get_prospects → outreach prospect list (status: pending/contacted/converted/all)
+- run_outreach → trigger daily cold email send (up to 20/day)
+- get_outreach_stats → outreach pipeline statistics
 
 Be direct, strategic and results-oriented. Use real pipeline data when available."""
 
@@ -349,16 +373,90 @@ _TOOLS = [
             "required": [],
         },
     },
+    {
+        "name": "get_prospects",
+        "description": "Get the outreach prospect list — companies to contact for sales (Brazil + international).",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "status": {"type": "string", "description": "Filter by status: pending, contacted, converted, all", "default": "pending"},
+            },
+            "required": [],
+        },
+    },
+    {
+        "name": "run_outreach",
+        "description": "Trigger daily outreach — send personalized emails to up to 20 pending prospects.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "daily_limit": {"type": "integer", "description": "Max emails to send (default 20)", "default": 20},
+            },
+            "required": [],
+        },
+    },
+    {
+        "name": "get_outreach_stats",
+        "description": "Get outreach pipeline stats: how many prospects are pending, contacted, converted, international.",
+        "input_schema": {"type": "object", "properties": {}, "required": []},
+    },
 ]
 
+def _tool_get_prospects(status: str = "pending") -> list:
+    """Get prospect list from outreach pipeline."""
+    try:
+        from src.db.database import get_prospects
+        return get_prospects(status=status if status != "all" else None, limit=50)
+    except Exception as exc:
+        return [{"error": str(exc)}]
+
+
+def _tool_run_outreach(daily_limit: int = 20) -> dict:
+    """Trigger daily outreach emails to pending prospects."""
+    try:
+        from src.agents.outreach_agent import run_daily_outreach
+        return run_daily_outreach(daily_limit=daily_limit)
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
+def _tool_get_outreach_stats() -> dict:
+    """Get outreach pipeline stats — pending, contacted, converted."""
+    try:
+        from src.db.database import get_prospects
+        all_p     = get_prospects(limit=500)
+        pending   = [p for p in all_p if p["status"] == "pending" and p["email"]]
+        contacted = [p for p in all_p if p["status"] == "contacted"]
+        converted = [p for p in all_p if p["status"] == "converted"]
+        no_email  = [p for p in all_p if not p["email"]]
+        intl      = [p for p in all_p if not p.get("email", "").endswith(".com.br")]
+        return {
+            "total": len(all_p),
+            "pending": len(pending),
+            "contacted": len(contacted),
+            "converted": len(converted),
+            "no_email": len(no_email),
+            "international": len(intl),
+            "next_to_contact": [
+                {"company": p["company_name"], "email": p["email"], "segment": p["segment"]}
+                for p in pending[:5]
+            ],
+        }
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
 _TOOL_MAP = {
-    "get_pipeline": lambda inp: _tool_get_pipeline(),
-    "get_hot_leads": lambda inp: _tool_get_hot_leads(),
+    "get_pipeline":           lambda inp: _tool_get_pipeline(),
+    "get_hot_leads":          lambda inp: _tool_get_hot_leads(),
     "draft_whatsapp_message": lambda inp: _tool_draft_whatsapp(inp.get("email", ""), inp.get("lang", "PT")),
-    "draft_email_followup": lambda inp: _tool_draft_email(inp.get("email", ""), inp.get("lang", "PT")),
-    "get_daily_target": lambda inp: _tool_get_daily_target(),
-    "get_revenue_progress": lambda inp: _tool_get_revenue_progress(),
-    "suggest_next_actions": lambda inp: _tool_suggest_next_actions(inp.get("lang", "PT")),
+    "draft_email_followup":   lambda inp: _tool_draft_email(inp.get("email", ""), inp.get("lang", "PT")),
+    "get_daily_target":       lambda inp: _tool_get_daily_target(),
+    "get_revenue_progress":   lambda inp: _tool_get_revenue_progress(),
+    "suggest_next_actions":   lambda inp: _tool_suggest_next_actions(inp.get("lang", "PT")),
+    "get_prospects":          lambda inp: _tool_get_prospects(inp.get("status", "pending")),
+    "run_outreach":           lambda inp: _tool_run_outreach(inp.get("daily_limit", 20)),
+    "get_outreach_stats":     lambda inp: _tool_get_outreach_stats(),
 }
 
 
@@ -396,6 +494,7 @@ class DirectorAgent:
 
     def _build_context_prompt(self, message: str, lang: str) -> str:
         """Inject live pipeline data into prompt for Groq (no tool calling)."""
+        ctx = ""
         try:
             lm = _get_lead_manager()
             stats = lm.get_pipeline_stats()
@@ -405,8 +504,8 @@ class DirectorAgent:
                 f"  - {l.email} ({l.country_hint or 'BR'}, {l.questions_asked} perguntas)"
                 for l in hot[:5]
             ) or ("  (none)" if lang == "EN" else "  (nenhum)")
-            ctx = (
-                f"\n\n[PIPELINE DATA]\n"
+            ctx += (
+                f"\n\n[DEMO PIPELINE DATA]\n"
                 f"Total leads: {stats.get('total', 0)}\n"
                 f"Hot leads: {len(hot)}\n"
                 f"Revenue: R${progress.get('revenue', 0):,.0f} / R${GOAL:,.0f}\n"
@@ -415,7 +514,24 @@ class DirectorAgent:
                 f"Status breakdown: {json.dumps(stats.get('by_status', {}))}\n"
             )
         except Exception:
-            ctx = ""
+            pass
+        try:
+            outreach = _tool_get_outreach_stats()
+            if "error" not in outreach:
+                next_contacts = ", ".join(
+                    f"{p['company']} ({p['email']})" for p in outreach.get("next_to_contact", [])
+                ) or "none"
+                ctx += (
+                    f"\n[OUTREACH PIPELINE DATA]\n"
+                    f"Total prospects: {outreach.get('total', 0)}\n"
+                    f"Pending (email ready): {outreach.get('pending', 0)}\n"
+                    f"Contacted: {outreach.get('contacted', 0)}\n"
+                    f"Converted: {outreach.get('converted', 0)}\n"
+                    f"International: {outreach.get('international', 0)}\n"
+                    f"Next to contact: {next_contacts}\n"
+                )
+        except Exception:
+            pass
         return message + ctx
 
     def _chat_groq(self, message: str, lang: str) -> str:
