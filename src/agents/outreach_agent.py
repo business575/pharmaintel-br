@@ -298,6 +298,26 @@ def seed_prospects() -> None:
             "is_partner": True,
             "priority": "high",
         },
+        {
+            "company_name": "Grupo Cimed",
+            "email": "joao@grupocimed.com.br",
+            "phone": "",
+            "contact_role": "Diretor",
+            "segment": "Medicamentos genéricos e branded",
+            "description": "Um dos maiores grupos farmacêuticos do Brasil, forte atuação em medicamentos genéricos, branded e OTC.",
+            "is_partner": False,
+            "priority": "high",
+        },
+        {
+            "company_name": "Grupo Cimed",
+            "email": "marisa.tomazela@grupocimed.com.br",
+            "phone": "",
+            "contact_role": "Gerente / Diretora",
+            "segment": "Medicamentos genéricos e branded",
+            "description": "Um dos maiores grupos farmacêuticos do Brasil, forte atuação em medicamentos genéricos, branded e OTC.",
+            "is_partner": False,
+            "priority": "high",
+        },
     ]
 
     added = 0
