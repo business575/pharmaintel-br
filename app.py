@@ -1361,10 +1361,113 @@ def _page_landing() -> None:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
+    # ── 3D Spinning Globe ─────────────────────────────────────────────────────
+    import streamlit.components.v1 as _components
+    _components.html("""
+    <div id="globe-container" style="width:100%;height:340px;display:flex;align-items:center;justify-content:center;background:transparent;overflow:hidden;">
+      <canvas id="globe-canvas" style="display:block;"></canvas>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+    (function(){
+      var canvas  = document.getElementById('globe-canvas');
+      var W = Math.min(window.innerWidth, 340), H = 340;
+      canvas.width = W; canvas.height = H;
+
+      var renderer = new THREE.WebGLRenderer({canvas: canvas, alpha: true, antialias: true});
+      renderer.setSize(W, H);
+      renderer.setPixelRatio(window.devicePixelRatio || 1);
+
+      var scene  = new THREE.Scene();
+      var camera = new THREE.PerspectiveCamera(45, W/H, 0.1, 1000);
+      camera.position.z = 2.6;
+
+      // Globe sphere
+      var geo  = new THREE.SphereGeometry(1, 64, 64);
+      var mat  = new THREE.MeshPhongMaterial({
+        color: 0x0A1628, transparent: true, opacity: 0.95,
+        shininess: 30,
+      });
+      var globe = new THREE.Mesh(geo, mat);
+      scene.add(globe);
+
+      // Wireframe overlay (teal grid)
+      var wireMat = new THREE.MeshBasicMaterial({
+        color: 0x4DB6AC, wireframe: true, transparent: true, opacity: 0.18,
+      });
+      var wire = new THREE.Mesh(new THREE.SphereGeometry(1.002, 28, 28), wireMat);
+      scene.add(wire);
+
+      // Glowing outer ring
+      var ringGeo = new THREE.TorusGeometry(1.12, 0.006, 8, 120);
+      var ringMat = new THREE.MeshBasicMaterial({color: 0x4DB6AC, transparent: true, opacity: 0.5});
+      var ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = Math.PI / 2.2;
+      scene.add(ring);
+
+      // Brazil highlight dot (lat -15, lon -47)
+      function latLonToVec(lat, lon, r) {
+        var phi   = (90 - lat) * Math.PI / 180;
+        var theta = (lon + 180) * Math.PI / 180;
+        return new THREE.Vector3(
+          -r * Math.sin(phi) * Math.cos(theta),
+           r * Math.cos(phi),
+           r * Math.sin(phi) * Math.sin(theta)
+        );
+      }
+
+      // Pharma hubs: Brazil, India, China, Germany, USA, Switzerland
+      var hubs = [
+        {lat:-15,lon:-47,color:0x4DB6AC,size:0.045},  // Brazil (teal — home)
+        {lat:20, lon:77,  color:0x26C6DA,size:0.032},  // India
+        {lat:35, lon:105, color:0x26C6DA,size:0.032},  // China
+        {lat:51, lon:10,  color:0x80CBC4,size:0.025},  // Germany
+        {lat:38, lon:-97, color:0x80CBC4,size:0.025},  // USA
+        {lat:47, lon:8,   color:0x80CBC4,size:0.022},  // Switzerland
+      ];
+      hubs.forEach(function(h){
+        var pos = latLonToVec(h.lat, h.lon, 1.015);
+        var dot = new THREE.Mesh(
+          new THREE.SphereGeometry(h.size, 12, 12),
+          new THREE.MeshBasicMaterial({color: h.color})
+        );
+        dot.position.copy(pos);
+        scene.add(dot);
+        // Glow halo
+        var halo = new THREE.Mesh(
+          new THREE.SphereGeometry(h.size * 2.2, 12, 12),
+          new THREE.MeshBasicMaterial({color: h.color, transparent: true, opacity: 0.18})
+        );
+        halo.position.copy(pos);
+        scene.add(halo);
+      });
+
+      // Lighting
+      scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+      var dLight = new THREE.DirectionalLight(0x4DB6AC, 1.2);
+      dLight.position.set(3, 2, 3);
+      scene.add(dLight);
+      var dLight2 = new THREE.DirectionalLight(0x1a237e, 0.6);
+      dLight2.position.set(-3, -1, -2);
+      scene.add(dLight2);
+
+      // Animate
+      function animate(){
+        requestAnimationFrame(animate);
+        globe.rotation.y += 0.004;
+        wire.rotation.y  += 0.004;
+        ring.rotation.z  += 0.001;
+        renderer.render(scene, camera);
+      }
+      animate();
+    })();
+    </script>
+    """, height=350)
+
     # Hero
     if is_en:
         hero_html = """
-        <div style="text-align:center; padding: 3rem 1rem 2rem;">
+        <div style="text-align:center; padding: 1rem 1rem 2rem;">
           <div class="hero-title">
             Pharmaceutical Intelligence<br>
             <span class="hero-accent">for the Brazilian Market</span>
@@ -1376,7 +1479,7 @@ def _page_landing() -> None:
         </div>"""
     else:
         hero_html = """
-        <div style="text-align:center; padding: 3rem 1rem 2rem;">
+        <div style="text-align:center; padding: 1rem 1rem 2rem;">
           <div class="hero-title">
             Inteligência Farmacêutica<br>
             <span class="hero-accent">para o Mercado Brasileiro</span>
