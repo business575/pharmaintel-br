@@ -52,9 +52,11 @@ PATENTS_PATH  = Path(__file__).resolve().parents[2] / "data" / "patents.json"
 BUDGET_PATH   = Path(__file__).resolve().parents[2] / "data" / "ai_budget.json"
 
 # Models per plan
-MODEL_STARTER    = "gpt-4o-mini"          # OpenAI — Starter
-MODEL_PRO        = "claude-sonnet-4-6"    # Anthropic — Pro + Enterprise
-PLANS_PRO_MODELS = {"pro", "enterprise"}  # plans that use Claude Sonnet
+MODEL_STARTER    = "llama-3.3-70b-versatile"   # Groq — Starter (free, fast)
+MODEL_PRO        = "deepseek-chat"              # DeepSeek V3 — Pro (free, precise)
+MODEL_ENTERPRISE = "claude-sonnet-4-6"          # Anthropic — Enterprise (best)
+PLANS_PRO_MODELS       = {"pro"}
+PLANS_ENTERPRISE_MODELS = {"enterprise"}
 
 MAX_ITERATIONS = 6
 MAX_HISTORY    = 12
@@ -63,10 +65,12 @@ MAX_RETRIES    = 3
 CACHE_TTL_S    = 3600  # 1 hora
 
 # Pricing (USD per token) — used for budget tracking
-COST_GPT_INPUT   = 0.150 / 1_000_000   # GPT-4o mini input
-COST_GPT_OUTPUT  = 0.600 / 1_000_000   # GPT-4o mini output
-COST_CLAUDE_INPUT  = 3.00 / 1_000_000  # Claude Sonnet input
-COST_CLAUDE_OUTPUT = 15.0 / 1_000_000  # Claude Sonnet output
+COST_GPT_INPUT     = 0.000 / 1_000_000   # Groq free
+COST_GPT_OUTPUT    = 0.000 / 1_000_000   # Groq free
+COST_PRO_INPUT     = 0.27  / 1_000_000   # DeepSeek V3 input
+COST_PRO_OUTPUT    = 1.10  / 1_000_000   # DeepSeek V3 output
+COST_CLAUDE_INPUT  = 3.00  / 1_000_000   # Claude Sonnet input
+COST_CLAUDE_OUTPUT = 15.0  / 1_000_000   # Claude Sonnet output
 
 # Default (GPT-4o mini) — overridden per call based on plan
 COST_INPUT_PER_TOKEN  = COST_GPT_INPUT
@@ -1428,45 +1432,59 @@ class PharmaAgent:
 
     def __init__(self, year: int = 2024, api_key: str = "") -> None:
         self.year = year
-        self._openai_key    = os.getenv("OPENAI_API_KEY", "")
-        self._anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
         self._groq_key      = os.getenv("GROQ_API_KEY", "")
-        self._openai_client:    Optional[Any] = None
-        self._anthropic_client: Optional[Any] = None
-        self._groq_client:      Optional[Any] = None
-        self._client: Optional[Any] = None  # active client (set per call)
+        self._deepseek_key  = os.getenv("DEEPSEEK_API_KEY", "")
+        self._anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
+        self._openai_key    = os.getenv("OPENAI_API_KEY", "")
+
+        self._groq_client:      Optional[Any] = None   # Starter
+        self._deepseek_client:  Optional[Any] = None   # Pro
+        self._anthropic_client: Optional[Any] = None   # Enterprise
+        self._openai_client:    Optional[Any] = None   # legacy fallback
+        self._client: Optional[Any] = None
         self._history: list[dict] = []
         self._executor = ToolExecutor(year=year)
 
-        # Initialize Groq via OpenAI-compatible endpoint (primary for Starter)
+        # Groq — Starter (free, fast)
         if OPENAI_AVAILABLE and self._groq_key:
             try:
                 self._groq_client = OpenAI(
                     api_key=self._groq_key,
                     base_url="https://api.groq.com/openai/v1",
                 )
-                logger.info("Groq ready — llama-3.3-70b-versatile")
+                logger.info("Groq ready — %s", MODEL_STARTER)
             except Exception as exc:
                 logger.error("Groq init failed: %s", exc)
 
-        # Initialize OpenAI (Starter fallback)
-        if OPENAI_AVAILABLE and self._openai_key:
+        # DeepSeek V3 — Pro (free tier, precise)
+        if OPENAI_AVAILABLE and self._deepseek_key:
             try:
-                self._openai_client = OpenAI(api_key=self._openai_key)
-                logger.info("OpenAI ready — %s", MODEL_STARTER)
+                self._deepseek_client = OpenAI(
+                    api_key=self._deepseek_key,
+                    base_url="https://api.deepseek.com/v1",
+                )
+                logger.info("DeepSeek ready — %s", MODEL_PRO)
             except Exception as exc:
-                logger.error("OpenAI init failed: %s", exc)
+                logger.error("DeepSeek init failed: %s", exc)
 
-        # Initialize Anthropic (Pro + Enterprise)
+        # Anthropic Claude — Enterprise
         if ANTHROPIC_AVAILABLE and self._anthropic_key:
             try:
                 self._anthropic_client = _anthropic.Anthropic(api_key=self._anthropic_key)
-                logger.info("Anthropic ready — %s", MODEL_PRO)
+                logger.info("Anthropic ready — %s", MODEL_ENTERPRISE)
             except Exception as exc:
                 logger.error("Anthropic init failed: %s", exc)
 
-        # Active client: Groq > OpenAI > Anthropic
-        self._client = self._groq_client or self._openai_client or self._anthropic_client
+        # OpenAI — legacy fallback
+        if OPENAI_AVAILABLE and self._openai_key:
+            try:
+                self._openai_client = OpenAI(api_key=self._openai_key)
+                logger.info("OpenAI ready (fallback)")
+            except Exception as exc:
+                logger.error("OpenAI init failed: %s", exc)
+
+        # Active client priority: Groq > DeepSeek > Anthropic > OpenAI
+        self._client = self._groq_client or self._deepseek_client or self._anthropic_client or self._openai_client
 
     @property
     def is_available(self) -> bool:
@@ -1477,19 +1495,29 @@ class PharmaAgent:
             return self._fallback(message)
 
         # ── Seleciona modelo e cliente por plano ─────────────────────────
-        use_claude = user_plan in PLANS_PRO_MODELS and self._anthropic_client is not None
-        if use_claude:
-            active_model  = MODEL_PRO
+        use_enterprise = user_plan in PLANS_ENTERPRISE_MODELS and self._anthropic_client is not None
+        use_pro        = user_plan in PLANS_PRO_MODELS and self._deepseek_client is not None
+
+        if use_enterprise:
+            active_model  = MODEL_ENTERPRISE
             active_client = self._anthropic_client
             cost_in, cost_out = COST_CLAUDE_INPUT, COST_CLAUDE_OUTPUT
+        elif use_pro:
+            active_model  = MODEL_PRO
+            active_client = self._deepseek_client
+            cost_in, cost_out = COST_PRO_INPUT, COST_PRO_OUTPUT
         elif self._groq_client:
-            active_model  = "llama-3.3-70b-versatile"
-            active_client = self._groq_client
-            cost_in, cost_out = 0.0, 0.0   # Groq free tier
-        else:
             active_model  = MODEL_STARTER
+            active_client = self._groq_client
+            cost_in, cost_out = 0.0, 0.0
+        elif self._deepseek_client:
+            active_model  = MODEL_PRO
+            active_client = self._deepseek_client
+            cost_in, cost_out = COST_PRO_INPUT, COST_PRO_OUTPUT
+        else:
+            active_model  = "gpt-4o-mini"
             active_client = self._openai_client or self._client
-            cost_in, cost_out = COST_GPT_INPUT, COST_GPT_OUTPUT
+            cost_in, cost_out = 0.150/1_000_000, 0.600/1_000_000
 
         # ── Verificação de orçamento global (sem bloquear usuários) ──────
         allowed, budget_msg = _check_budget()
@@ -1553,11 +1581,18 @@ class PharmaAgent:
                         continue
                     logger.error("API error (%s): %s", active_model, err_str)
                     if is_rate_limit:
-                        # Try Groq as emergency fallback before returning error
+                        # Fallback chain: DeepSeek → Groq → error
+                        if self._deepseek_client and active_client is not self._deepseek_client:
+                            logger.warning("Rate limit on %s — switching to DeepSeek", active_model)
+                            active_client = self._deepseek_client
+                            active_model  = MODEL_PRO
+                            cost_in, cost_out = COST_PRO_INPUT, COST_PRO_OUTPUT
+                            attempt = 0
+                            continue
                         if self._groq_client and active_client is not self._groq_client:
-                            logger.warning("Rate limit on %s — switching to Groq fallback", active_model)
+                            logger.warning("Rate limit on %s — switching to Groq", active_model)
                             active_client = self._groq_client
-                            active_model  = "llama-3.3-70b-versatile"
+                            active_model  = MODEL_STARTER
                             cost_in, cost_out = 0.0, 0.0
                             attempt = 0
                             continue
