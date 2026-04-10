@@ -524,6 +524,28 @@ TOOLS = [
             }, "required": []},
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_bps_preco",
+            "description": (
+                "Consulta preços pagos pelo governo brasileiro em compras públicas de medicamentos, "
+                "soros, dispositivos médicos e materiais hospitalares. "
+                "Fonte: Banco de Preços em Saúde (BPS) do Ministério da Saúde. "
+                "Use para responder: qual o preço de X no estado Y, quanto o governo pagou por soro fisiológico, "
+                "quais fabricantes vendem para o governo, etc."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "descricao": {"type": "string", "description": "Nome ou descrição do produto (ex: 'soro fisiologico 500ml', 'insulina glargina', 'omeprazol 20mg')"},
+                    "uf":        {"type": "string", "description": "Sigla do estado (ex: RJ, SP, MG) — opcional"},
+                    "ano":       {"type": "integer","description": "Ano da compra (ex: 2025) — opcional"},
+                },
+                "required": ["descricao"],
+            },
+        },
+    },
 ]
 
 
@@ -1366,6 +1388,19 @@ class ToolExecutor:
             "nota": "Dados ANVISA — registros de medicamentos. Ordenados do mais urgente para o mais recente.",
             "produtos": rows,
         }
+
+    def _tool_get_bps_preco(
+        self,
+        descricao: str,
+        uf: str = None,
+        ano: int = None,
+    ) -> dict:
+        """Consulta preços BPS — Banco de Preços em Saúde do Ministério da Saúde."""
+        try:
+            from src.integrations.bps import get_price_summary
+            return get_price_summary(descricao, uf=uf, ano=ano)
+        except Exception as exc:
+            return {"error": f"BPS indisponível: {exc}"}
 
 
 # ---------------------------------------------------------------------------
