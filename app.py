@@ -930,17 +930,17 @@ def _page_demo_agent() -> None:
           <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; margin-bottom:1.5rem;">
             <div style="background:#0A1628; border:1px solid #1E3A5F; border-radius:10px; padding:1rem 1.5rem; min-width:140px;">
               <div style="color:#4DB6AC; font-weight:700; font-size:0.9rem;">Starter</div>
-              <div style="color:#E2EAF4; font-size:1.3rem; font-weight:700; margin:0.25rem 0;">R$ 497<span style="color:#8899AA; font-size:0.7rem;">/{'mo' if is_en else 'mês'}</span></div>
+              <div style="color:#E2EAF4; font-size:1.3rem; font-weight:700; margin:0.25rem 0;">{'US$ 299' if is_en else 'R$ 497'}<span style="color:#8899AA; font-size:0.7rem;">/{'mo' if is_en else 'mês'}</span></div>
               <div style="color:#8899AA; font-size:0.72rem;">{'Strategic Intelligence' if is_en else 'Inteligência Estratégica'}</div>
             </div>
             <div style="background:#0A1628; border:2px solid #00897B; border-radius:10px; padding:1rem 1.5rem; min-width:140px;">
               <div style="color:#00897B; font-weight:700; font-size:0.9rem;">Pro ★</div>
-              <div style="color:#E2EAF4; font-size:1.3rem; font-weight:700; margin:0.25rem 0;">R$ 997<span style="color:#8899AA; font-size:0.7rem;">/{'mo' if is_en else 'mês'}</span></div>
+              <div style="color:#E2EAF4; font-size:1.3rem; font-weight:700; margin:0.25rem 0;">{'US$ 499' if is_en else 'R$ 997'}<span style="color:#8899AA; font-size:0.7rem;">/{'mo' if is_en else 'mês'}</span></div>
               <div style="color:#8899AA; font-size:0.72rem;">{'Advanced Strategic AI' if is_en else 'IA Avançada Estratégica'}</div>
             </div>
             <div style="background:#0A1628; border:1px solid #26C6DA; border-radius:10px; padding:1rem 1.5rem; min-width:140px;">
               <div style="color:#26C6DA; font-weight:700; font-size:0.9rem;">Enterprise</div>
-              <div style="color:#E2EAF4; font-size:1.3rem; font-weight:700; margin:0.25rem 0;">R$ 2.497<span style="color:#8899AA; font-size:0.7rem;">/{'mo' if is_en else 'mês'}</span></div>
+              <div style="color:#E2EAF4; font-size:1.3rem; font-weight:700; margin:0.25rem 0;">{'US$ 1,499' if is_en else 'R$ 2.497'}<span style="color:#8899AA; font-size:0.7rem;">/{'mo' if is_en else 'mês'}</span></div>
               <div style="color:#8899AA; font-size:0.72rem;">{'PhD AI · 99% Accuracy' if is_en else 'IA PhD · 99% Precisão'}</div>
             </div>
           </div>
@@ -1216,9 +1216,8 @@ def _page_pricing() -> None:
               {"<div style='color:#4DB6AC; font-size:0.75rem; font-weight:600; margin-bottom:0.5rem;'>" + popular_label + "</div>" if is_pro else "<div style='height:1.2rem;'></div>"}
               <div class="plan-name">{plan['name']}</div>
               <div class="plan-desc">{description}</div>
-              <div class="price-tag">{price_info['label']}</div>
-              <div style="color:#26C6DA; font-size:1rem; font-weight:600; margin-top:0.15rem;">{price_info['usd_label']}</div>
-              <div class="price-period">{price_info['period_label']}</div>
+              <div class="price-tag">{price_info['usd_label'] if is_en else price_info['label']}</div>
+              <div class="price-period">{price_info['period_label'] if not is_en else price_info['period_label'].replace('por mês','/ month').replace('a cada 3 meses','/ quarter').replace('a cada 6 meses','/ 6 months').replace('por ano','/ year')}</div>
               <div style="margin:0.5rem 0;">{saving_html}&nbsp;</div>
               <ul class="feature-list">{features_html}</ul>
             </div>
