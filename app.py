@@ -1479,7 +1479,7 @@ def _page_landing() -> None:
 
         st.markdown(f"""
         <p style="color:#8899AA; font-size:0.75rem; text-align:center; margin-top:1rem;">
-          {"1 free question · No credit card · No sign-up" if is_en else "1 pergunta gratis · Sem cartão · Sem cadastro"}
+          {"2 free questions · No credit card · No sign-up" if is_en else "2 perguntas grátis · Sem cartão · Sem cadastro"}
         </p>
         """, unsafe_allow_html=True)
 
