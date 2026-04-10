@@ -699,24 +699,10 @@ def _send_demo_email(email: str, lang: str, kind: str) -> None:
 
 
 def _call_demo_ai(question: str, history: list, is_en: bool) -> str:
-    """Call AI for demo — Anthropic first, Groq fallback."""
+    """Call AI for demo — Groq primary, Anthropic fallback. Audited by Quality Control."""
     system = _DEMO_SYSTEM_EN if is_en else _DEMO_SYSTEM_PT
     messages = history + [{"role": "user", "content": question.strip()}]
-
-    anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
-    if anthropic_key:
-        try:
-            import anthropic as _anthropic
-            _ant = _anthropic.Anthropic(api_key=anthropic_key)
-            resp = _ant.messages.create(
-                model="claude-sonnet-4-6",
-                max_tokens=1200,
-                system=system,
-                messages=messages,
-            )
-            return resp.content[0].text if resp.content else ""
-        except Exception as exc1:
-            logger.warning("Anthropic demo failed: %s", exc1)
+    raw_text = ""
 
     groq_key = os.getenv("GROQ_API_KEY", "")
     if groq_key:
@@ -729,11 +715,48 @@ def _call_demo_ai(question: str, history: list, is_en: bool) -> str:
                 max_tokens=1200,
                 temperature=0.7,
             )
-            return gresp.choices[0].message.content or ""
-        except Exception as exc2:
-            logger.warning("Groq demo failed: %s", exc2)
+            raw_text = gresp.choices[0].message.content or ""
+        except Exception as exc1:
+            logger.warning("Groq demo failed: %s", exc1)
 
-    return ""
+    if not raw_text:
+        anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
+        if anthropic_key:
+            try:
+                import anthropic as _anthropic
+                _ant = _anthropic.Anthropic(api_key=anthropic_key)
+                resp = _ant.messages.create(
+                    model="claude-sonnet-4-6",
+                    max_tokens=1200,
+                    system=system,
+                    messages=messages,
+                )
+                raw_text = resp.content[0].text if resp.content else ""
+            except Exception as exc2:
+                logger.warning("Anthropic demo failed: %s", exc2)
+
+    if not raw_text:
+        return ""
+
+    # ── Quality Control audit ────────────────────────────────────────────────
+    try:
+        from src.quality.ai_auditor import AIOutputAuditor
+        from src.db.database import log_quality_check
+        lang_code = "EN" if is_en else "PT"
+        auditor = AIOutputAuditor()
+        result = auditor.audit(raw_text, tool_calls_made=[], module="demo_ai", lang=lang_code)
+        log_quality_check(
+            module="demo_ai",
+            check_type="ai_output_audit",
+            result=result.result_str,
+            error_level=result.risk_level,
+            details=result.to_details_json(),
+            blocked=result.blocked,
+        )
+        return result.audited_text  # blocked responses replaced with warning message
+    except Exception as exc_audit:
+        logger.warning("Quality audit failed (returning raw): %s", exc_audit)
+        return raw_text
 
 
 def _page_demo_agent() -> None:
@@ -3021,6 +3044,23 @@ def _page_admin_director(_year: int = 2025) -> None:
         st.session_state["director_history"].append({"role": "user", "content": user_input})
         with st.spinner("Diretora analisando..." if lang == "PT" else "Director analyzing..."):
             resp = agent_d.chat(user_input, lang=lang)
+        # ── Quality Control audit ────────────────────────────────────────────
+        try:
+            from src.quality.ai_auditor import AIOutputAuditor
+            from src.db.database import log_quality_check
+            auditor = AIOutputAuditor()
+            audit_r = auditor.audit(resp, tool_calls_made=[], module="director_ai", lang=lang)
+            log_quality_check(
+                module="director_ai",
+                check_type="ai_output_audit",
+                result=audit_r.result_str,
+                error_level=audit_r.risk_level,
+                details=audit_r.to_details_json(),
+                blocked=audit_r.blocked,
+            )
+            resp = audit_r.audited_text
+        except Exception:
+            pass
         st.session_state["director_history"].append({"role": "assistant", "content": resp})
         st.rerun()
 
