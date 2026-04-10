@@ -1395,13 +1395,26 @@ class PharmaAgent:
         self.year = year
         self._openai_key    = os.getenv("OPENAI_API_KEY", "")
         self._anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
+        self._groq_key      = os.getenv("GROQ_API_KEY", "")
         self._openai_client:    Optional[Any] = None
         self._anthropic_client: Optional[Any] = None
+        self._groq_client:      Optional[Any] = None
         self._client: Optional[Any] = None  # active client (set per call)
         self._history: list[dict] = []
         self._executor = ToolExecutor(year=year)
 
-        # Initialize OpenAI (Starter)
+        # Initialize Groq via OpenAI-compatible endpoint (primary for Starter)
+        if OPENAI_AVAILABLE and self._groq_key:
+            try:
+                self._groq_client = OpenAI(
+                    api_key=self._groq_key,
+                    base_url="https://api.groq.com/openai/v1",
+                )
+                logger.info("Groq ready — llama-3.3-70b-versatile")
+            except Exception as exc:
+                logger.error("Groq init failed: %s", exc)
+
+        # Initialize OpenAI (Starter fallback)
         if OPENAI_AVAILABLE and self._openai_key:
             try:
                 self._openai_client = OpenAI(api_key=self._openai_key)
@@ -1417,8 +1430,8 @@ class PharmaAgent:
             except Exception as exc:
                 logger.error("Anthropic init failed: %s", exc)
 
-        # Fallback: use whichever is available
-        self._client = self._openai_client or self._anthropic_client
+        # Active client: Groq > OpenAI > Anthropic
+        self._client = self._groq_client or self._openai_client or self._anthropic_client
 
     @property
     def is_available(self) -> bool:
@@ -1430,9 +1443,18 @@ class PharmaAgent:
 
         # ── Seleciona modelo e cliente por plano ─────────────────────────
         use_claude = user_plan in PLANS_PRO_MODELS and self._anthropic_client is not None
-        active_model = MODEL_PRO if use_claude else MODEL_STARTER
-        cost_in  = COST_CLAUDE_INPUT  if use_claude else COST_GPT_INPUT
-        cost_out = COST_CLAUDE_OUTPUT if use_claude else COST_GPT_OUTPUT
+        if use_claude:
+            active_model  = MODEL_PRO
+            active_client = self._anthropic_client
+            cost_in, cost_out = COST_CLAUDE_INPUT, COST_CLAUDE_OUTPUT
+        elif self._groq_client:
+            active_model  = "llama-3.3-70b-versatile"
+            active_client = self._groq_client
+            cost_in, cost_out = 0.0, 0.0   # Groq free tier
+        else:
+            active_model  = MODEL_STARTER
+            active_client = self._openai_client or self._client
+            cost_in, cost_out = COST_GPT_INPUT, COST_GPT_OUTPUT
 
         # ── Verificação de orçamento global (sem bloquear usuários) ──────
         allowed, budget_msg = _check_budget()
@@ -1476,9 +1498,9 @@ class PharmaAgent:
                         # Normalize to OpenAI-like structure
                         resp = _normalize_anthropic(claude_resp)
                     else:
-                        # ── OpenAI GPT-4o mini (Starter) ─────────────────
-                        resp = self._openai_client.chat.completions.create(
-                            model=MODEL_STARTER,
+                        # ── Groq / OpenAI (Starter) ───────────────────────
+                        resp = active_client.chat.completions.create(
+                            model=active_model,
                             messages=messages,
                             tools=TOOLS,
                             tool_choice="auto",
@@ -1496,11 +1518,19 @@ class PharmaAgent:
                         continue
                     logger.error("API error (%s): %s", active_model, err_str)
                     if is_rate_limit:
+                        # Try Groq as emergency fallback before returning error
+                        if self._groq_client and active_client is not self._groq_client:
+                            logger.warning("Rate limit on %s — switching to Groq fallback", active_model)
+                            active_client = self._groq_client
+                            active_model  = "llama-3.3-70b-versatile"
+                            cost_in, cost_out = 0.0, 0.0
+                            attempt = 0
+                            continue
                         wait_s = _parse_wait_seconds(err_str)
                         mins, secs = int(wait_s // 60), int(wait_s % 60)
                         wait_str = f"{mins}m {secs}s" if mins else f"{secs}s"
                         return AgentResponse(
-                            text=f"⏳ **Limite temporário da API atingido.**\n\nAguarde **{wait_str}** e tente novamente.",
+                            text=f"⏳ **Limite temporário atingido.**\n\nAguarde **{wait_str}** e tente novamente.",
                             error=err_str,
                         )
                     return AgentResponse(text="Erro ao conectar ao agente IA. Tente novamente.", error=err_str)
