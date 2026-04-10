@@ -1361,108 +1361,114 @@ def _page_landing() -> None:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # ── 3D Spinning Globe ─────────────────────────────────────────────────────
+    # ── 3D Spinning Globe (globe.gl) ─────────────────────────────────────────
     import streamlit.components.v1 as _components
     _components.html("""
-    <div id="globe-container" style="width:100%;height:340px;display:flex;align-items:center;justify-content:center;background:transparent;overflow:hidden;">
-      <canvas id="globe-canvas" style="display:block;"></canvas>
-    </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script>
-    (function(){
-      var canvas  = document.getElementById('globe-canvas');
-      var W = Math.min(window.innerWidth, 340), H = 340;
-      canvas.width = W; canvas.height = H;
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background: #0A1628; overflow: hidden; }
+  #globe-wrap {
+    width: 100vw; height: 480px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at center, #0D2B45 0%, #0A1628 70%);
+  }
+  #globeViz { flex: 1; width: 100%; }
+  .brand {
+    padding: 10px 0 18px;
+    text-align: center;
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
+  .brand-name {
+    font-size: 1.55rem; font-weight: 800; letter-spacing: 0.04em;
+    background: linear-gradient(90deg, #4DB6AC, #26C6DA, #80CBC4);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .brand-tag {
+    font-size: 0.78rem; color: #8899AA; letter-spacing: 0.12em;
+    text-transform: uppercase; margin-top: 3px;
+  }
+</style>
+</head>
+<body>
+<div id="globe-wrap">
+  <div id="globeViz"></div>
+  <div class="brand">
+    <div class="brand-name">PharmaIntel AI</div>
+    <div class="brand-tag">Pharmaceutical Intelligence · Brazilian Market</div>
+  </div>
+</div>
 
-      var renderer = new THREE.WebGLRenderer({canvas: canvas, alpha: true, antialias: true});
-      renderer.setSize(W, H);
-      renderer.setPixelRatio(window.devicePixelRatio || 1);
+<script src="https://unpkg.com/globe.gl@2.27.2/dist/globe.gl.min.js"></script>
+<script>
+const PHARMA_HUBS = [
+  { lat: -15.8, lng: -47.9, label: 'Brazil 🇧🇷', size: 0.7, color: '#4DB6AC', city: 'Brasília' },
+  { lat: -23.5, lng: -46.6, label: 'São Paulo 🇧🇷', size: 0.55, color: '#4DB6AC', city: 'São Paulo' },
+  { lat: 28.6,  lng: 77.2,  label: 'India 🇮🇳',   size: 0.5,  color: '#26C6DA', city: 'New Delhi' },
+  { lat: 19.0,  lng: 72.8,  label: 'Mumbai 🇮🇳',  size: 0.45, color: '#26C6DA', city: 'Mumbai' },
+  { lat: 31.2,  lng: 121.5, label: 'China 🇨🇳',   size: 0.5,  color: '#26C6DA', city: 'Shanghai' },
+  { lat: 39.9,  lng: 116.4, label: 'Beijing 🇨🇳', size: 0.4,  color: '#26C6DA', city: 'Beijing' },
+  { lat: 52.5,  lng: 13.4,  label: 'Germany 🇩🇪', size: 0.4,  color: '#80CBC4', city: 'Berlin' },
+  { lat: 40.7,  lng: -74.0, label: 'USA 🇺🇸',     size: 0.45, color: '#80CBC4', city: 'New York' },
+  { lat: 47.4,  lng: 8.5,   label: 'Switzerland 🇨🇭', size: 0.38, color: '#80CBC4', city: 'Zurich' },
+  { lat: 35.7,  lng: 139.7, label: 'Japan 🇯🇵',   size: 0.35, color: '#B2DFDB', city: 'Tokyo' },
+  { lat: 51.5,  lng: -0.1,  label: 'UK 🇬🇧',      size: 0.38, color: '#B2DFDB', city: 'London' },
+  { lat: 48.9,  lng: 2.3,   label: 'France 🇫🇷',  size: 0.35, color: '#B2DFDB', city: 'Paris' },
+];
 
-      var scene  = new THREE.Scene();
-      var camera = new THREE.PerspectiveCamera(45, W/H, 0.1, 1000);
-      camera.position.z = 2.6;
+// Arcs: Brazil <-> each hub
+const ARCS = PHARMA_HUBS.filter(h => h.city !== 'Brasília' && h.city !== 'São Paulo').map(h => ({
+  startLat: -15.8, startLng: -47.9,
+  endLat: h.lat,   endLng: h.lng,
+  color: ['#4DB6AC88', h.color + '88'],
+  label: `Brasil → ${h.city}`,
+}));
 
-      // Globe sphere
-      var geo  = new THREE.SphereGeometry(1, 64, 64);
-      var mat  = new THREE.MeshPhongMaterial({
-        color: 0x0A1628, transparent: true, opacity: 0.95,
-        shininess: 30,
-      });
-      var globe = new THREE.Mesh(geo, mat);
-      scene.add(globe);
+const globe = Globe()
+  .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
+  .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
+  .backgroundImageUrl('https://unpkg.com/three-globe/example/img/night-sky.png')
+  .atmosphereColor('#4DB6AC')
+  .atmosphereAltitude(0.18)
+  // Points
+  .pointsData(PHARMA_HUBS)
+  .pointLat('lat')
+  .pointLng('lng')
+  .pointColor('color')
+  .pointAltitude(0.06)
+  .pointRadius('size')
+  .pointLabel(d => `<div style="background:#0D2B45;border:1px solid #4DB6AC;border-radius:8px;padding:6px 12px;color:#E2EAF4;font-family:Arial;font-size:13px;">${d.label}</div>`)
+  // Arcs
+  .arcsData(ARCS)
+  .arcStartLat('startLat').arcStartLng('startLng')
+  .arcEndLat('endLat').arcEndLng('endLng')
+  .arcColor('color')
+  .arcAltitude(0.25)
+  .arcStroke(0.5)
+  .arcDashLength(0.4)
+  .arcDashGap(0.15)
+  .arcDashAnimateTime(2200)
+  (document.getElementById('globeViz'));
 
-      // Wireframe overlay (teal grid)
-      var wireMat = new THREE.MeshBasicMaterial({
-        color: 0x4DB6AC, wireframe: true, transparent: true, opacity: 0.18,
-      });
-      var wire = new THREE.Mesh(new THREE.SphereGeometry(1.002, 28, 28), wireMat);
-      scene.add(wire);
+// Auto-rotate
+globe.controls().autoRotate = true;
+globe.controls().autoRotateSpeed = 0.6;
+globe.controls().enableZoom = false;
 
-      // Glowing outer ring
-      var ringGeo = new THREE.TorusGeometry(1.12, 0.006, 8, 120);
-      var ringMat = new THREE.MeshBasicMaterial({color: 0x4DB6AC, transparent: true, opacity: 0.5});
-      var ring = new THREE.Mesh(ringGeo, ringMat);
-      ring.rotation.x = Math.PI / 2.2;
-      scene.add(ring);
+// Start pointing at Brazil
+globe.pointOfView({ lat: -15, lng: -47, altitude: 2.2 }, 0);
 
-      // Brazil highlight dot (lat -15, lon -47)
-      function latLonToVec(lat, lon, r) {
-        var phi   = (90 - lat) * Math.PI / 180;
-        var theta = (lon + 180) * Math.PI / 180;
-        return new THREE.Vector3(
-          -r * Math.sin(phi) * Math.cos(theta),
-           r * Math.cos(phi),
-           r * Math.sin(phi) * Math.sin(theta)
-        );
-      }
-
-      // Pharma hubs: Brazil, India, China, Germany, USA, Switzerland
-      var hubs = [
-        {lat:-15,lon:-47,color:0x4DB6AC,size:0.045},  // Brazil (teal — home)
-        {lat:20, lon:77,  color:0x26C6DA,size:0.032},  // India
-        {lat:35, lon:105, color:0x26C6DA,size:0.032},  // China
-        {lat:51, lon:10,  color:0x80CBC4,size:0.025},  // Germany
-        {lat:38, lon:-97, color:0x80CBC4,size:0.025},  // USA
-        {lat:47, lon:8,   color:0x80CBC4,size:0.022},  // Switzerland
-      ];
-      hubs.forEach(function(h){
-        var pos = latLonToVec(h.lat, h.lon, 1.015);
-        var dot = new THREE.Mesh(
-          new THREE.SphereGeometry(h.size, 12, 12),
-          new THREE.MeshBasicMaterial({color: h.color})
-        );
-        dot.position.copy(pos);
-        scene.add(dot);
-        // Glow halo
-        var halo = new THREE.Mesh(
-          new THREE.SphereGeometry(h.size * 2.2, 12, 12),
-          new THREE.MeshBasicMaterial({color: h.color, transparent: true, opacity: 0.18})
-        );
-        halo.position.copy(pos);
-        scene.add(halo);
-      });
-
-      // Lighting
-      scene.add(new THREE.AmbientLight(0xffffff, 0.4));
-      var dLight = new THREE.DirectionalLight(0x4DB6AC, 1.2);
-      dLight.position.set(3, 2, 3);
-      scene.add(dLight);
-      var dLight2 = new THREE.DirectionalLight(0x1a237e, 0.6);
-      dLight2.position.set(-3, -1, -2);
-      scene.add(dLight2);
-
-      // Animate
-      function animate(){
-        requestAnimationFrame(animate);
-        globe.rotation.y += 0.004;
-        wire.rotation.y  += 0.004;
-        ring.rotation.z  += 0.001;
-        renderer.render(scene, camera);
-      }
-      animate();
-    })();
-    </script>
-    """, height=350)
+// Responsive
+window.addEventListener('resize', () => {
+  globe.width(document.getElementById('globeViz').offsetWidth);
+});
+</script>
+</body>
+</html>
+    """, height=490, scrolling=False)
 
     # Hero
     if is_en:
