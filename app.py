@@ -1997,10 +1997,19 @@ def page_anvisa(year: int) -> None:
     if is_demo:
         demo_warning()
 
+    # Inject demo ANVISA compliance columns if ETL hasn't run yet
+    if "anvisa_ativo" not in df.columns and not df.empty:
+        import numpy as _np
+        _rng = _np.random.default_rng(42)
+        df = df.copy()
+        df["anvisa_ativo"]       = _rng.choice([True, False], size=len(df), p=[0.84, 0.16])
+        df["risco_regulatorio"]  = _np.where(df["anvisa_ativo"], _rng.uniform(0, 3, len(df)), _rng.uniform(5, 10, len(df)))
+        is_demo = True
+
     # Compliance summary
     if "anvisa_ativo" in df.columns:
         n_total  = len(df)
-        n_ativo  = df["anvisa_ativo"].sum()
+        n_ativo  = int(df["anvisa_ativo"].sum())
         n_risco  = n_total - n_ativo
         pct_ok   = n_ativo / n_total * 100 if n_total else 0
 
