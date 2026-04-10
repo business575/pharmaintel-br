@@ -1397,7 +1397,7 @@ def _page_landing() -> None:
 <div id="globe-wrap">
   <div id="globeViz"></div>
   <div class="brand">
-    <div class="brand-name">PharmaIntel AI</div>
+    <div class="brand-name">💊 PharmaIntel AI</div>
     <div class="brand-tag">Pharmaceutical Intelligence · Brazilian Market</div>
   </div>
 </div>
