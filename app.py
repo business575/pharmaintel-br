@@ -394,6 +394,14 @@ st.markdown("""
   });
   _titleObserver.observe(document.querySelector("title") || document.head, {childList: true, subtree: true, characterData: true});
 </script>
+<!-- Google Analytics GA4 -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2B5M8XP41Z"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-2B5M8XP41Z');
+</script>
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
