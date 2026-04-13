@@ -104,6 +104,13 @@ def _start_patent_scheduler() -> None:
 
 _start_patent_scheduler()
 
+# Telegram bot — starts if TELEGRAM_BOT_TOKEN is set
+try:
+    from src.integrations.telegram_bot import start_bot as _start_telegram
+    _start_telegram()
+except Exception as _tg_exc:
+    logger.warning("Telegram bot not started: %s", _tg_exc)
+
 PROCESSED_DIR = ROOT / "data" / "processed"
 PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 
