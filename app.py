@@ -1489,8 +1489,8 @@ window.addEventListener('resize', () => {
             <span class="hero-accent">in Brazil's $24B Pharma Import Market</span>
           </div>
           <p class="hero-sub">
-            AI platform that integrates real government data — Comex Stat, ANVISA, government procurement —<br>
-            so you know <b style="color:#E2EAF4;">who is importing, how much, at what price, and where to enter.</b>
+            The only AI platform built exclusively for the Brazilian pharma import market.<br>
+            Know <b style="color:#E2EAF4;">who is importing, how much, at what price, and where to enter.</b>
           </p>
         </div>"""
     else:
@@ -1501,8 +1501,8 @@ window.addEventListener('resize', () => {
             <span class="hero-accent">no Mercado Farmacêutico Brasileiro de US$ 24 Bilhões</span>
           </div>
           <p class="hero-sub">
-            Plataforma de IA com dados governamentais reais — Comex Stat, ANVISA, licitações públicas —<br>
-            para você saber <b style="color:#E2EAF4;">quem importa, quanto, a que preço e onde entrar.</b>
+            A única plataforma de IA construída exclusivamente para o mercado farmacêutico brasileiro.<br>
+            Saiba <b style="color:#E2EAF4;">quem importa, quanto, a que preço e onde entrar.</b>
           </p>
         </div>"""
     st.markdown(hero_html, unsafe_allow_html=True)
