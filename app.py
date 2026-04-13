@@ -1272,6 +1272,42 @@ def _page_pricing() -> None:
                             unsafe_allow_html=True,
                         )
 
+    # Telegram Assistant Banner
+    st.markdown("<br>", unsafe_allow_html=True)
+    if is_en:
+        st.markdown("""
+        <div style="background:#112240; border:2px solid #4DB6AC; border-radius:12px;
+                    padding:1.5rem 2rem; text-align:center; max-width:700px; margin:0 auto;">
+          <div style="font-size:2rem; margin-bottom:0.5rem;">💬</div>
+          <h3 style="color:#4DB6AC; margin:0 0 0.5rem;">AI Assistant on Telegram & WhatsApp</h3>
+          <p style="color:#B0BEC5; font-size:0.88rem; line-height:1.6; margin:0 0 0.75rem;">
+            All <b style="color:#E2EAF4;">Starter and Pro subscribers</b> get exclusive access to our
+            AI assistant directly on <b style="color:#E2EAF4;">Telegram and WhatsApp</b>.<br>
+            Ask market questions, get alerts and receive insights — without opening the platform.
+          </p>
+          <p style="color:#8899AA; font-size:0.8rem; margin:0;">
+            ✅ Available 24/7 &nbsp;·&nbsp; ✅ Real data &nbsp;·&nbsp; ✅ Included in your plan
+          </p>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <div style="background:#112240; border:2px solid #4DB6AC; border-radius:12px;
+                    padding:1.5rem 2rem; text-align:center; max-width:700px; margin:0 auto;">
+          <div style="font-size:2rem; margin-bottom:0.5rem;">💬</div>
+          <h3 style="color:#4DB6AC; margin:0 0 0.5rem;">Assistente IA no Telegram e WhatsApp</h3>
+          <p style="color:#B0BEC5; font-size:0.88rem; line-height:1.6; margin:0 0 0.75rem;">
+            Todos os assinantes <b style="color:#E2EAF4;">Starter e Pro</b> têm acesso exclusivo ao
+            assistente IA diretamente no <b style="color:#E2EAF4;">Telegram e WhatsApp</b>.<br>
+            Faça perguntas de mercado, receba alertas e insights — sem abrir a plataforma.
+          </p>
+          <p style="color:#8899AA; font-size:0.8rem; margin:0;">
+            ✅ Disponível 24/7 &nbsp;·&nbsp; ✅ Dados reais &nbsp;·&nbsp; ✅ Incluso no seu plano
+          </p>
+        </div>
+        """, unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+
     # Footer
     footer_line1 = "Payments securely processed via <b>Stripe</b> · Cancel anytime" if is_en else "Pagamentos processados com segurança via <b>Stripe</b> · Cancele a qualquer momento"
     footer_line2_label = "Questions?" if is_en else "Dúvidas?"
