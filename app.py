@@ -1483,29 +1483,66 @@ window.addEventListener('resize', () => {
     # Hero
     if is_en:
         hero_html = """
-        <div style="text-align:center; padding: 1rem 1rem 2rem;">
+        <div style="text-align:center; padding: 1rem 1rem 1.5rem;">
           <div class="hero-title">
-            Pharmaceutical Intelligence<br>
-            <span class="hero-accent">for the Brazilian Market</span>
+            Identify Million-Dollar Opportunities<br>
+            <span class="hero-accent">in Brazil's $24B Pharma Import Market</span>
           </div>
           <p class="hero-sub">
-            Monitor imports, track ANVISA registrations and discover market opportunities<br>
-            with real data and AI — all in one platform.
+            AI platform that integrates real government data — Comex Stat, ANVISA, government procurement —<br>
+            so you know <b style="color:#E2EAF4;">who is importing, how much, at what price, and where to enter.</b>
           </p>
         </div>"""
     else:
         hero_html = """
-        <div style="text-align:center; padding: 1rem 1rem 2rem;">
+        <div style="text-align:center; padding: 1rem 1rem 1.5rem;">
           <div class="hero-title">
-            Inteligência Farmacêutica<br>
-            <span class="hero-accent">para o Mercado Brasileiro</span>
+            Identifique Oportunidades de Milhões<br>
+            <span class="hero-accent">no Mercado Farmacêutico Brasileiro de US$ 24 Bilhões</span>
           </div>
           <p class="hero-sub">
-            Monitore importações, rastreie registros ANVISA e descubra oportunidades<br>
-            de mercado com dados reais e IA — tudo em uma plataforma.
+            Plataforma de IA com dados governamentais reais — Comex Stat, ANVISA, licitações públicas —<br>
+            para você saber <b style="color:#E2EAF4;">quem importa, quanto, a que preço e onde entrar.</b>
           </p>
         </div>"""
     st.markdown(hero_html, unsafe_allow_html=True)
+
+    # ── Case Real ─────────────────────────────────────────────────────────────
+    if is_en:
+        case_html = """
+        <div style="background:#112240; border:1px solid #00897B; border-radius:12px;
+                    padding:1.25rem 1.5rem; margin:0 0 1.5rem; max-width:900px; margin-left:auto; margin-right:auto;">
+          <p style="color:#4DB6AC; font-size:0.78rem; font-weight:700; letter-spacing:1px; margin:0 0 0.75rem;">
+            💡 REAL EXAMPLE — AI ANSWER IN SECONDS
+          </p>
+          <p style="color:#8899AA; font-size:0.82rem; margin:0 0 0.5rem;">
+            <i>Question asked: "Who are the top insulin importers in Brazil and what are government purchase prices?"</i>
+          </p>
+          <p style="color:#E2EAF4; font-size:0.85rem; line-height:1.7; margin:0;">
+            🔹 <b>Top importers:</b> Sanofi, Novo Nordisk, Eli Lilly — combined US$1.2B in 2025<br>
+            🔹 <b>Government price (BPS):</b> Insulin Glargine avg R$42.80/unit — 8,300 government purchases tracked<br>
+            🔹 <b>Opportunity:</b> Patent window opens for biosimilar entry in 2026 — 3 molecules identified<br>
+            🔹 <b>ANVISA status:</b> 12 active registrations, 2 expiring in 90 days
+          </p>
+        </div>"""
+    else:
+        case_html = """
+        <div style="background:#112240; border:1px solid #00897B; border-radius:12px;
+                    padding:1.25rem 1.5rem; margin:0 0 1.5rem; max-width:900px; margin-left:auto; margin-right:auto;">
+          <p style="color:#4DB6AC; font-size:0.78rem; font-weight:700; letter-spacing:1px; margin:0 0 0.75rem;">
+            💡 EXEMPLO REAL — RESPOSTA DA IA EM SEGUNDOS
+          </p>
+          <p style="color:#8899AA; font-size:0.82rem; margin:0 0 0.5rem;">
+            <i>Pergunta: "Quais os maiores importadores de insulina no Brasil e quais os preços de compra pública?"</i>
+          </p>
+          <p style="color:#E2EAF4; font-size:0.85rem; line-height:1.7; margin:0;">
+            🔹 <b>Maiores importadores:</b> Sanofi, Novo Nordisk, Eli Lilly — juntos US$ 1,2 bi em 2025<br>
+            🔹 <b>Preço governo (BPS):</b> Insulina Glargina média R$ 42,80/unidade — 8.300 compras rastreadas<br>
+            🔹 <b>Oportunidade:</b> Janela de patente abre para biossimilares em 2026 — 3 moléculas identificadas<br>
+            🔹 <b>Status ANVISA:</b> 12 registros ativos, 2 vencendo em 90 dias
+          </p>
+        </div>"""
+    st.markdown(case_html, unsafe_allow_html=True)
 
     # Stats
     s1, s2, s3, s4 = st.columns(4)
@@ -1527,21 +1564,21 @@ window.addEventListener('resize', () => {
         st.markdown(f'<p style="color:#4DB6AC; font-weight:600; font-size:0.85rem; letter-spacing:1px;">{"FEATURES" if is_en else "FUNCIONALIDADES"}</p>', unsafe_allow_html=True)
         if is_en:
             features = [
-                ("📊", "Import Dashboard",        "Real-time Comex Stat data by NCM/HS code, country and period"),
-                ("🏛️", "ANVISA Monitoring",       "Active registrations, expiry alerts and compliance tracking"),
-                ("🤖", "AI Agent",                "Proprietary AI for strategic market analysis — ask in English"),
-                ("🌍", "Global Context",           "UN Comtrade data for international benchmarking"),
-                ("🏢", "Company Intelligence",     "8,500+ active importers with CNPJ and product portfolio"),
-                ("🧬", "Patent Tracker",           "Expiry dates and biosimilar opportunities for key molecules"),
+                ("📊", "Know who is winning",      "See every importer by NCM, volume, price and country of origin — real Comex Stat data"),
+                ("🏛️", "Avoid regulatory risk",    "Track 42,000+ ANVISA registrations, expiry alerts and compliance status in real time"),
+                ("🤖", "Get answers in seconds",   "Ask the AI anything — market share, pricing, competitors, opportunities — no analyst needed"),
+                ("💰", "Find government contracts","US$24B in government procurement tracked — identify buyers before your competitors do"),
+                ("🏢", "Map your competition",     "8,500+ active importers with full product portfolio and market share analysis"),
+                ("🧬", "Catch patent windows",     "Biosimilar entry opportunities identified automatically as patents expire"),
             ]
         else:
             features = [
-                ("📊", "Dashboard de Importações", "Dados Comex Stat em tempo real por NCM, país e período"),
-                ("🏛️", "Monitoramento ANVISA",     "Registros ativos, vencimentos e alertas de compliance"),
-                ("🤖", "Agente IA",                "IA proprietária para análise estratégica de mercado"),
-                ("🌍", "Contexto Global",           "Dados UN Comtrade para benchmarking internacional"),
-                ("🏢", "Mapa de Empresas",          "8.500+ importadores ativos com CNPJ e portfólio"),
-                ("🧬", "Patentes",                  "Vencimentos e oportunidades de biossimilares"),
+                ("📊", "Saiba quem está ganhando", "Veja cada importador por NCM, volume, preço e origem — dados reais Comex Stat"),
+                ("🏛️", "Evite risco regulatório",  "Monitore 42.000+ registros ANVISA, vencimentos e status de compliance em tempo real"),
+                ("🤖", "Respostas em segundos",    "Pergunte qualquer coisa à IA — market share, preços, concorrentes — sem analista"),
+                ("💰", "Encontre contratos públicos","US$ 24 bi em licitações rastreados — identifique compradores antes dos concorrentes"),
+                ("🏢", "Mapeie a concorrência",    "8.500+ importadores ativos com portfólio completo e análise de market share"),
+                ("🧬", "Capture janelas de patente","Oportunidades de biossimilares identificadas automaticamente ao vencer patentes"),
             ]
         for icon, title, desc in features:
             st.markdown(f"""
