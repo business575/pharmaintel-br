@@ -1281,12 +1281,12 @@ def _page_pricing() -> None:
           <div style="font-size:2rem; margin-bottom:0.5rem;">💬</div>
           <h3 style="color:#4DB6AC; margin:0 0 0.5rem;">AI Assistant on Telegram & WhatsApp</h3>
           <p style="color:#B0BEC5; font-size:0.88rem; line-height:1.6; margin:0 0 0.75rem;">
-            All <b style="color:#E2EAF4;">Starter and Pro subscribers</b> get exclusive access to our
-            AI assistant directly on <b style="color:#E2EAF4;">Telegram and WhatsApp</b>.<br>
+            Each <b style="color:#E2EAF4;">Starter and Pro subscriber</b> gets
+            <b style="color:#E2EAF4;">1 dedicated AI assistant</b> on Telegram and WhatsApp.<br>
             Ask market questions, get alerts and receive insights — without opening the platform.
           </p>
           <p style="color:#8899AA; font-size:0.8rem; margin:0;">
-            ✅ Available 24/7 &nbsp;·&nbsp; ✅ Real data &nbsp;·&nbsp; ✅ Included in your plan
+            ✅ 1 assistant per subscriber &nbsp;·&nbsp; ✅ Real data &nbsp;·&nbsp; ✅ Included in your plan
           </p>
         </div>
         """, unsafe_allow_html=True)
@@ -1297,12 +1297,12 @@ def _page_pricing() -> None:
           <div style="font-size:2rem; margin-bottom:0.5rem;">💬</div>
           <h3 style="color:#4DB6AC; margin:0 0 0.5rem;">Assistente IA no Telegram e WhatsApp</h3>
           <p style="color:#B0BEC5; font-size:0.88rem; line-height:1.6; margin:0 0 0.75rem;">
-            Todos os assinantes <b style="color:#E2EAF4;">Starter e Pro</b> têm acesso exclusivo ao
-            assistente IA diretamente no <b style="color:#E2EAF4;">Telegram e WhatsApp</b>.<br>
+            Cada assinante <b style="color:#E2EAF4;">Starter e Pro</b> recebe
+            <b style="color:#E2EAF4;">1 assistente IA exclusivo</b> no Telegram e WhatsApp.<br>
             Faça perguntas de mercado, receba alertas e insights — sem abrir a plataforma.
           </p>
           <p style="color:#8899AA; font-size:0.8rem; margin:0;">
-            ✅ Disponível 24/7 &nbsp;·&nbsp; ✅ Dados reais &nbsp;·&nbsp; ✅ Incluso no seu plano
+            ✅ 1 assistente por assinante &nbsp;·&nbsp; ✅ Dados reais &nbsp;·&nbsp; ✅ Incluso no plano
           </p>
         </div>
         """, unsafe_allow_html=True)
