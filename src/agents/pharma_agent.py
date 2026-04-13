@@ -1580,22 +1580,22 @@ class PharmaAgent:
                         time.sleep(wait_s)
                         continue
                     logger.error("API error (%s): %s", active_model, err_str)
+                    # Fallback chain for ANY error: try next available client
+                    if self._deepseek_client and active_client is not self._deepseek_client:
+                        logger.warning("Error on %s — switching to DeepSeek", active_model)
+                        active_client = self._deepseek_client
+                        active_model  = MODEL_PRO
+                        cost_in, cost_out = COST_PRO_INPUT, COST_PRO_OUTPUT
+                        attempt = 0
+                        continue
+                    if self._groq_client and active_client is not self._groq_client:
+                        logger.warning("Error on %s — switching to Groq", active_model)
+                        active_client = self._groq_client
+                        active_model  = MODEL_STARTER
+                        cost_in, cost_out = 0.0, 0.0
+                        attempt = 0
+                        continue
                     if is_rate_limit:
-                        # Fallback chain: DeepSeek → Groq → error
-                        if self._deepseek_client and active_client is not self._deepseek_client:
-                            logger.warning("Rate limit on %s — switching to DeepSeek", active_model)
-                            active_client = self._deepseek_client
-                            active_model  = MODEL_PRO
-                            cost_in, cost_out = COST_PRO_INPUT, COST_PRO_OUTPUT
-                            attempt = 0
-                            continue
-                        if self._groq_client and active_client is not self._groq_client:
-                            logger.warning("Rate limit on %s — switching to Groq", active_model)
-                            active_client = self._groq_client
-                            active_model  = MODEL_STARTER
-                            cost_in, cost_out = 0.0, 0.0
-                            attempt = 0
-                            continue
                         wait_s = _parse_wait_seconds(err_str)
                         mins, secs = int(wait_s // 60), int(wait_s % 60)
                         wait_str = f"{mins}m {secs}s" if mins else f"{secs}s"
@@ -1603,7 +1603,7 @@ class PharmaAgent:
                             text=f"⏳ **Limite temporário atingido.**\n\nAguarde **{wait_str}** e tente novamente.",
                             error=err_str,
                         )
-                    return AgentResponse(text="Erro ao conectar ao agente IA. Tente novamente.", error=err_str)
+                    return AgentResponse(text=f"Erro ao conectar ao agente IA: {err_str[:300]}", error=err_str)
 
             if resp is None:
                 return AgentResponse(text="Erro ao conectar ao agente IA.", error="no response")
