@@ -212,6 +212,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         ],
         # Quality Control
         "nav_quality":        "Qualidade",
+        "nav_costs":          "Gerente Financeiro",
         # Outreach
         "nav_outreach":       "Prospecção",
         "outreach_title":     "Agente de Prospecção — 10-20 contatos/dia",
@@ -313,6 +314,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         ],
         # Quality Control
         "nav_quality":        "Quality Control",
+        "nav_costs":          "Finance Manager",
         # Outreach
         "nav_outreach":       "Outreach",
         "outreach_title":     "Outreach Agent — 10-20 contacts/day",
@@ -3252,8 +3254,8 @@ def sidebar() -> tuple[str, int]:
             st.session_state.get("auth_user") == _APP_USERNAME
             or st.session_state.get("is_admin")
         )
-        nav_keys_active = _NAV_KEYS + (["outreach", "director", "quality"] if _is_admin else [])
-        nav_t_keys_active = _NAV_T_KEYS + (["nav_outreach", "nav_director", "nav_quality"] if _is_admin else [])
+        nav_keys_active = _NAV_KEYS + (["outreach", "director", "quality", "costs"] if _is_admin else [])
+        nav_t_keys_active = _NAV_T_KEYS + (["nav_outreach", "nav_director", "nav_quality", "nav_costs"] if _is_admin else [])
         nav_labels = [_t(k) for k in nav_t_keys_active]
         # Preserve current page across language switches using internal key
         current_key = st.session_state.get("page_key", "overview")
@@ -3357,6 +3359,226 @@ def sidebar() -> tuple[str, int]:
 
 
 # ===========================================================================
+# Finance Manager Page
+# ===========================================================================
+
+def _page_finance_manager() -> None:
+    """Gerente Financeiro — ROI, custos e investimentos da plataforma."""
+    lang  = st.session_state.get("lang", "PT")
+    is_en = lang == "EN"
+
+    st.markdown("""
+    <style>
+    [data-testid="stAppViewContainer"] { background: #0A1628; }
+    .fin-card {
+        background: #112240; border: 1px solid #1E3A5F; border-radius: 12px;
+        padding: 1.25rem 1.5rem; margin-bottom: 1rem;
+    }
+    .fin-metric { color: #4DB6AC; font-size: 1.8rem; font-weight: 700; }
+    .fin-label  { color: #8899AA; font-size: 0.8rem; margin-bottom: 0.25rem; }
+    .fin-sub    { color: #B0BEC5; font-size: 0.82rem; margin-top: 0.25rem; }
+    .fin-ok     { color: #4DB6AC; font-weight: 600; }
+    .fin-warn   { color: #f0a500; font-weight: 600; }
+    .fin-bad    { color: #e53935; font-weight: 600; }
+    </style>
+    """, unsafe_allow_html=True)
+
+    title = "Finance Manager — ROI & Cost Report" if is_en else "Gerente Financeiro — ROI & Custos"
+    st.markdown(f"<h2 style='color:#4DB6AC; margin-bottom:0.25rem;'>💰 {title}</h2>", unsafe_allow_html=True)
+    st.markdown(f"<p style='color:#8899AA; font-size:0.85rem;'>{'Real platform costs + AI usage + ROI analysis' if is_en else 'Custos reais da plataforma + uso de IA + análise de retorno'}</p>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Load AI token usage ──────────────────────────────────────────────────
+    try:
+        from src.agents.pharma_agent import _load_budget
+        budget = _load_budget()
+        ai_cost_usd   = budget.get("cost_usd", 0.0)
+        tokens_in     = budget.get("tokens_input", 0)
+        tokens_out    = budget.get("tokens_output", 0)
+        budget_month  = budget.get("month", "N/A")
+    except Exception:
+        ai_cost_usd, tokens_in, tokens_out, budget_month = 0.0, 0, 0, "N/A"
+
+    # ── Fixed monthly costs (USD) ────────────────────────────────────────────
+    COSTS = {
+        "Render (hosting)":        7.00,
+        "Domain (pharmaceuticaai)": 0.83,   # ~$10/year
+        "Groq API":                 0.00,   # free tier
+        "DeepSeek V3":              0.50,   # estimate
+        "Stripe fees (% revenue)":  0.00,   # only on sales
+    }
+    fixed_usd = sum(COSTS.values())
+    total_monthly_usd = fixed_usd + ai_cost_usd
+
+    # ── Revenue (from DB) ────────────────────────────────────────────────────
+    try:
+        from src.agents.pharma_agent import _get_monthly_revenue_usd
+        revenue_usd = _get_monthly_revenue_usd()
+    except Exception:
+        revenue_usd = 0.0
+
+    # ── Total invested (manual estimate) ────────────────────────────────────
+    # Claude Pro plan + development time value
+    claude_monthly = 110.0  # BRL → USD ~$20
+    total_invested_usd = 20.0 + 7.0 * 3  # 3 months Render + Claude
+
+    brl_rate = 5.70
+    total_monthly_brl = total_monthly_usd * brl_rate
+    revenue_brl       = revenue_usd * brl_rate
+
+    roi_pct = ((revenue_usd - total_monthly_usd) / total_monthly_usd * 100) if total_monthly_usd > 0 else 0.0
+    breakeven_clients = max(1, int(total_monthly_usd / 299) + 1)  # Starter plan USD
+
+    # ── KPI Cards ───────────────────────────────────────────────────────────
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        st.markdown(f"""
+        <div class="fin-card">
+          <div class="fin-label">{'Monthly Cost' if is_en else 'Custo Mensal'}</div>
+          <div class="fin-metric">US$ {total_monthly_usd:.2f}</div>
+          <div class="fin-sub">R$ {total_monthly_brl:.0f}/mês</div>
+        </div>""", unsafe_allow_html=True)
+    with c2:
+        rev_color = "fin-ok" if revenue_usd > 0 else "fin-warn"
+        st.markdown(f"""
+        <div class="fin-card">
+          <div class="fin-label">{'Monthly Revenue' if is_en else 'Receita Mensal'}</div>
+          <div class="fin-metric">US$ {revenue_usd:.0f}</div>
+          <div class="fin-sub"><span class="{rev_color}">R$ {revenue_brl:.0f}/mês</span></div>
+        </div>""", unsafe_allow_html=True)
+    with c3:
+        roi_color = "fin-ok" if roi_pct > 0 else ("fin-warn" if roi_pct > -50 else "fin-bad")
+        st.markdown(f"""
+        <div class="fin-card">
+          <div class="fin-label">ROI</div>
+          <div class="fin-metric"><span class="{roi_color}">{roi_pct:+.0f}%</span></div>
+          <div class="fin-sub">{'vs monthly cost' if is_en else 'vs custo mensal'}</div>
+        </div>""", unsafe_allow_html=True)
+    with c4:
+        st.markdown(f"""
+        <div class="fin-card">
+          <div class="fin-label">{'Break-even' if is_en else 'Ponto de Equilíbrio'}</div>
+          <div class="fin-metric">{breakeven_clients}</div>
+          <div class="fin-sub">{'Starter clients needed' if is_en else 'clientes Starter necessários'}</div>
+        </div>""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Cost Breakdown ───────────────────────────────────────────────────────
+    col_costs, col_ai = st.columns(2)
+
+    with col_costs:
+        st.markdown(f"<h4 style='color:#E2EAF4;'>{'Infrastructure Costs' if is_en else 'Custos de Infraestrutura'} — {budget_month}</h4>", unsafe_allow_html=True)
+        for item, val in COSTS.items():
+            color = "fin-ok" if val == 0 else "fin-label"
+            st.markdown(f"""
+            <div style="display:flex; justify-content:space-between; padding:0.5rem 0; border-bottom:1px solid #1E3A5F;">
+              <span style="color:#B0BEC5; font-size:0.85rem;">{item}</span>
+              <span class="{color}" style="font-size:0.85rem; font-weight:600;">
+                {'FREE' if val == 0 else f'US$ {val:.2f}'}
+              </span>
+            </div>""", unsafe_allow_html=True)
+        st.markdown(f"""
+        <div style="display:flex; justify-content:space-between; padding:0.75rem 0; margin-top:0.5rem;">
+          <span style="color:#E2EAF4; font-weight:700;">{'AI API Usage' if is_en else 'Uso de IA (tokens)'}</span>
+          <span style="color:#4DB6AC; font-weight:700;">US$ {ai_cost_usd:.4f}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding:0.5rem 0; border-top:2px solid #4DB6AC; margin-top:0.25rem;">
+          <span style="color:#E2EAF4; font-weight:700; font-size:1rem;">TOTAL</span>
+          <span style="color:#4DB6AC; font-weight:700; font-size:1rem;">US$ {total_monthly_usd:.2f}</span>
+        </div>""", unsafe_allow_html=True)
+
+    with col_ai:
+        st.markdown(f"<h4 style='color:#E2EAF4;'>{'AI Token Usage' if is_en else 'Uso de Tokens de IA'} — {budget_month}</h4>", unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class="fin-card">
+          <div style="display:flex; justify-content:space-between; margin-bottom:0.75rem;">
+            <span style="color:#8899AA;">{'Input tokens' if is_en else 'Tokens entrada'}</span>
+            <span style="color:#E2EAF4; font-weight:600;">{tokens_in:,}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:0.75rem;">
+            <span style="color:#8899AA;">{'Output tokens' if is_en else 'Tokens saída'}</span>
+            <span style="color:#E2EAF4; font-weight:600;">{tokens_out:,}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:0.75rem;">
+            <span style="color:#8899AA;">{'Total tokens' if is_en else 'Total tokens'}</span>
+            <span style="color:#E2EAF4; font-weight:600;">{tokens_in + tokens_out:,}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; border-top:1px solid #1E3A5F; padding-top:0.75rem;">
+            <span style="color:#8899AA;">{'AI cost this month' if is_en else 'Custo IA este mês'}</span>
+            <span style="color:#4DB6AC; font-weight:700;">US$ {ai_cost_usd:.4f}</span>
+          </div>
+        </div>
+        <div style="background:#0A1628; border:1px solid #00897B; border-radius:8px; padding:0.75rem 1rem; margin-top:0.5rem;">
+          <p style="color:#4DB6AC; font-weight:600; margin:0 0 0.25rem; font-size:0.85rem;">
+            {'💡 Cost structure' if is_en else '💡 Estrutura de custos'}
+          </p>
+          <p style="color:#B0BEC5; font-size:0.8rem; margin:0; line-height:1.6;">
+            {'Groq (free) → DeepSeek (~US$0.001/query) → Claude (paid)' if is_en else 'Groq (grátis) → DeepSeek (~US$0,001/consulta) → Claude (pago)'}
+          </p>
+        </div>""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── ROI Projection ───────────────────────────────────────────────────────
+    st.markdown(f"<h4 style='color:#E2EAF4;'>{'Revenue Projection' if is_en else 'Projeção de Receita'}</h4>", unsafe_allow_html=True)
+    scenarios = [
+        (1, 299, "1 Starter", "fin-warn"),
+        (3, 299, "3 Starter", "fin-ok"),
+        (1, 499, "1 Pro", "fin-ok"),
+        (5, 299, "5 Starter", "fin-ok"),
+        (1, 1499, "1 Enterprise", "fin-ok"),
+        (10, 299, "10 Starter", "fin-ok"),
+    ]
+    cols = st.columns(len(scenarios))
+    for col, (n, price, label, color) in zip(cols, scenarios):
+        rev = n * price
+        profit = rev - total_monthly_usd
+        with col:
+            st.markdown(f"""
+            <div class="fin-card" style="text-align:center; padding:0.75rem;">
+              <div style="color:#8899AA; font-size:0.72rem;">{label}</div>
+              <div class="{color}" style="font-size:1.1rem; font-weight:700; margin:0.25rem 0;">US$ {rev:,}</div>
+              <div style="color:#B0BEC5; font-size:0.7rem;">{'profit' if is_en else 'lucro'}: <span class="{'fin-ok' if profit > 0 else 'fin-bad'}">US$ {profit:+,.0f}</span></div>
+            </div>""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Investment Summary ───────────────────────────────────────────────────
+    st.markdown(f"<h4 style='color:#E2EAF4;'>{'Total Investment to Date' if is_en else 'Investimento Total até Hoje'}</h4>", unsafe_allow_html=True)
+    investments = [
+        ("Claude Pro (desenvolvimento)", "R$ 110/mês", "Custo de desenvolvimento com IA"),
+        ("Render (3 meses)", f"US$ {7*3:.0f}", "Hospedagem da plataforma"),
+        ("Domínio pharmaceuticaai.com", "~US$ 10/ano", "Identidade online"),
+        ("Groq / DeepSeek / APIs", "~US$ 5", "Tokens de IA"),
+        ("Tempo de desenvolvimento", "Inestimável", "Valor do produto construído"),
+    ]
+    for item, val, desc in investments:
+        st.markdown(f"""
+        <div style="display:flex; justify-content:space-between; align-items:center;
+                    padding:0.6rem 1rem; background:#112240; border-radius:8px; margin-bottom:0.4rem;">
+          <div>
+            <div style="color:#E2EAF4; font-size:0.85rem; font-weight:600;">{item}</div>
+            <div style="color:#8899AA; font-size:0.75rem;">{desc}</div>
+          </div>
+          <div style="color:#4DB6AC; font-weight:700; font-size:0.9rem;">{val}</div>
+        </div>""", unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div style="background:#0A1628; border:2px solid #4DB6AC; border-radius:12px;
+                padding:1.25rem 1.5rem; margin-top:1rem; text-align:center;">
+      <p style="color:#8899AA; font-size:0.8rem; margin:0 0 0.5rem;">
+        {'Bottom line' if is_en else 'Conclusão'}
+      </p>
+      <p style="color:#E2EAF4; font-size:1rem; font-weight:600; margin:0; line-height:1.6;">
+        {'1 client at US$299/month covers ALL platform costs. Everything above that is profit.' if is_en else
+         '1 cliente no plano Starter (US$299/mês) cobre TODOS os custos da plataforma. Tudo acima disso é lucro.'}
+      </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+# ===========================================================================
 # Main
 # ===========================================================================
 
@@ -3374,12 +3596,13 @@ def main() -> None:
         "outreach":   _page_outreach,
         "director":   _page_admin_director,
         "quality":    _page_quality,
+        "costs":      _page_finance_manager,
     }
 
     fn = pages.get(page_key)
     if fn:
         # these admin pages don't use `year`
-        if page_key in ("director", "outreach", "quality"):
+        if page_key in ("director", "outreach", "quality", "costs"):
             fn()
         else:
             fn(year)
