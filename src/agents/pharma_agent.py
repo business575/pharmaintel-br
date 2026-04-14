@@ -562,6 +562,48 @@ TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_atas_pncp",
+            "description": (
+                "Busca Atas de Registro de Preços no Portal Nacional de Contratações Públicas (PNCP). "
+                "Retorna atas vigentes com órgão comprador, objeto, valor total e link. "
+                "Use para responder: qual a ata de insulina vigente, quais contratos de soro fisiológico existem, "
+                "qual o preço de registro de preços para X produto, etc. "
+                "Fonte: dados reais do governo federal via PNCP."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "descricao": {"type": "string", "description": "Nome do produto (ex: 'insulina glargina', 'soro fisiologico', 'amoxicilina')"},
+                    "pagina":    {"type": "integer", "description": "Página dos resultados (padrão: 1)"},
+                },
+                "required": ["descricao"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_precos_bnafar",
+            "description": (
+                "Busca preços de medicamentos em compras públicas de saúde via BNAFAR "
+                "(Banco Nacional de Preços na Área de Saúde — Ministério da Saúde). "
+                "Retorna preço mínimo, máximo e médio pago pelo governo, por laboratório e UF. "
+                "Use para responder: quanto o governo paga por X, qual o preço médio de licitação de Y, "
+                "qual laboratório é mais barato nas compras públicas, etc. "
+                "Fonte: dados reais de compras públicas de saúde do Ministério da Saúde."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "principio_ativo": {"type": "string", "description": "Princípio ativo ou nome do medicamento (ex: 'insulina glargina', 'metformina', 'omeprazol')"},
+                },
+                "required": ["principio_ativo"],
+            },
+        },
+    },
 ]
 
 
@@ -1417,6 +1459,45 @@ class ToolExecutor:
             return get_price_summary(descricao, uf=uf, ano=ano)
         except Exception as exc:
             return {"error": f"BPS indisponível: {exc}"}
+
+    def _tool_get_atas_pncp(
+        self,
+        descricao: str,
+        pagina: int = 1,
+    ) -> dict:
+        """Busca Atas de Registro de Preços no PNCP (Portal Nacional de Contratações Públicas)."""
+        try:
+            from src.integrations.pncp_fetcher import buscar_atas_por_produto
+            resultado = buscar_atas_por_produto(descricao, pagina=pagina)
+            if not resultado.get("atas"):
+                return {
+                    "disponivel": False,
+                    "mensagem": f"Nenhuma ata encontrada no PNCP para '{descricao}'. Tente termos mais gerais.",
+                    "descricao_buscada": descricao,
+                    "fonte": "PNCP — Portal Nacional de Contratações Públicas",
+                }
+            return {
+                "disponivel": True,
+                "fonte": "PNCP — Portal Nacional de Contratações Públicas (dados reais)",
+                **resultado,
+            }
+        except Exception as exc:
+            logger.warning("PNCP tool error: %s", exc)
+            return {"error": f"PNCP temporariamente indisponível: {exc}"}
+
+    def _tool_get_precos_bnafar(
+        self,
+        principio_ativo: str,
+    ) -> dict:
+        """Busca preços de medicamentos em compras públicas via BNAFAR (Ministério da Saúde)."""
+        try:
+            from src.integrations.bnafar_fetcher import buscar_precos_por_principio_ativo
+            resultado = buscar_precos_por_principio_ativo(principio_ativo)
+            resultado["fonte"] = "BNAFAR — Banco Nacional de Preços na Área de Saúde (dados reais)"
+            return resultado
+        except Exception as exc:
+            logger.warning("BNAFAR tool error: %s", exc)
+            return {"error": f"BNAFAR temporariamente indisponível: {exc}"}
 
 
 # ---------------------------------------------------------------------------
