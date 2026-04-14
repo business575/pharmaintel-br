@@ -638,13 +638,29 @@ DEMO_MAX_QUESTIONS = 2
 
 
 def _save_demo_lead(email: str, lang: str = "PT") -> None:
-    """Save demo lead to SQLite DB (persists on Render) and send welcome email."""
+    """Save demo lead to SQLite DB, Formspree, and send welcome email."""
+    # 1. SQLite (local/Render — may be lost on restart)
     try:
         from src.db.database import init_db, save_demo_lead as _db_save
         init_db()
         _db_save(email=email, lang=lang, status="new", temperature="cold")
     except Exception as exc:
         logger.warning("Failed to save demo lead to DB: %s", exc)
+
+    # 2. Formspree — persists externally even if Render restarts
+    try:
+        import requests as _req
+        _req.post(
+            "https://formspree.io/f/xrerbqbj",
+            json={"email": email, "lang": lang, "origem": "demo", "status": "new"},
+            headers={"Accept": "application/json"},
+            timeout=8,
+        )
+        logger.info("Lead saved to Formspree: %s", email)
+    except Exception as exc:
+        logger.warning("Formspree lead save failed: %s", exc)
+
+    # 3. Welcome email via Resend
     try:
         _send_demo_email(email, lang, "welcome")
     except Exception as exc:
