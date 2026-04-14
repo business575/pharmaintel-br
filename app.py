@@ -739,56 +739,60 @@ def _call_demo_ai(question: str, history: list, is_en: bool) -> str:
     messages = history + [{"role": "user", "content": question.strip()}]
     raw_text = ""
 
-    groq_key = os.getenv("GROQ_API_KEY", "")
-    if groq_key:
+    import requests as _req
+
+    def _openai_compat_call(base_url: str, api_key: str, model: str) -> str:
+        resp = _req.post(
+            f"{base_url}/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={
+                "model": model,
+                "messages": [{"role": "system", "content": system}] + messages,
+                "max_tokens": 1200,
+                "temperature": 0.7,
+            },
+            timeout=30,
+        )
+        data = resp.json()
+        if resp.status_code != 200:
+            logger.warning("AI API error %s: %s", resp.status_code, data)
+            return ""
+        return data.get("choices", [{}])[0].get("message", {}).get("content", "") or ""
+
+    # 1. Groq (primary)
+    groq_key = os.getenv("GROQ_API_KEY", "").strip()
+    if groq_key and not raw_text:
         try:
-            import requests as _req
-            gresp = _req.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"},
-                json={
-                    "model": "llama-3.3-70b-versatile",
-                    "messages": [{"role": "system", "content": system}] + messages,
-                    "max_tokens": 1200,
-                    "temperature": 0.7,
-                },
-                timeout=30,
-            )
-            data = gresp.json()
-            raw_text = data.get("choices", [{}])[0].get("message", {}).get("content", "") or ""
-            if not raw_text:
-                logger.warning("Groq demo empty response: %s", data)
+            raw_text = _openai_compat_call("https://api.groq.com/openai/v1", groq_key, "llama-3.3-70b-versatile")
         except Exception as exc1:
             logger.warning("Groq demo failed: %s", exc1)
 
-    if not raw_text:
-        anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
-        if anthropic_key:
-            try:
-                import requests as _req
-                aresp = _req.post(
-                    "https://api.anthropic.com/v1/messages",
-                    headers={
-                        "x-api-key": anthropic_key,
-                        "anthropic-version": "2023-06-01",
-                        "Content-Type": "application/json",
-                    },
-                    json={
-                        "model": "claude-haiku-4-5-20251001",
-                        "max_tokens": 1200,
-                        "system": system,
-                        "messages": messages,
-                    },
-                    timeout=30,
-                )
-                data = aresp.json()
-                raw_text = data.get("content", [{}])[0].get("text", "") or ""
-                if not raw_text:
-                    logger.warning("Anthropic demo empty: %s", data)
-            except Exception as exc2:
-                logger.warning("Anthropic demo failed: %s", exc2)
+    # 2. DeepSeek (fallback)
+    deepseek_key = os.getenv("DEEPSEEK_API_KEY", "").strip()
+    if deepseek_key and not raw_text:
+        try:
+            raw_text = _openai_compat_call("https://api.deepseek.com/v1", deepseek_key, "deepseek-chat")
+        except Exception as exc2:
+            logger.warning("DeepSeek demo failed: %s", exc2)
+
+    # 3. Anthropic (last resort)
+    anthropic_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
+    if anthropic_key and not raw_text:
+        try:
+            aresp = _req.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={"x-api-key": anthropic_key, "anthropic-version": "2023-06-01", "Content-Type": "application/json"},
+                json={"model": "claude-haiku-4-5-20251001", "max_tokens": 1200, "system": system, "messages": messages},
+                timeout=30,
+            )
+            data = aresp.json()
+            raw_text = data.get("content", [{}])[0].get("text", "") or ""
+        except Exception as exc3:
+            logger.warning("Anthropic demo failed: %s", exc3)
 
     if not raw_text:
+        logger.error("All AI providers failed. GROQ_KEY=%s DEEPSEEK_KEY=%s ANTHROPIC_KEY=%s",
+                     bool(groq_key), bool(deepseek_key), bool(anthropic_key))
         return ""
 
     # ── Quality Control audit ────────────────────────────────────────────────
