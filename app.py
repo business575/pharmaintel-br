@@ -62,8 +62,9 @@ def _start_keepalive() -> None:
     t = threading.Thread(target=_ping, daemon=True)
     t.start()
 
-if os.getenv("APP_ENV", "development") != "development":
-    _start_keepalive()
+# Keepalive disabled — UptimeRobot handles pinging externally (saves memory)
+# if os.getenv("APP_ENV", "development") != "development":
+#     _start_keepalive()
 
 
 # ---------------------------------------------------------------------------
@@ -102,7 +103,8 @@ def _start_patent_scheduler() -> None:
     t.start()
     logger.info("[PatentScheduler] Scheduled — runs every 30 days.")
 
-_start_patent_scheduler()
+# Patent scheduler disabled on free tier to save memory — run manually from admin panel
+# _start_patent_scheduler()
 
 # Telegram bot — starts if TELEGRAM_BOT_TOKEN is set
 try:
