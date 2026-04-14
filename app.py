@@ -742,15 +742,22 @@ def _call_demo_ai(question: str, history: list, is_en: bool) -> str:
     groq_key = os.getenv("GROQ_API_KEY", "")
     if groq_key:
         try:
-            from groq import Groq
-            _groq = Groq(api_key=groq_key)
-            gresp = _groq.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[{"role": "system", "content": system}] + messages,
-                max_tokens=1200,
-                temperature=0.7,
+            import requests as _req
+            gresp = _req.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"},
+                json={
+                    "model": "llama-3.3-70b-versatile",
+                    "messages": [{"role": "system", "content": system}] + messages,
+                    "max_tokens": 1200,
+                    "temperature": 0.7,
+                },
+                timeout=30,
             )
-            raw_text = gresp.choices[0].message.content or ""
+            data = gresp.json()
+            raw_text = data.get("choices", [{}])[0].get("message", {}).get("content", "") or ""
+            if not raw_text:
+                logger.warning("Groq demo empty response: %s", data)
         except Exception as exc1:
             logger.warning("Groq demo failed: %s", exc1)
 
@@ -758,15 +765,26 @@ def _call_demo_ai(question: str, history: list, is_en: bool) -> str:
         anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
         if anthropic_key:
             try:
-                import anthropic as _anthropic
-                _ant = _anthropic.Anthropic(api_key=anthropic_key)
-                resp = _ant.messages.create(
-                    model="claude-sonnet-4-6",
-                    max_tokens=1200,
-                    system=system,
-                    messages=messages,
+                import requests as _req
+                aresp = _req.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={
+                        "x-api-key": anthropic_key,
+                        "anthropic-version": "2023-06-01",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": "claude-haiku-4-5-20251001",
+                        "max_tokens": 1200,
+                        "system": system,
+                        "messages": messages,
+                    },
+                    timeout=30,
                 )
-                raw_text = resp.content[0].text if resp.content else ""
+                data = aresp.json()
+                raw_text = data.get("content", [{}])[0].get("text", "") or ""
+                if not raw_text:
+                    logger.warning("Anthropic demo empty: %s", data)
             except Exception as exc2:
                 logger.warning("Anthropic demo failed: %s", exc2)
 
