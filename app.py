@@ -2781,24 +2781,27 @@ def page_etl(year: int) -> None:
         st.info("Nenhum arquivo processado encontrado. Execute o ETL acima.")
 
 
+@st.cache_resource
+def _get_agent(year: int):
+    """Create agent once and cache across all sessions."""
+    from src.agents.pharma_agent import create_agent
+    return create_agent(year=year)
+
+
 def page_agent(year: int) -> None:
     render_header(_t("header_agent"))
 
-    # Initialize session state
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
-    # Reinitialize agent if year changed
-    if "agent" not in st.session_state or st.session_state.get("agent_year") != year:
-        try:
-            from src.agents.pharma_agent import create_agent
-            st.session_state.agent      = create_agent(year=year)
-            st.session_state.agent_year = year
-            st.session_state.chat_history = []  # clear history on year change
-        except Exception as exc:
-            st.error(f"Erro ao inicializar agente: {exc}")
-            return
+    if st.session_state.get("agent_year") != year:
+        st.session_state.chat_history = []
+        st.session_state.agent_year = year
 
-    agent = st.session_state.agent
+    try:
+        agent = _get_agent(year)
+    except Exception as exc:
+        st.error(f"Erro ao inicializar agente: {exc}")
+        return
 
     # Status + quota
     user_email = st.session_state.get("user_email", "")
