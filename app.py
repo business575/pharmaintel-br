@@ -418,9 +418,9 @@ st.markdown("""
 # ---------------------------------------------------------------------------
 # Authentication
 # ---------------------------------------------------------------------------
-_APP_USERNAME      = _secret("APP_USERNAME", "admin")
-_APP_PASSWORD      = _secret("APP_PASSWORD", "pharmaintel2024")
-_APP_PASSWORD_HASH = _secret("APP_PASSWORD_HASH", "")
+_APP_USERNAME      = os.getenv("APP_USERNAME", "admin")
+_APP_PASSWORD      = os.getenv("APP_PASSWORD", "pharmaintel2024")
+_APP_PASSWORD_HASH = os.getenv("APP_PASSWORD_HASH", "")
 
 
 def _check_password(username: str, password: str) -> bool:
