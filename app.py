@@ -426,12 +426,12 @@ _APP_PASSWORD_HASH = _secret("APP_PASSWORD_HASH", "")
 def _check_password(username: str, password: str) -> bool:
     """Verify credentials — checks admin env vars first, then subscriber DB."""
     # 1. Admin user from env vars
-    user_ok = hmac.compare_digest(username.strip(), _APP_USERNAME)
+    user_ok = username.strip() == _APP_USERNAME
     if _APP_PASSWORD_HASH:
         entered_hash = hashlib.sha256(password.encode()).hexdigest()
-        pass_ok = hmac.compare_digest(entered_hash, _APP_PASSWORD_HASH)
+        pass_ok = entered_hash == _APP_PASSWORD_HASH
     else:
-        pass_ok = hmac.compare_digest(password, _APP_PASSWORD)
+        pass_ok = password == _APP_PASSWORD
     if user_ok and pass_ok:
         return True
 
