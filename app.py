@@ -886,7 +886,7 @@ def _page_demo_agent() -> None:
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown(f"""
             <div class="avatar-card" style="text-align:center;">
-              <div style="font-size:3rem; margin-bottom:0.5rem;">🎓</div>
+              <img src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=120&h=120&fit=crop&crop=face" style="width:80px; height:80px; border-radius:50%; border:3px solid #00897B; margin-bottom:0.75rem; object-fit:cover;" />
               <div style="color:#4DB6AC; font-weight:700; font-size:1.3rem; margin-bottom:0.25rem;">PHD Intel.AI</div>
               <div style="color:#8899AA; font-size:0.8rem; margin-bottom:1rem;">
                 {'Senior Strategic Advisor · Brazilian Pharma Market' if is_en else 'Conselheiro Estratégico Sênior · Mercado Farmacêutico Brasileiro'}
@@ -992,8 +992,7 @@ def _page_demo_agent() -> None:
     st.markdown(f"""
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem;">
       <div style="display:flex; align-items:center; gap:0.75rem;">
-        <div style="width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg,#00897B,#4DB6AC);
-             display:flex; align-items:center; justify-content:center; font-size:1.2rem;">🎓</div>
+        <img src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=80&h=80&fit=crop&crop=face" style="width:44px; height:44px; border-radius:50%; border:2px solid #00897B; object-fit:cover; flex-shrink:0;" />
         <div>
           <div style="color:#4DB6AC; font-weight:700; font-size:0.95rem;">PHD Intel.AI</div>
           <div style="color:#8899AA; font-size:0.72rem;">{sector_label}</div>
