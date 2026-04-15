@@ -3,3 +3,4 @@ startCommand = "streamlit run app.py --server.port $PORT --server.address 0.0.0.
 healthcheckPath = "/"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
+region = "us-east4"
