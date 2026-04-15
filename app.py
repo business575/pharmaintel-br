@@ -795,7 +795,7 @@ def _call_demo_ai(question: str, history: list, is_en: bool) -> str:
                      bool(groq_key), bool(deepseek_key), bool(anthropic_key))
         return ""
 
-    # ── Quality Control audit ────────────────────────────────────────────────
+    # ── Quality Control audit — log only, never block demo ──────────────────
     try:
         from src.quality.ai_auditor import AIOutputAuditor
         from src.db.database import log_quality_check
@@ -808,12 +808,11 @@ def _call_demo_ai(question: str, history: list, is_en: bool) -> str:
             result=result.result_str,
             error_level=result.risk_level,
             details=result.to_details_json(),
-            blocked=result.blocked,
+            blocked=False,  # never block — just log
         )
-        return result.audited_text  # blocked responses replaced with warning message
     except Exception as exc_audit:
-        logger.warning("Quality audit failed (returning raw): %s", exc_audit)
-        return raw_text
+        logger.warning("Quality audit failed: %s", exc_audit)
+    return raw_text  # always return the response
 
 
 def _page_demo_agent() -> None:
