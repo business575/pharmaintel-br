@@ -106,12 +106,16 @@ def _start_patent_scheduler() -> None:
 # Patent scheduler disabled on free tier to save memory — run manually from admin panel
 # _start_patent_scheduler()
 
-# Telegram bot — starts if TELEGRAM_BOT_TOKEN is set
-try:
-    from src.integrations.telegram_bot import start_bot as _start_telegram
-    _start_telegram()
-except Exception as _tg_exc:
-    logger.warning("Telegram bot not started: %s", _tg_exc)
+# Telegram bot — starts once via cache_resource
+@st.cache_resource
+def _init_telegram():
+    try:
+        from src.integrations.telegram_bot import start_bot as _start_telegram
+        _start_telegram()
+    except Exception as _tg_exc:
+        logger.warning("Telegram bot not started: %s", _tg_exc)
+
+_init_telegram()
 
 PROCESSED_DIR = ROOT / "data" / "processed"
 PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
@@ -2091,6 +2095,7 @@ def demo_comtrade(year: int = 2024) -> pd.DataFrame:
     return df
 
 
+@st.cache_data(ttl=300)
 def load_or_demo_imports(year: int) -> tuple[pd.DataFrame, bool]:
     df = load_parquet("pharma_imports", year)
     if df.empty:
@@ -2098,6 +2103,7 @@ def load_or_demo_imports(year: int) -> tuple[pd.DataFrame, bool]:
     return df, False
 
 
+@st.cache_data(ttl=300)
 def load_or_demo_comtrade(year: int) -> tuple[pd.DataFrame, bool]:
     df = load_parquet("comtrade", year)
     if df.empty:
