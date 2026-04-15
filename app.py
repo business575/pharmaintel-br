@@ -795,24 +795,58 @@ def _call_demo_ai(question: str, history: list, is_en: bool) -> str:
                      bool(groq_key), bool(deepseek_key), bool(anthropic_key))
         return ""
 
-    # ── Quality Control audit — log only, never block demo ──────────────────
+    # ── Quality Control — if score < 70, request improved response ──────────
     try:
         from src.quality.ai_auditor import AIOutputAuditor
         from src.db.database import log_quality_check
         lang_code = "EN" if is_en else "PT"
         auditor = AIOutputAuditor()
         result = auditor.audit(raw_text, tool_calls_made=[], module="demo_ai", lang=lang_code)
+
+        if result.confidence_score < 70:
+            # Ask AI to improve the response with more technical precision
+            improvement_prompt = (
+                "Your previous response scored low on technical precision. "
+                "Rewrite it with: specific NCM codes (8 digits), USD values, percentages, "
+                "company names, and market share estimates. Be concrete and data-driven. "
+                f"Previous response to improve:\n\n{raw_text}"
+                if is_en else
+                "Sua resposta anterior teve baixa precisão técnica. "
+                "Reescreva incluindo: códigos NCM de 8 dígitos, valores em USD, percentuais, "
+                "nomes de empresas e estimativas de market share. Seja concreto e orientado a dados. "
+                f"Resposta anterior para melhorar:\n\n{raw_text}"
+            )
+            improved = ""
+            if groq_key:
+                try:
+                    improved = _openai_compat_call("https://api.groq.com/openai/v1", groq_key, "llama-3.3-70b-versatile")
+                except Exception:
+                    pass
+            if not improved and deepseek_key:
+                try:
+                    improved = _openai_compat_call("https://api.deepseek.com/v1", deepseek_key, "deepseek-chat")
+                except Exception:
+                    pass
+
+            # Use improved if it scores higher
+            if improved:
+                result2 = auditor.audit(improved, tool_calls_made=[], module="demo_ai", lang=lang_code)
+                if result2.confidence_score > result.confidence_score:
+                    raw_text = improved
+                    result = result2
+                    logger.info("Quality improved: %s → %s", result.confidence_score, result2.confidence_score)
+
         log_quality_check(
             module="demo_ai",
             check_type="ai_output_audit",
             result=result.result_str,
             error_level=result.risk_level,
             details=result.to_details_json(),
-            blocked=False,  # never block — just log
+            blocked=False,
         )
     except Exception as exc_audit:
         logger.warning("Quality audit failed: %s", exc_audit)
-    return raw_text  # always return the response
+    return raw_text
 
 
 def _page_demo_agent() -> None:
