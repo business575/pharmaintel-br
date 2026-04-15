@@ -817,7 +817,7 @@ def _call_demo_ai(question: str, history: list, is_en: bool) -> str:
 
 
 def _page_demo_agent() -> None:
-    """Demo AI agent — 2 free questions, CEO-level responses, then upgrade wall."""
+    """Demo AI agent — PHD Intel.AI avatar guided experience."""
     lang  = st.session_state.get("lang", "PT")
     is_en = lang == "EN"
 
@@ -839,6 +839,24 @@ def _page_demo_agent() -> None:
     .demo-counter {
         background:#0D2B45; border:1px solid #1E3A5F; border-radius:8px;
         padding:0.4rem 0.9rem; font-size:0.78rem; color:#8899AA; display:inline-block; }
+    .avatar-card {
+        background: linear-gradient(135deg, #0D2B45 0%, #112240 100%);
+        border: 1px solid #00897B; border-radius:16px;
+        padding:1.5rem; margin-bottom:1.25rem; }
+    .avatar-header {
+        display:flex; align-items:center; gap:1rem; margin-bottom:1rem; }
+    .avatar-icon {
+        width:52px; height:52px; border-radius:50%;
+        background:linear-gradient(135deg,#00897B,#4DB6AC);
+        display:flex; align-items:center; justify-content:center;
+        font-size:1.5rem; flex-shrink:0; }
+    .avatar-name { color:#4DB6AC; font-weight:700; font-size:1rem; }
+    .avatar-title { color:#8899AA; font-size:0.75rem; }
+    .sector-btn {
+        background:#0A1628; border:1px solid #1E3A5F; border-radius:10px;
+        padding:0.75rem 1rem; color:#E2EAF4; font-size:0.85rem;
+        cursor:pointer; transition:all 0.2s; margin:0.25rem 0; width:100%; }
+    .typing-indicator { color:#4DB6AC; font-size:0.8rem; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -855,24 +873,30 @@ def _page_demo_agent() -> None:
             st.rerun()
 
     # Session state
-    demo_email   = st.session_state.get("demo_email", "")      # captured lead email
-    demo_count   = st.session_state.get("demo_count", 0)       # questions used
-    demo_history = st.session_state.get("demo_history", [])    # [{q, a}, ...]
+    demo_email   = st.session_state.get("demo_email", "")
+    demo_count   = st.session_state.get("demo_count", 0)
+    demo_history = st.session_state.get("demo_history", [])
+    demo_sector  = st.session_state.get("demo_sector", "")
     locked       = demo_count >= DEMO_MAX_QUESTIONS
 
-    # ── Email gate (show before demo) ─────────────────────────────────────
+    # ── Email gate ────────────────────────────────────────────────────────
     if not demo_email:
         _, col_gate, _ = st.columns([1, 2, 1])
         with col_gate:
             st.markdown("<br>", unsafe_allow_html=True)
-            gate_title = "Enter your email to start" if is_en else "Digite seu email para começar"
-            gate_sub   = "Free · No password · No credit card" if is_en else "Grátis · Sem senha · Sem cartão"
             st.markdown(f"""
-            <div style="text-align:center; margin-bottom:1.5rem;">
-              <span style="font-size:2.5rem;">💊</span>
-              <h2 style="color:#4DB6AC; margin:0.5rem 0 0.25rem;">PharmaIntel AI</h2>
-              <p style="color:#E2EAF4; font-size:1rem; font-weight:600; margin:0 0 0.25rem;">{gate_title}</p>
-              <p style="color:#8899AA; font-size:0.82rem;">{gate_sub}</p>
+            <div class="avatar-card" style="text-align:center;">
+              <div style="font-size:3rem; margin-bottom:0.5rem;">🎓</div>
+              <div style="color:#4DB6AC; font-weight:700; font-size:1.3rem; margin-bottom:0.25rem;">PHD Intel.AI</div>
+              <div style="color:#8899AA; font-size:0.8rem; margin-bottom:1rem;">
+                {'Senior Strategic Advisor · Brazilian Pharma Market' if is_en else 'Conselheiro Estratégico Sênior · Mercado Farmacêutico Brasileiro'}
+              </div>
+              <div style="background:#0A1628; border-radius:10px; padding:1rem; margin-bottom:1rem; text-align:left;">
+                <p style="color:#E2EAF4; font-size:0.88rem; margin:0; line-height:1.7;">
+                  {'👋 Hello! I am <b>PHD Intel.AI</b>, your strategic intelligence advisor for the Brazilian pharmaceutical market.<br><br>In the next 3 minutes, I will show you a real market analysis — import data, ANVISA registrations, patents, and public procurement — tailored to your sector of interest.<br><br>Enter your email to start.' if is_en else
+                   '👋 Olá! Sou <b>PHD Intel.AI</b>, seu conselheiro de inteligência estratégica para o mercado farmacêutico brasileiro.<br><br>Nos próximos 3 minutos, vou te mostrar uma análise real de mercado — dados de importação, registros ANVISA, patentes e compras públicas — personalizada para o seu setor de interesse.<br><br>Digite seu email para começar.'}
+                </p>
+              </div>
             </div>
             """, unsafe_allow_html=True)
             with st.form("demo_email_gate"):
@@ -881,7 +905,7 @@ def _page_demo_agent() -> None:
                     placeholder="your@email.com" if is_en else "seu@email.com",
                     label_visibility="collapsed",
                 )
-                btn_label = "Start Free Demo" if is_en else "Iniciar Demo Grátis"
+                btn_label = "Start Guided Analysis →" if is_en else "Iniciar Análise Guiada →"
                 submitted = st.form_submit_button(btn_label, use_container_width=True, type="primary")
                 if submitted:
                     if not email_input or "@" not in email_input:
@@ -890,81 +914,156 @@ def _page_demo_agent() -> None:
                         st.session_state["demo_email"] = email_input.strip().lower()
                         _save_demo_lead(email_input.strip().lower(), lang)
                         st.rerun()
+            st.markdown(f"<p style='color:#8899AA; font-size:0.72rem; text-align:center; margin-top:0.5rem;'>{'Free · No credit card · No password' if is_en else 'Grátis · Sem cartão · Sem senha'}</p>", unsafe_allow_html=True)
         st.stop()
         return
 
-    # Header
-    remaining = max(0, DEMO_MAX_QUESTIONS - demo_count)
-    if is_en:
-        header_sub = f"Strategic AI Demo · {remaining} question{'s' if remaining != 1 else ''} remaining"
-    else:
-        header_sub = f"Demo Estratégico IA · {remaining} pergunta{'s' if remaining != 1 else ''} restante{'s' if remaining != 1 else ''}"
+    # ── Sector selection ──────────────────────────────────────────────────
+    if not demo_sector:
+        _, col_s, _ = st.columns([1, 3, 1])
+        with col_s:
+            st.markdown(f"""
+            <div class="avatar-card">
+              <div class="avatar-header">
+                <div class="avatar-icon">🎓</div>
+                <div>
+                  <div class="avatar-name">PHD Intel.AI</div>
+                  <div class="avatar-title">{'Senior Strategic Advisor' if is_en else 'Conselheiro Estratégico Sênior'}</div>
+                </div>
+              </div>
+              <p style="color:#E2EAF4; font-size:0.88rem; line-height:1.7; margin:0;">
+                {'Welcome! To deliver the most relevant analysis, <b>choose your sector of interest</b>. I will run a complete market intelligence report in real time.' if is_en else
+                 'Bem-vindo! Para entregar a análise mais relevante, <b>escolha seu setor de interesse</b>. Vou rodar um relatório completo de inteligência de mercado em tempo real.'}
+              </p>
+            </div>
+            """, unsafe_allow_html=True)
 
+            sectors_pt = [
+                ("💉", "Insulina e Biossimilares", "insulin"),
+                ("🔬", "Oncológicos", "oncology"),
+                ("🫀", "Dispositivos Médicos", "devices"),
+                ("💊", "Antibióticos e Anti-infecciosos", "antibiotics"),
+                ("🧠", "Neurológicos e Psiquiátricos", "neuro"),
+                ("🌿", "Fitoterápicos e Genéricos", "generics"),
+            ]
+            sectors_en = [
+                ("💉", "Insulin & Biosimilars", "insulin"),
+                ("🔬", "Oncologicals", "oncology"),
+                ("🫀", "Medical Devices", "devices"),
+                ("💊", "Antibiotics & Anti-infectives", "antibiotics"),
+                ("🧠", "Neurological & Psychiatric", "neuro"),
+                ("🌿", "Phytotherapics & Generics", "generics"),
+            ]
+            sectors = sectors_en if is_en else sectors_pt
+
+            st.markdown("<br>", unsafe_allow_html=True)
+            for icon, label, key in sectors:
+                if st.button(f"{icon}  {label}", key=f"sector_{key}", use_container_width=True):
+                    st.session_state["demo_sector"] = key
+                    st.session_state["demo_sector_label"] = label
+                    # Auto-trigger first analysis
+                    sector_questions = {
+                        "insulin":     "Qual o mercado de insulina e biossimilares no Brasil? Quem são os maiores importadores, qual o tamanho do mercado em USD, e quais oportunidades de patentes vencem nos próximos 3 anos?" if not is_en else "What is the insulin and biosimilar market in Brazil? Who are the biggest importers, what is the market size in USD, and which patent opportunities expire in the next 3 years?",
+                        "oncology":    "Qual o mercado de oncológicos no Brasil? Quais NCMs cresceram mais, quem domina as importações e quais oportunidades existem para novos entrantes?" if not is_en else "What is the oncology market in Brazil? Which HS codes grew the most, who dominates imports, and what opportunities exist for new entrants?",
+                        "devices":     "Qual o mercado de dispositivos médicos no Brasil (capítulo 90)? Quais categorias crescem mais, quais os principais países fornecedores e como está a regulação ANVISA?" if not is_en else "What is the medical devices market in Brazil (chapter 90)? Which categories grow the most, what are the main supplier countries, and how is ANVISA regulation?",
+                        "antibiotics": "Qual o mercado de antibióticos e anti-infecciosos no Brasil? Quais os principais NCMs, maiores importadores e oportunidades de mercado?" if not is_en else "What is the antibiotics and anti-infectives market in Brazil? What are the main HS codes, biggest importers, and market opportunities?",
+                        "neuro":       "Qual o mercado de medicamentos neurológicos e psiquiátricos no Brasil? Quais moléculas têm maior volume de importação e quais patentes vencem em breve?" if not is_en else "What is the neurological and psychiatric drugs market in Brazil? Which molecules have the highest import volume and which patents expire soon?",
+                        "generics":    "Qual o mercado de genéricos e fitoterápicos no Brasil? Quais as maiores oportunidades para importadores e como está a concorrência por NCM?" if not is_en else "What is the generics and phytotherapics market in Brazil? What are the biggest opportunities for importers and how is competition by HS code?",
+                    }
+                    st.session_state["demo_auto_question"] = sector_questions.get(key, "")
+                    st.rerun()
+        st.stop()
+        return
+
+    # ── Auto-run first analysis when sector is selected ───────────────────
+    auto_q = st.session_state.pop("demo_auto_question", "")
+    if auto_q and demo_count == 0 and not demo_history:
+        with st.spinner("🎓 PHD Intel.AI analisando..." if not is_en else "🎓 PHD Intel.AI analyzing..."):
+            answer = _call_demo_ai(auto_q, [], is_en)
+        if answer:
+            demo_history.append({"q": auto_q, "a": answer})
+            st.session_state["demo_history"] = demo_history
+            st.session_state["demo_count"]   = 1
+        st.rerun()
+
+    # ── Avatar header ─────────────────────────────────────────────────────
+    sector_label = st.session_state.get("demo_sector_label", "")
+    remaining = max(0, DEMO_MAX_QUESTIONS - demo_count)
     st.markdown(f"""
-    <div style="text-align:center; margin-bottom:1.5rem;">
-      <span style="color:#4DB6AC; font-weight:700; font-size:1.2rem;">PharmaIntel AI</span><br>
-      <span class="demo-counter">{header_sub}</span>
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem;">
+      <div style="display:flex; align-items:center; gap:0.75rem;">
+        <div style="width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg,#00897B,#4DB6AC);
+             display:flex; align-items:center; justify-content:center; font-size:1.2rem;">🎓</div>
+        <div>
+          <div style="color:#4DB6AC; font-weight:700; font-size:0.95rem;">PHD Intel.AI</div>
+          <div style="color:#8899AA; font-size:0.72rem;">{sector_label}</div>
+        </div>
+      </div>
+      <div style="background:#0D2B45; border:1px solid #1E3A5F; border-radius:8px; padding:0.3rem 0.75rem; font-size:0.75rem; color:#8899AA;">
+        {'⚡ ' + str(remaining) + ' question' + ('s' if remaining != 1 else '') + ' remaining' if is_en else '⚡ ' + str(remaining) + ' pergunta' + ('s' if remaining != 1 else '') + ' restante' + ('s' if remaining != 1 else '')}
+      </div>
+    </div>
+    <div style="background:#0D2B45; border:1px solid #1E3A5F; border-radius:8px; padding:0.5rem 1rem; margin-bottom:1rem; font-size:0.75rem; color:#8899AA;">
+      📊 {'Demo mode — AI trained knowledge. Full platform: real government data updated daily.' if is_en else 'Modo demo — conhecimento treinado da IA. Plataforma completa: dados governamentais reais atualizados diariamente.'}
     </div>
     """, unsafe_allow_html=True)
 
-    # Suggestions (only on first visit)
-    if demo_count == 0:
-        suggestions = [
-            "Qual o mercado de insulina no Brasil? Quem importa mais?",
-            "Quais biossimilares têm patente vencendo no Brasil nos próximos 3 anos?",
-            "Como entrar no mercado farmacêutico brasileiro vindo da China?",
-            "Quais NCMs de oncológicos cresceram mais em 2024?",
-        ] if not is_en else [
-            "What is the insulin import market in Brazil? Who dominates?",
-            "Which biosimilars have expiring patents in Brazil in the next 3 years?",
-            "How can a Chinese company enter the Brazilian pharma market?",
-            "Which oncology HS codes grew the most in 2024?",
-        ]
-        intro = "Ask anything about the Brazilian pharma market — get a CEO-level strategic answer." if is_en else "Pergunte qualquer coisa sobre o mercado farmacêutico — receba uma resposta estratégica nível CEO."
-        disclaimer = ("📊 <b>Demo mode:</b> responses are based on AI trained knowledge — accurate but may not reflect the latest market data. "
-                      "The full platform uses <b>secure government and private data sources</b>, updated daily."
-                      if is_en else
-                      "📊 <b>Modo demo:</b> as respostas são baseadas no conhecimento treinado da IA — precisas, mas podem não refletir os dados mais recentes. "
-                      "A plataforma completa utiliza <b>dados seguros de fontes governamentais e privadas</b>, atualizados diariamente.")
-        st.markdown(f"""
-        <div style="background:#112240; border:1px solid #1E3A5F; border-radius:12px; padding:1.25rem 1.5rem; margin-bottom:1rem;">
-          <p style="color:#4DB6AC; font-weight:600; font-size:0.82rem; letter-spacing:1px; margin:0 0 0.4rem;">
-            {'PHARMA INTELLIGENCE AI — CEO STRATEGIC ADVISOR' if is_en else 'PHARMA INTELLIGENCE AI — CONSELHEIRO ESTRATÉGICO CEO'}
-          </p>
-          <p style="color:#B0BEC5; font-size:0.85rem; margin:0 0 0.75rem;">{intro}</p>
-          <p style="color:#8899AA; font-size:0.75rem; margin:0 0 0.3rem;">{'Try:' if is_en else 'Experimente:'}</p>
-          {''.join(f'<div style="color:#4DB6AC; font-size:0.78rem; padding:0.1rem 0;">→ {s}</div>' for s in suggestions)}
-        </div>
-        <div style="background:#0D2B45; border:1px solid #1E3A5F; border-radius:8px; padding:0.6rem 1rem; margin-bottom:1.25rem; font-size:0.78rem; color:#8899AA; line-height:1.5;">
-          {disclaimer}
-        </div>
-        """, unsafe_allow_html=True)
-
     # Show conversation history
     for turn in demo_history:
-        st.markdown(f'<div class="demo-bubble-user">{turn["q"]}</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="demo-bubble-ai">{turn["a"]}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="demo-bubble-user">🔍 {turn["q"]}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="demo-bubble-ai"><b>🎓 PHD Intel.AI</b><br><br>{turn["a"]}</div>', unsafe_allow_html=True)
 
     # Input form or upgrade wall
     if not locked:
-        q_placeholder = "Type your strategic question..." if is_en else "Digite sua pergunta estratégica..."
-        send_label    = "Ask the AI" if is_en else "Perguntar para a IA"
-        with st.form("demo_form"):
-            question  = st.text_area("", placeholder=q_placeholder, height=90, label_visibility="collapsed")
-            submitted = st.form_submit_button(send_label, use_container_width=True, type="primary")
+        q_placeholder = "Ask a follow-up question about this sector..." if is_en else "Faça uma pergunta de acompanhamento sobre este setor..."
+        send_label    = "Ask PHD Intel.AI →" if is_en else "Perguntar ao PHD Intel.AI →"
 
+        # Follow-up suggestions
+        followup_suggestions = {
+            "insulin":     ["Qual o preço médio nas licitações públicas?", "Quais biossimilares podem entrar em 2026?", "Como registrar insulina na ANVISA?"],
+            "oncology":    ["Quais NCMs de oncológicos cresceram mais?", "Qual o custo de importação médio?", "Há oportunidades de biossimilares oncológicos?"],
+            "devices":     ["Quais dispositivos têm maior crescimento?", "Como é a classificação de risco ANVISA?", "Quais países fornecem mais?"],
+            "antibiotics": ["Quais antibióticos têm maior volume?", "Como está a dependência de IFAs da China?", "Quais genéricos têm oportunidade?"],
+            "neuro":       ["Quais moléculas neurológicas crescem mais?", "Há oportunidades de genéricos em 2026?", "Como é a regulação para psicotrópicos?"],
+            "generics":    ["Quais genéricos têm maior margem?", "Como competir com produtos chineses?", "Quais NCMs têm menor concorrência?"],
+        }
+        suggestions = followup_suggestions.get(demo_sector, [])
+        if suggestions and demo_count == 1:
+            st.markdown(f"<p style='color:#8899AA; font-size:0.78rem; margin-bottom:0.4rem;'>{'Continue exploring:' if is_en else 'Continue explorando:'}</p>", unsafe_allow_html=True)
+            cols = st.columns(len(suggestions))
+            for i, sug in enumerate(suggestions):
+                with cols[i]:
+                    if st.button(sug, key=f"sug_{i}", use_container_width=True):
+                        st.session_state["demo_quick_q"] = sug
+                        st.rerun()
+
+        # Handle quick question click
+        quick_q = st.session_state.pop("demo_quick_q", "")
+        if quick_q:
+            with st.spinner("🎓 PHD Intel.AI analisando..." if not is_en else "🎓 PHD Intel.AI analyzing..."):
+                history_msgs = []
+                for turn in demo_history:
+                    history_msgs.append({"role": "user", "content": turn["q"]})
+                    history_msgs.append({"role": "assistant", "content": turn["a"]})
+                answer = _call_demo_ai(quick_q, history_msgs, is_en)
+            if answer:
+                demo_history.append({"q": quick_q, "a": answer})
+                st.session_state["demo_history"] = demo_history
+                st.session_state["demo_count"]   = demo_count + 1
+            st.rerun()
+
+        with st.form("demo_form"):
+            question = st.text_area("question", placeholder=q_placeholder, height=80, label_visibility="collapsed")
+            submitted = st.form_submit_button(send_label, use_container_width=True, type="primary")
             if submitted and question.strip():
-                spinner_msg = "Analyzing the Brazilian pharma market..." if is_en else "Analisando o mercado farmacêutico brasileiro..."
-                with st.spinner(spinner_msg):
+                with st.spinner("🎓 PHD Intel.AI analisando..." if not is_en else "🎓 PHD Intel.AI analyzing..."):
                     history_msgs = []
                     for turn in demo_history:
-                        history_msgs.append({"role": "user",      "content": turn["q"]})
-                        history_msgs.append({"role": "assistant",  "content": turn["a"]})
+                        history_msgs.append({"role": "user", "content": turn["q"]})
+                        history_msgs.append({"role": "assistant", "content": turn["a"]})
                     answer = _call_demo_ai(question.strip(), history_msgs, is_en)
-
                 if not answer:
-                    err = "Unable to process now. Contact: Business@globalhealthcareaccess.com" if is_en else "Não foi possível processar. Contato: Business@globalhealthcareaccess.com"
-                    st.error(err)
+                    st.error("Unable to process. Contact: Business@globalhealthcareaccess.com" if is_en else "Não foi possível processar. Contato: Business@globalhealthcareaccess.com")
                 else:
                     demo_history.append({"q": question.strip(), "a": answer})
                     st.session_state["demo_history"] = demo_history
