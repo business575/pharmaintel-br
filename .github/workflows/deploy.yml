@@ -1,0 +1,50 @@
+name: Deploy PharmaIntel BR
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Check imports
+        run: |
+          python -c "import streamlit, plotly, pandas, numpy; print('✅ Imports OK')"
+
+      - name: Lint app.py
+        run: python -m py_compile app.py && echo "✅ app.py syntax OK"
+
+      - name: Lint src modules
+        run: |
+          python -m py_compile src/integrations/comex_stat.py && echo "✅ comex_stat OK"
+          python -m py_compile src/integrations/anvisa.py     && echo "✅ anvisa OK"
+          python -m py_compile src/utils/etl_pipeline.py      && echo "✅ etl_pipeline OK"
+          python -m py_compile src/agents/pharma_agent.py     && echo "✅ pharma_agent OK"
+
+  # O deploy real acontece automaticamente pelo Streamlit Cloud
+  # quando detecta push no branch main conectado ao repositório.
+  # Este job apenas confirma que o código está pronto para deploy.
+  notify:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    steps:
+      - name: Deploy status
+        run: |
+          echo "✅ Todos os testes passaram"
+          echo "🚀 Streamlit Cloud fará deploy automaticamente"
+          echo "   URL: https://share.streamlit.io"
