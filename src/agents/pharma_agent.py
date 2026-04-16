@@ -1696,10 +1696,10 @@ class PharmaAgent:
                             text=f"⏳ **Limite temporário atingido.**\n\nAguarde **{wait_str}** e tente novamente.",
                             error=err_str,
                         )
-                    return AgentResponse(text=f"Erro ao conectar ao agente IA: {err_str[:300]}", error=err_str)
+                    return self._fallback(message)
 
             if resp is None:
-                return AgentResponse(text="Erro ao conectar ao agente IA.", error="no response")
+                return self._fallback(message)
 
             tokens_input_total  += getattr(resp, "_input_tokens", 0) or 0
             tokens_output_total += getattr(resp, "_output_tokens", 0) or 0
@@ -1748,13 +1748,65 @@ class PharmaAgent:
         self._history.clear()
 
     def _fallback(self, message: str) -> AgentResponse:
+        """Fallback usando dados reais via ToolExecutor — responde sem precisar de API."""
+        msg = message.lower()
+        try:
+            # Tenta responder com dados reais das ferramentas
+            if any(w in msg for w in ["tendência", "tendencia", "mensal", "monthly", "trend"]):
+                data = self._executor.execute("get_monthly_trend", {})
+                return AgentResponse(
+                    text=f"📊 **Tendência Mensal das Importações**\n\n{data}\n\n*Dados: Comex Stat/MDIC {self.year}*",
+                )
+            if any(w in msg for w in ["visão geral", "overview", "mercado", "market", "resumo", "kpi"]):
+                data = self._executor.execute("get_market_overview", {})
+                return AgentResponse(
+                    text=f"📊 **Visão Geral do Mercado Farmacêutico {self.year}**\n\n{data}\n\n*Dados: Comex Stat/MDIC*",
+                )
+            if any(w in msg for w in ["ncm", "produto", "product", "top ncm", "categoria"]):
+                data = self._executor.execute("get_top_ncm", {"top_n": 10})
+                return AgentResponse(
+                    text=f"📊 **Top NCMs por Importação {self.year}**\n\n{data}\n\n*Dados: Comex Stat/MDIC*",
+                )
+            if any(w in msg for w in ["país", "pais", "country", "origem", "fornecedor"]):
+                data = self._executor.execute("get_top_countries", {"top_n": 10})
+                return AgentResponse(
+                    text=f"📊 **Top Países de Origem {self.year}**\n\n{data}\n\n*Dados: Comex Stat/MDIC*",
+                )
+            if any(w in msg for w in ["empresa", "importador", "company", "compan"]):
+                data = self._executor.execute("get_top_companies", {"top_n": 10})
+                return AgentResponse(
+                    text=f"📊 **Top Empresas Importadoras {self.year}**\n\n{data}\n\n*Dados: Comex Stat/MDIC*",
+                )
+            if any(w in msg for w in ["anvisa", "registro", "regulat"]):
+                data = self._executor.execute("get_anvisa_alerts", {})
+                return AgentResponse(
+                    text=f"📊 **Status Regulatório ANVISA**\n\n{data}\n\n*Dados: ANVISA*",
+                )
+        except Exception:
+            pass
+
+        # Resposta genérica com dados do mercado
+        try:
+            overview = json.loads(self._executor.execute("get_market_overview", {}))
+            return AgentResponse(
+                text=(
+                    f"📊 **Mercado Farmacêutico Brasileiro {self.year}**\n\n"
+                    f"Total importado: **{overview.get('total_fob_usd', 'N/D')}**\n"
+                    f"Operações: **{overview.get('total_operacoes', 'N/D')}**\n"
+                    f"NCMs distintos: **{overview.get('ncms_distintos', 'N/D')}**\n\n"
+                    f"*Para análise detalhada sobre '{message}', configure a chave GROQ_API_KEY em console.groq.com (gratuito).*"
+                ),
+            )
+        except Exception:
+            pass
+
         return AgentResponse(
             text=(
-                "**Agente IA indisponível**\n\n"
-                "Configure `OPENAI_API_KEY` no arquivo `.env` ou nas variáveis do Render.\n\n"
-                f"*Pergunta recebida:* {message}"
+                f"⚠️ **API temporariamente indisponível**\n\n"
+                f"Não foi possível processar: *{message}*\n\n"
+                "**Solução:** Acesse console.groq.com, gere uma nova chave gratuita e atualize `GROQ_API_KEY` no Railway."
             ),
-            error="OPENAI_API_KEY not configured",
+            error="all_apis_failed",
         )
 
 
