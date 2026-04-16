@@ -4071,7 +4071,41 @@ def _page_relatorio_estrategico(_year: int = 2025) -> None:
         except Exception:
             pass
 
-        # ── 4. Build context for AI ───────────────────────────────────────
+        # ── 4. BPS — preços reais de compras públicas ─────────────────────
+        bps_summary = {}
+        bps_preco_medio = 0.0
+        bps_preco_min   = 0.0
+        bps_preco_max   = 0.0
+        bps_total_compras = 0
+        bps_fabricantes = []
+        try:
+            from src.integrations.bps import get_price_summary
+            bps_summary = get_price_summary(molecule, ano=year_sel)
+            if not bps_summary.get("error") and bps_summary.get("total_compras", 0) > 0:
+                bps_preco_medio   = float(bps_summary.get("preco_medio", 0))
+                bps_preco_min     = float(bps_summary.get("preco_minimo", 0))
+                bps_preco_max     = float(bps_summary.get("preco_maximo", 0))
+                bps_total_compras = int(bps_summary.get("total_compras", 0))
+                bps_fabricantes   = bps_summary.get("top_fabricantes", [])
+        except Exception as e_bps:
+            logger.warning("BPS fetch failed: %s", e_bps)
+
+        # ── 5. PNCP — atas de registro de preços ──────────────────────────
+        pncp_data = {}
+        pncp_preco_medio = 0.0
+        pncp_n_atas = 0
+        try:
+            from src.integrations.pncp_fetcher import buscar_atas_por_produto
+            pncp_data = buscar_atas_por_produto(molecule, tam_pagina=10)
+            if isinstance(pncp_data, dict):
+                pncp_n_atas = pncp_data.get("totalRegistros", 0)
+                items = pncp_data.get("data", [])
+                precos = [float(i.get("valorUnitarioEstimado", 0)) for i in items if i.get("valorUnitarioEstimado")]
+                pncp_preco_medio = sum(precos) / len(precos) if precos else 0
+        except Exception as e_pncp:
+            logger.warning("PNCP fetch failed: %s", e_pncp)
+
+        # ── 6. Build context for AI ───────────────────────────────────────
         context = f"""
 MOLÉCULA/PRODUTO: {molecule}
 ANO BASE: {year_sel}
@@ -4095,6 +4129,17 @@ PREÇO DE VENDA ESTIMADO NO BRASIL (cálculo baseado no CIF real):
 REGISTROS ANVISA:
 - Registros ativos encontrados: {anvisa_count}
 - Amostras: {str(anvisa_sample[:2]) if anvisa_sample else 'Não disponível'}
+
+BPS — BANCO DE PREÇOS EM SAÚDE (Ministério da Saúde):
+- Total de compras públicas encontradas: {bps_total_compras}
+- Preço mínimo pago pelo governo: R$ {bps_preco_min:,.4f}/unidade
+- Preço médio pago pelo governo: R$ {bps_preco_medio:,.4f}/unidade
+- Preço máximo pago pelo governo: R$ {bps_preco_max:,.4f}/unidade
+- Principais fabricantes fornecedores: {', '.join(bps_fabricantes[:5]) if bps_fabricantes else 'Não disponível'}
+
+PNCP — ATAS DE REGISTRO DE PREÇOS (ComprasNet):
+- Total de atas encontradas: {pncp_n_atas}
+- Preço médio nas atas: R$ {pncp_preco_medio:,.4f}/unidade
 
 PATENTES:
 - Registros relacionados: {len(patent_info)}
