@@ -3949,48 +3949,75 @@ def _page_relatorio_estrategico(_year: int = 2025) -> None:
 
     molecule = molecule.strip()
 
-    # ── Extract molecule keyword from question if user typed a full question ──
-    _PHARMA_KEYWORDS = [
-        "enoxaparina","heparina","insulina","trastuzumabe","bevacizumabe","rituximabe",
-        "adalimumabe","infliximabe","etanercept","omeprazol","atorvastatina","metformina",
-        "amoxicilina","azitromicina","ciprofloxacino","paclitaxel","docetaxel","imatinibe",
-        "sunitinibe","erlotinibe","gefitinibe","pembrolizumabe","nivolumabe","atezolizumabe",
-        "tocilizumabe","dupilumabe","secuquinumabe","ustekinumabe","vedolizumabe",
-        "filgrastim","epoetina","darbepoetina","somatropina","interferona",
-        "vacina","vaccine","antibiotico","anticoagulante","biossimilar","biosimilar",
-    ]
-    mol_extracted = molecule
+    # ── Molecule → NCM/keyword mapping ───────────────────────────────────────
+    _MOL_NCM_MAP = {
+        "enoxaparina":    {"ncms": ["30021239"], "keywords": ["sangue", "heparin"]},
+        "heparina":       {"ncms": ["30021239", "30021229"], "keywords": ["heparin", "sangue"]},
+        "insulina":       {"ncms": ["30043100", "30043200"], "keywords": ["insulina"]},
+        "trastuzumabe":   {"ncms": ["30021520"], "keywords": ["trastuzumab"]},
+        "bevacizumabe":   {"ncms": ["30021520"], "keywords": ["bevacizumab"]},
+        "rituximabe":     {"ncms": ["30021520"], "keywords": ["rituximab"]},
+        "adalimumabe":    {"ncms": ["30021590"], "keywords": ["adalimumab"]},
+        "pembrolizumabe": {"ncms": ["30021590"], "keywords": ["pembrolizumab"]},
+        "nivolumabe":     {"ncms": ["30021590"], "keywords": ["nivolumab"]},
+        "filgrastim":     {"ncms": ["30021590"], "keywords": ["filgrastim"]},
+        "epoetina":       {"ncms": ["30021590"], "keywords": ["epoetina","eritropoetina"]},
+        "somatropina":    {"ncms": ["30043911"], "keywords": ["somatotropina","somatropina"]},
+        "paclitaxel":     {"ncms": ["30049059"], "keywords": ["paclitaxel"]},
+        "docetaxel":      {"ncms": ["30049059"], "keywords": ["docetaxel"]},
+        "imatinibe":      {"ncms": ["30049069"], "keywords": ["imatinib"]},
+        "omeprazol":      {"ncms": ["30049049"], "keywords": ["omeprazol"]},
+        "atorvastatina":  {"ncms": ["30049059"], "keywords": ["atorvastatin"]},
+        "metformina":     {"ncms": ["30049099"], "keywords": ["metformin"]},
+        "amoxicilina":    {"ncms": ["30041011"], "keywords": ["amoxicil"]},
+        "azitromicina":   {"ncms": ["30041099"], "keywords": ["azitromicin"]},
+        "ciprofloxacino": {"ncms": ["30049069"], "keywords": ["ciprofloxacin"]},
+    }
+
+    # Extract molecule from question if needed
+    import re as _re2
     mol_lower_check = molecule.lower()
-    if len(molecule.split()) > 3:  # looks like a question, not a molecule name
-        for kw in _PHARMA_KEYWORDS:
+    if len(molecule.split()) > 3:
+        for kw in _MOL_NCM_MAP:
             if kw in mol_lower_check:
-                mol_extracted = kw
+                molecule = kw
                 break
-        # also try to find NCM pattern
-        import re as _re2
         ncm_match = _re2.search(r'\b\d{4}[\.\s]?\d{2}[\.\s]?\d{2}\b', molecule)
         if ncm_match:
-            mol_extracted = ncm_match.group().replace(" ", ".")
-    molecule = mol_extracted
+            molecule = ncm_match.group().replace(" ", ".")
 
     with st.spinner("🎓 PHD Intel.AI gerando relatório estratégico completo..." if not is_en else "🎓 PHD Intel.AI generating full strategic report..."):
 
         # ── 1. Pull import data — try multiple years if 2026 is sparse ────
         df_imp, _ = load_or_demo_imports(year_sel)
-        if len(df_imp) < 100:  # 2026 may have less data, fallback to 2025
+        if len(df_imp) < 100:
             df_imp2, _ = load_or_demo_imports(2025)
             df_imp = pd.concat([df_imp, df_imp2], ignore_index=True)
         mol_lower = molecule.lower()
 
-        # Filter by NCM description or code — search each word separately
+        # Filter using NCM map first, then fallback to text search
+        mol_info = _MOL_NCM_MAP.get(mol_lower, {})
         mask = pd.Series([False] * len(df_imp))
-        for word in mol_lower.split():
-            if len(word) < 4:
-                continue
-            if "co_ncm" in df_imp.columns:
-                mask |= df_imp["co_ncm"].astype(str).str.contains(word.replace(".", ""), case=False, na=False)
-            if "ds_ncm" in df_imp.columns:
-                mask |= df_imp["ds_ncm"].str.lower().str.contains(word, na=False)
+
+        if mol_info.get("ncms"):
+            for ncm in mol_info["ncms"]:
+                mask |= df_imp["co_ncm"].astype(str).str.startswith(ncm[:6])
+
+        if mol_info.get("keywords"):
+            for kw in mol_info["keywords"]:
+                if "ds_ncm" in df_imp.columns:
+                    mask |= df_imp["ds_ncm"].str.lower().str.contains(kw, na=False)
+
+        # Generic text search fallback
+        if not mask.any():
+            for word in mol_lower.split():
+                if len(word) < 4:
+                    continue
+                if "co_ncm" in df_imp.columns:
+                    mask |= df_imp["co_ncm"].astype(str).str.contains(word.replace(".", ""), case=False, na=False)
+                if "ds_ncm" in df_imp.columns:
+                    mask |= df_imp["ds_ncm"].str.lower().str.contains(word, na=False)
+
         mol_df = df_imp[mask]
 
         total_fob    = float(mol_df["vl_fob"].sum()) if "vl_fob" in mol_df.columns and not mol_df.empty else 0
