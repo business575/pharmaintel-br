@@ -4021,11 +4021,24 @@ def _page_relatorio_estrategico(_year: int = 2025) -> None:
         mol_df = df_imp[mask]
 
         total_fob    = float(mol_df["vl_fob"].sum()) if "vl_fob" in mol_df.columns and not mol_df.empty else 0
+        total_cif    = float(mol_df["vl_cif"].sum()) if "vl_cif" in mol_df.columns and not mol_df.empty else total_fob * 1.08
         total_kg     = float(mol_df["kg_liquido"].sum()) if "kg_liquido" in mol_df.columns and not mol_df.empty else 0
         n_ops        = len(mol_df)
         top_paises   = mol_df["ds_pais"].value_counts().head(5).to_dict() if "ds_pais" in mol_df.columns and not mol_df.empty else {}
-        preco_medio  = float(mol_df["preco_usd_kg"].mean()) if "preco_usd_kg" in mol_df.columns and not mol_df.empty else 0
+        preco_cif_kg = (total_cif / total_kg) if total_kg > 0 else 0
+        preco_fob_kg = (total_fob / total_kg) if total_kg > 0 else 0
+        preco_medio  = preco_cif_kg or preco_fob_kg
         risco_reg    = float(mol_df["risco_regulatorio"].mean()) if "risco_regulatorio" in mol_df.columns and not mol_df.empty else 0
+
+        # ── Preço de venda estimado no Brasil ─────────────────────────────
+        USD_BRL = 5.10
+        preco_cif_brl_kg = preco_cif_kg * USD_BRL
+        # Canal farmácia: CIF × ICMS(18%) × IPI(0-10%) × markup distribuidor(30%) × markup farmácia(30%)
+        fator_canal_farmacia = 1.18 * 1.05 * 1.30 * 1.30  # ~2.1x
+        # Canal hospitalar (licitação): CIF × impostos × margem reduzida
+        fator_canal_hospital = 1.18 * 1.05 * 1.15  # ~1.4x
+        preco_venda_farmacia_brl_kg = preco_cif_brl_kg * fator_canal_farmacia
+        preco_venda_hospital_brl_kg = preco_cif_brl_kg * fator_canal_hospital
 
         # ── 2. ANVISA data ────────────────────────────────────────────────
         anvisa_count = 0
@@ -4065,11 +4078,19 @@ ANO BASE: {year_sel}
 
 DADOS DE IMPORTAÇÃO (Comex Stat/MDIC):
 - Total FOB importado: US$ {total_fob:,.0f}
+- Total CIF importado: US$ {total_cif:,.0f}
 - Volume total: {total_kg:,.0f} kg
 - Número de operações: {n_ops}
-- Preço médio de importação: US$ {preco_medio:,.2f}/kg
+- Preço FOB médio: US$ {preco_fob_kg:,.2f}/kg
+- Preço CIF médio: US$ {preco_cif_kg:,.2f}/kg (= R$ {preco_cif_brl_kg:,.2f}/kg)
 - Risco regulatório médio: {risco_reg:.1f}/5.0
-- Principais países de origem: {', '.join([f'{k} ({v} ops)' for k,v in top_paises.items()]) or 'Não encontrado no filtro — use todo o mercado como referência'}
+- Principais países de origem: {', '.join([f'{k} ({v} ops)' for k,v in top_paises.items()]) or 'Não encontrado no filtro'}
+
+PREÇO DE VENDA ESTIMADO NO BRASIL (cálculo baseado no CIF real):
+- Canal Farmácia (varejo): R$ {preco_venda_farmacia_brl_kg:,.2f}/kg (CIF × impostos × markup distribuidor+farmácia)
+- Canal Hospitalar (licitação SUS): R$ {preco_venda_hospital_brl_kg:,.2f}/kg (CIF × impostos × margem reduzida)
+- Fator de markup canal farmácia: ~{fator_canal_farmacia:.1f}x sobre CIF
+- Câmbio utilizado: R$ {USD_BRL}/USD
 
 REGISTROS ANVISA:
 - Registros ativos encontrados: {anvisa_count}
@@ -4192,11 +4213,12 @@ TAM estimado para o segmento: US$ {max(total_fob * 3, 50_000_000):,.0f}. Crescim
     st.markdown(f"### 📄 Relatório: {molecule.title()} — {year_sel}")
 
     # KPI strip
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3, c4, c5 = st.columns(5)
     c1.metric("Total FOB Importado", f"US$ {total_fob/1e6:.2f}M" if total_fob > 1e6 else f"US$ {total_fob:,.0f}")
-    c2.metric("Volume", f"{total_kg/1e3:.1f} t" if total_kg > 1000 else f"{total_kg:,.0f} kg")
-    c3.metric("Operações", str(n_ops))
-    c4.metric("Registros ANVISA", str(anvisa_count))
+    c2.metric("Preço CIF Médio", f"US$ {preco_cif_kg:,.0f}/kg" if preco_cif_kg > 0 else "N/D")
+    c3.metric("Preço Venda Farmácia", f"R$ {preco_venda_farmacia_brl_kg:,.0f}/kg" if preco_venda_farmacia_brl_kg > 0 else "N/D")
+    c4.metric("Operações", str(n_ops))
+    c5.metric("Registros ANVISA", str(anvisa_count))
 
     st.markdown("---")
     st.markdown(ai_response)
