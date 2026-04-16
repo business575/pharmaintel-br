@@ -4137,27 +4137,111 @@ TAM estimado para o segmento: US$ {max(total_fob * 3, 50_000_000):,.0f}. Crescim
     st.markdown("---")
     st.markdown(ai_response)
 
-    # ── Download ──────────────────────────────────────────────────────────────
+    # ── Download PDF ──────────────────────────────────────────────────────────
     st.markdown("---")
-    report_text = f"""RELATÓRIO ESTRATÉGICO — PHD Intel.AI
-PharmaIntel BR | pharmaceuticaai.com
-Molécula: {molecule} | Ano: {year_sel}
-Gerado em: {pd.Timestamp.now().strftime('%d/%m/%Y %H:%M')}
-{'='*60}
+    try:
+        from fpdf import FPDF
+        import io, re as _re
 
-{ai_response}
+        class _PDF(FPDF):
+            def header(self):
+                self.set_font("Helvetica", "B", 11)
+                self.set_text_color(0, 137, 123)
+                self.cell(0, 8, "PharmaIntel BR — pharmaceuticaai.com", align="L")
+                self.set_font("Helvetica", "", 8)
+                self.set_text_color(136, 153, 170)
+                self.cell(0, 8, f"PHD Intel.AI  |  {pd.Timestamp.now().strftime('%d/%m/%Y %H:%M')}", align="R")
+                self.ln(4)
+                self.set_draw_color(0, 137, 123)
+                self.line(10, self.get_y(), 200, self.get_y())
+                self.ln(4)
 
-{'='*60}
-Dados: Comex Stat (MDIC), ANVISA, INPI
-© PharmaIntel BR — Todos os direitos reservados
-"""
-    st.download_button(
-        label="⬇️ Baixar Relatório (.txt)" if not is_en else "⬇️ Download Report (.txt)",
-        data=report_text.encode("utf-8"),
-        file_name=f"relatorio_{molecule.replace(' ', '_')}_{year_sel}.txt",
-        mime="text/plain",
-        use_container_width=True,
-    )
+            def footer(self):
+                self.set_y(-12)
+                self.set_font("Helvetica", "I", 7)
+                self.set_text_color(136, 153, 170)
+                self.cell(0, 6, f"Dados: Comex Stat/MDIC, ANVISA, INPI  |  Pagina {self.page_no()}  |  © PharmaIntel BR", align="C")
+
+        pdf = _PDF()
+        pdf.set_auto_page_break(auto=True, margin=15)
+        pdf.add_page()
+
+        # Title
+        pdf.set_font("Helvetica", "B", 16)
+        pdf.set_text_color(0, 137, 123)
+        pdf.cell(0, 10, f"Relatorio Estrategico — {molecule.title()}", ln=True)
+        pdf.set_font("Helvetica", "", 10)
+        pdf.set_text_color(136, 153, 170)
+        pdf.cell(0, 6, f"Ano base: {year_sel}  |  Gerado em: {pd.Timestamp.now().strftime('%d/%m/%Y %H:%M')}", ln=True)
+        pdf.ln(4)
+
+        # KPI strip
+        pdf.set_fill_color(17, 34, 64)
+        pdf.set_text_color(78, 182, 172)
+        pdf.set_font("Helvetica", "B", 9)
+        kpi_w = 45
+        for label, val in [
+            ("Total FOB", f"US$ {total_fob/1e6:.2f}M" if total_fob > 1e6 else f"US$ {total_fob:,.0f}"),
+            ("Volume", f"{total_kg/1e3:.1f} t" if total_kg > 1000 else f"{total_kg:,.0f} kg"),
+            ("Operacoes", str(n_ops)),
+            ("Registros ANVISA", str(anvisa_count)),
+        ]:
+            pdf.cell(kpi_w, 6, label, border=1, fill=True, align="C")
+        pdf.ln()
+        pdf.set_text_color(226, 234, 244)
+        pdf.set_font("Helvetica", "", 9)
+        for label, val in [
+            ("Total FOB", f"US$ {total_fob/1e6:.2f}M" if total_fob > 1e6 else f"US$ {total_fob:,.0f}"),
+            ("Volume", f"{total_kg/1e3:.1f} t" if total_kg > 1000 else f"{total_kg:,.0f} kg"),
+            ("Operacoes", str(n_ops)),
+            ("Registros ANVISA", str(anvisa_count)),
+        ]:
+            pdf.cell(kpi_w, 6, val, border=1, fill=True, align="C")
+        pdf.ln(8)
+
+        # Report body — parse markdown to PDF
+        pdf.set_text_color(226, 234, 244)
+        pdf.set_fill_color(10, 22, 40)
+        for line in ai_response.split("\n"):
+            clean = _re.sub(r"\*\*(.+?)\*\*", r"\1", line)  # strip bold markers
+            clean = _re.sub(r"\*(.+?)\*", r"\1", clean)
+            clean = clean.replace("✅", "[OK]").replace("⚠️", "[ATT]").replace("❌", "[NOK]")
+            clean = clean.encode("latin-1", "replace").decode("latin-1")
+            if clean.startswith("## ") or clean.startswith("# "):
+                pdf.set_font("Helvetica", "B", 12)
+                pdf.set_text_color(0, 137, 123)
+                pdf.multi_cell(0, 7, clean.lstrip("# ").strip())
+                pdf.set_text_color(226, 234, 244)
+            elif clean.startswith("**") or (_re.match(r"^\d+\.\s+\*\*", line)):
+                pdf.set_font("Helvetica", "B", 10)
+                pdf.multi_cell(0, 6, clean.strip())
+            elif clean.strip() == "" or clean.strip() == "---":
+                pdf.ln(3)
+            else:
+                pdf.set_font("Helvetica", "", 9)
+                pdf.multi_cell(0, 5, clean.strip())
+
+        pdf_bytes = bytes(pdf.output())
+
+        st.download_button(
+            label="⬇️ Baixar Relatório PDF" if not is_en else "⬇️ Download PDF Report",
+            data=pdf_bytes,
+            file_name=f"relatorio_estrategico_{molecule.replace(' ', '_')}_{year_sel}.pdf",
+            mime="application/pdf",
+            use_container_width=True,
+            type="primary",
+        )
+    except Exception as e_pdf:
+        logger.warning("PDF generation failed: %s", e_pdf)
+        # Fallback to text download
+        report_text = f"RELATORIO ESTRATEGICO — PHD Intel.AI\nPharmaIntel BR\nMolecula: {molecule} | Ano: {year_sel}\n{'='*60}\n\n{ai_response}\n\n{'='*60}\n© PharmaIntel BR"
+        st.download_button(
+            label="⬇️ Baixar Relatório (.txt)" if not is_en else "⬇️ Download Report (.txt)",
+            data=report_text.encode("utf-8"),
+            file_name=f"relatorio_{molecule.replace(' ', '_')}_{year_sel}.txt",
+            mime="text/plain",
+            use_container_width=True,
+        )
 
 
 # ===========================================================================
