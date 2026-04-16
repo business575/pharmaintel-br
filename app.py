@@ -4091,17 +4091,62 @@ def _page_relatorio_estrategico(_year: int = 2025) -> None:
             logger.warning("BPS fetch failed: %s", e_bps)
 
         # ── 5. PNCP — atas de registro de preços ──────────────────────────
-        pncp_data = {}
-        pncp_preco_medio = 0.0
-        pncp_n_atas = 0
+        # PNCP — busca atas vigentes com preço unitário real do item
+        pncp_n_atas       = 0
+        pncp_preco_medio  = 0.0
+        pncp_preco_min    = 0.0
+        pncp_preco_max    = 0.0
+        pncp_orgaos       = []
+        pncp_itens_sample = []
         try:
-            from src.integrations.pncp_fetcher import buscar_atas_por_produto
-            pncp_data = buscar_atas_por_produto(molecule, tam_pagina=10)
-            if isinstance(pncp_data, dict):
-                pncp_n_atas = pncp_data.get("totalRegistros", 0)
-                items = pncp_data.get("data", [])
-                precos = [float(i.get("valorUnitarioEstimado", 0)) for i in items if i.get("valorUnitarioEstimado")]
-                pncp_preco_medio = sum(precos) / len(precos) if precos else 0
+            from src.integrations.pncp_fetcher import buscar_atas_por_produto, buscar_itens_ata
+            from datetime import date as _date
+            hoje = str(_date.today())
+
+            atas_resp = buscar_atas_por_produto(molecule, tam_pagina=10)
+            atas = atas_resp.get("atas", [])
+            pncp_n_atas = atas_resp.get("total", 0)
+
+            # Filtra atas vigentes (encerramento >= hoje)
+            atas_vigentes = [
+                a for a in atas
+                if not a.get("data_encerramento") or a.get("data_encerramento", "") >= hoje
+            ]
+
+            # Busca itens de cada ata vigente (max 5 atas para não travar)
+            todos_precos = []
+            for ata in atas_vigentes[:5]:
+                numero = ata.get("numero", "")
+                if not numero:
+                    continue
+                try:
+                    itens_resp = buscar_itens_ata(numero)
+                    for item in itens_resp.get("itens", []):
+                        desc = str(item.get("descricao", "")).lower()
+                        if molecule.lower() in desc or any(
+                            kw in desc for kw in mol_info.get("keywords", [])
+                        ):
+                            preco = float(item.get("preco_unitario", 0) or 0)
+                            if preco > 0:
+                                todos_precos.append(preco)
+                                pncp_itens_sample.append({
+                                    "orgao": ata.get("orgao", ""),
+                                    "uf": ata.get("uf", ""),
+                                    "descricao": item.get("descricao", ""),
+                                    "unidade": item.get("unidade", ""),
+                                    "preco": preco,
+                                    "marca": item.get("marca", ""),
+                                    "vigencia": ata.get("data_encerramento", ""),
+                                })
+                        pncp_orgaos.append(ata.get("orgao", ""))
+                except Exception:
+                    continue
+
+            if todos_precos:
+                pncp_preco_medio = sum(todos_precos) / len(todos_precos)
+                pncp_preco_min   = min(todos_precos)
+                pncp_preco_max   = max(todos_precos)
+
         except Exception as e_pncp:
             logger.warning("PNCP fetch failed: %s", e_pncp)
 
@@ -4139,7 +4184,11 @@ BPS — BANCO DE PREÇOS EM SAÚDE (Ministério da Saúde):
 
 PNCP — ATAS DE REGISTRO DE PREÇOS (ComprasNet):
 - Total de atas encontradas: {pncp_n_atas}
-- Preço médio nas atas: R$ {pncp_preco_medio:,.4f}/unidade
+- Preço mínimo nas atas vigentes: R$ {pncp_preco_min:,.4f}/unidade
+- Preço médio nas atas vigentes: R$ {pncp_preco_medio:,.4f}/unidade
+- Preço máximo nas atas vigentes: R$ {pncp_preco_max:,.4f}/unidade
+- Órgãos compradores: {', '.join(list(set(pncp_orgaos))[:4]) if pncp_orgaos else 'Não disponível'}
+- Amostra de itens: {str(pncp_itens_sample[:3]) if pncp_itens_sample else 'Sem dados de itens'}
 
 PATENTES:
 - Registros relacionados: {len(patent_info)}
@@ -4233,7 +4282,9 @@ Registros ANVISA identificados: {anvisa_count}. Risco regulatório médio: {risc
 Registros de patentes relacionados: {len(patent_info)}. Consultar INPI (www.inpi.gov.br) e Espacenet para status atualizado de proteção intelectual e janelas de oportunidade para genéricos/biossimilares.
 
 **7. PREÇO DE VENDA NO BRASIL**
-Estimativa: markup típico de 3-8x sobre preço CIF para produtos éticos no Brasil. PMC estimado conforme tabela CMED/ANVISA.
+{'**Preço médio nas atas ComprasNet (governo):** R$ ' + f'{pncp_preco_medio:,.4f}/unidade (min R$ {pncp_preco_min:,.4f} | max R$ {pncp_preco_max:,.4f})' if pncp_preco_medio > 0 else 'Dados ComprasNet não disponíveis para este produto.'}
+{'**Preço BPS (compras públicas):** R$ ' + f'{bps_preco_medio:,.4f}/unidade' if bps_preco_medio > 0 else ''}
+Canal farmácia estimado: R$ {preco_venda_farmacia_brl_kg:,.2f}/kg | Canal hospitalar estimado: R$ {preco_venda_hospital_brl_kg:,.2f}/kg
 
 **8. POTENCIAL DE MERCADO**
 TAM estimado para o segmento: US$ {max(total_fob * 3, 50_000_000):,.0f}. Crescimento projetado 2025-2027: 10-15% a.a.
@@ -4258,15 +4309,26 @@ TAM estimado para o segmento: US$ {max(total_fob * 3, 50_000_000):,.0f}. Crescim
     st.markdown(f"### 📄 Relatório: {molecule.title()} — {year_sel}")
 
     # KPI strip
-    c1, c2, c3, c4, c5 = st.columns(5)
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
     c1.metric("Total FOB Importado", f"US$ {total_fob/1e6:.2f}M" if total_fob > 1e6 else f"US$ {total_fob:,.0f}")
     c2.metric("Preço CIF Médio", f"US$ {preco_cif_kg:,.0f}/kg" if preco_cif_kg > 0 else "N/D")
     c3.metric("Preço Venda Farmácia", f"R$ {preco_venda_farmacia_brl_kg:,.0f}/kg" if preco_venda_farmacia_brl_kg > 0 else "N/D")
-    c4.metric("Operações", str(n_ops))
-    c5.metric("Registros ANVISA", str(anvisa_count))
+    c4.metric("Preço Médio ComprasNet", f"R$ {pncp_preco_medio:,.4f}/un" if pncp_preco_medio > 0 else "N/D")
+    c5.metric("Operações", str(n_ops))
+    c6.metric("Registros ANVISA", str(anvisa_count))
 
     st.markdown("---")
     st.markdown(ai_response)
+
+    # ── PNCP Atas sample table ────────────────────────────────────────────────
+    if pncp_itens_sample:
+        st.markdown("---")
+        st.markdown("#### 🏛️ Preços Reais — Atas ComprasNet (PNCP)")
+        st.caption(f"Preço médio: **R$ {pncp_preco_medio:,.4f}** | Mín: R$ {pncp_preco_min:,.4f} | Máx: R$ {pncp_preco_max:,.4f}")
+        _df_pncp = pd.DataFrame(pncp_itens_sample)[["orgao", "uf", "descricao", "unidade", "preco", "marca", "vigencia"]]
+        _df_pncp.columns = ["Órgão", "UF", "Descrição", "Unidade", "Preço Unit. (R$)", "Marca", "Vigência"]
+        _df_pncp["Preço Unit. (R$)"] = _df_pncp["Preço Unit. (R$)"].apply(lambda x: f"R$ {x:,.4f}")
+        st.dataframe(_df_pncp, use_container_width=True, hide_index=True)
 
     # ── Download PDF ──────────────────────────────────────────────────────────
     st.markdown("---")
