@@ -3949,18 +3949,48 @@ def _page_relatorio_estrategico(_year: int = 2025) -> None:
 
     molecule = molecule.strip()
 
+    # ── Extract molecule keyword from question if user typed a full question ──
+    _PHARMA_KEYWORDS = [
+        "enoxaparina","heparina","insulina","trastuzumabe","bevacizumabe","rituximabe",
+        "adalimumabe","infliximabe","etanercept","omeprazol","atorvastatina","metformina",
+        "amoxicilina","azitromicina","ciprofloxacino","paclitaxel","docetaxel","imatinibe",
+        "sunitinibe","erlotinibe","gefitinibe","pembrolizumabe","nivolumabe","atezolizumabe",
+        "tocilizumabe","dupilumabe","secuquinumabe","ustekinumabe","vedolizumabe",
+        "filgrastim","epoetina","darbepoetina","somatropina","interferona",
+        "vacina","vaccine","antibiotico","anticoagulante","biossimilar","biosimilar",
+    ]
+    mol_extracted = molecule
+    mol_lower_check = molecule.lower()
+    if len(molecule.split()) > 3:  # looks like a question, not a molecule name
+        for kw in _PHARMA_KEYWORDS:
+            if kw in mol_lower_check:
+                mol_extracted = kw
+                break
+        # also try to find NCM pattern
+        import re as _re2
+        ncm_match = _re2.search(r'\b\d{4}[\.\s]?\d{2}[\.\s]?\d{2}\b', molecule)
+        if ncm_match:
+            mol_extracted = ncm_match.group().replace(" ", ".")
+    molecule = mol_extracted
+
     with st.spinner("🎓 PHD Intel.AI gerando relatório estratégico completo..." if not is_en else "🎓 PHD Intel.AI generating full strategic report..."):
 
-        # ── 1. Pull import data ───────────────────────────────────────────
+        # ── 1. Pull import data — try multiple years if 2026 is sparse ────
         df_imp, _ = load_or_demo_imports(year_sel)
+        if len(df_imp) < 100:  # 2026 may have less data, fallback to 2025
+            df_imp2, _ = load_or_demo_imports(2025)
+            df_imp = pd.concat([df_imp, df_imp2], ignore_index=True)
         mol_lower = molecule.lower()
 
-        # Filter by NCM description or code
+        # Filter by NCM description or code — search each word separately
         mask = pd.Series([False] * len(df_imp))
-        if "co_ncm" in df_imp.columns:
-            mask |= df_imp["co_ncm"].astype(str).str.contains(molecule.replace(".", "").replace(" ", ""), case=False, na=False)
-        if "ds_ncm" in df_imp.columns:
-            mask |= df_imp["ds_ncm"].str.lower().str.contains(mol_lower, na=False)
+        for word in mol_lower.split():
+            if len(word) < 4:
+                continue
+            if "co_ncm" in df_imp.columns:
+                mask |= df_imp["co_ncm"].astype(str).str.contains(word.replace(".", ""), case=False, na=False)
+            if "ds_ncm" in df_imp.columns:
+                mask |= df_imp["ds_ncm"].str.lower().str.contains(word, na=False)
         mol_df = df_imp[mask]
 
         total_fob    = float(mol_df["vl_fob"].sum()) if "vl_fob" in mol_df.columns and not mol_df.empty else 0
