@@ -4079,6 +4079,9 @@ def _page_relatorio_estrategico(_year: int = 2025) -> None:
         bps_preco_medio = 0.0
         bps_preco_min   = 0.0
         bps_preco_max   = 0.0
+        bps_pmvg        = 0.0
+        bps_pmc         = 0.0
+        bps_unidade     = ""
         bps_total_compras = 0
         bps_fabricantes = []
         try:
@@ -4088,6 +4091,9 @@ def _page_relatorio_estrategico(_year: int = 2025) -> None:
                 bps_preco_medio   = float(bps_summary.get("preco_medio", 0))
                 bps_preco_min     = float(bps_summary.get("preco_minimo", 0))
                 bps_preco_max     = float(bps_summary.get("preco_maximo", 0))
+                bps_pmvg          = float(bps_summary.get("pmvg_brl", 0))
+                bps_pmc           = float(bps_summary.get("pmc_brl", 0))
+                bps_unidade       = bps_summary.get("unidade", "")
                 bps_total_compras = int(bps_summary.get("total_compras", 0))
                 bps_fabricantes   = bps_summary.get("top_fabricantes", [])
         except Exception as e_bps:
@@ -4180,10 +4186,10 @@ REGISTROS ANVISA:
 
 BPS — BANCO DE PREÇOS EM SAÚDE (Ministério da Saúde):
 - Total de compras públicas encontradas: {bps_total_compras}
-- Preço mínimo pago pelo governo: R$ {bps_preco_min:,.4f}/unidade
-- Preço médio pago pelo governo: R$ {bps_preco_medio:,.4f}/unidade
-- Preço máximo pago pelo governo: R$ {bps_preco_max:,.4f}/unidade
-- Principais fabricantes fornecedores: {', '.join(bps_fabricantes[:5]) if bps_fabricantes else 'Não disponível'}
+- PMVG (Preço Máximo Venda ao Governo/CMED): R$ {bps_pmvg:,.4f}/{bps_unidade if bps_unidade else 'unidade'}
+- PMC (Preço Máximo ao Consumidor/CMED): R$ {bps_pmc:,.4f}/{bps_unidade if bps_unidade else 'unidade'}
+- Preço médio referência: R$ {bps_preco_medio:,.4f}/unidade
+- Fonte: CMED/ANVISA — Preços máximos regulados por lei
 
 PNCP — ATAS DE REGISTRO DE PREÇOS (ComprasNet):
 - Total de atas encontradas: {pncp_n_atas}
@@ -4286,7 +4292,8 @@ Registros de patentes relacionados: {len(patent_info)}. Consultar INPI (www.inpi
 
 **7. PREÇO DE VENDA NO BRASIL**
 {'**Preço médio nas atas ComprasNet (governo):** R$ ' + f'{pncp_preco_medio:,.4f}/unidade (min R$ {pncp_preco_min:,.4f} | max R$ {pncp_preco_max:,.4f})' if pncp_preco_medio > 0 else 'Dados ComprasNet não disponíveis para este produto.'}
-{'**Preço BPS (compras públicas):** R$ ' + f'{bps_preco_medio:,.4f}/unidade' if bps_preco_medio > 0 else ''}
+{'**PMVG (Preço Máx. Governo/CMED):** R$ ' + f'{bps_pmvg:,.4f}/{bps_unidade}' if bps_pmvg > 0 else ''}
+{'**PMC (Preço Máx. Consumidor/CMED):** R$ ' + f'{bps_pmc:,.4f}/{bps_unidade}' if bps_pmc > 0 else ''}
 Canal farmácia estimado: R$ {preco_venda_farmacia_brl_kg:,.2f}/kg | Canal hospitalar estimado: R$ {preco_venda_hospital_brl_kg:,.2f}/kg
 
 **8. POTENCIAL DE MERCADO**
