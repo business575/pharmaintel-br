@@ -22,7 +22,7 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-BASE_URL = "https://pncp.gov.br/api/pncp/v1"
+BASE_URL = "https://pncp.gov.br/api/consulta/v1"
 
 SESSION = requests.Session()
 SESSION.headers.update({
@@ -60,28 +60,35 @@ def buscar_atas_por_produto(
 ) -> dict:
     """
     Busca Atas de Registro de Preços no PNCP por descrição de produto.
-
-    Args:
-        descricao: nome do produto (ex: "insulina glargina", "soro fisiológico")
-        pagina: página dos resultados
-        tam_pagina: itens por página (max 500)
+    API PNCP v1 (consulta) — requer dataInicial, dataFinal e codigoModalidadeContratacao.
+    Modalidade 6 = Pregão Eletrônico (mais comum para medicamentos).
 
     Returns:
         dict com 'atas' (lista) e 'total'
     """
-    params = {
-        "tipos_documento": "ATA",
-        "descricao_item": descricao,
-        "pagina": pagina,
-        "tam_pagina": tam_pagina,
-    }
-    data = _get("/consulta/contratacoes/publicacao", params=params)
+    from datetime import date, timedelta
+    hoje = date.today()
+    data_inicial = (hoje - timedelta(days=365)).strftime("%Y-%m-%d")
+    data_final   = hoje.strftime("%Y-%m-%d")
 
-    if not data or "data" not in data:
+    params = {
+        "dataInicial": data_inicial,
+        "dataFinal":   data_final,
+        "codigoModalidadeContratacao": 6,  # Pregão Eletrônico
+        "pagina":      pagina,
+        "tamanhoPagina": min(tam_pagina, 20),
+    }
+    data = _get("/contratacoes/publicacao", params=params)
+
+    if not data or not isinstance(data, dict):
         return {"atas": [], "total": 0, "descricao": descricao}
 
     atas = []
+    keyword = descricao.lower()
     for item in data.get("data", []):
+        objeto = str(item.get("objetoCompra", "")).lower()
+        if keyword not in objeto:
+            continue
         atas.append({
             "orgao": item.get("orgaoEntidade", {}).get("razaoSocial", ""),
             "uf": item.get("unidadeOrgao", {}).get("ufSigla", ""),

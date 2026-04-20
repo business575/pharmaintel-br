@@ -510,6 +510,10 @@ def _login_page() -> None:
                 if _check_password(username, password):
                     st.session_state["authenticated"] = True
                     st.session_state["auth_user"] = username
+                    # Admin sempre tem plano Enterprise e acesso total
+                    if username == _APP_USERNAME:
+                        st.session_state["is_admin"] = True
+                        st.session_state["subscriber_plan"] = "enterprise"
                     st.rerun()
                 else:
                     st.error(_t("login_error"), icon="🔒")
