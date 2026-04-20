@@ -3569,12 +3569,11 @@ def sidebar() -> tuple[str, int]:
             st.session_state.get("auth_user") == _APP_USERNAME
             or st.session_state.get("is_admin")
         )
-        _plan = st.session_state.get("subscriber_plan", "").lower()
-        _has_report = _is_admin or _plan in ("pro", "enterprise")
-        nav_keys_active = _NAV_KEYS + (["outreach", "director", "quality", "costs"] if _is_admin else [])
-        if not _has_report and "report" in nav_keys_active:
-            nav_keys_active = [k for k in nav_keys_active if k != "report"]
-        nav_t_keys_active = _NAV_T_KEYS + (["nav_outreach", "nav_director", "nav_quality", "nav_costs"] if _is_admin else [])
+        # Build nav — always keep report tab (page itself gates access by plan)
+        admin_extra_keys = ["outreach", "director", "quality", "costs"]
+        admin_extra_t    = ["nav_outreach", "nav_director", "nav_quality", "nav_costs"]
+        nav_keys_active  = _NAV_KEYS + (admin_extra_keys if _is_admin else [])
+        nav_t_keys_active = _NAV_T_KEYS + (admin_extra_t if _is_admin else [])
         nav_labels = [_t(k) for k in nav_t_keys_active]
         # Preserve current page across language switches using internal key
         current_key = st.session_state.get("page_key", "overview")
