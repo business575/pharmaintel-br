@@ -795,7 +795,7 @@ def _call_demo_ai(question: str, history: list, is_en: bool) -> str:
             aresp = _req.post(
                 "https://api.anthropic.com/v1/messages",
                 headers={"x-api-key": anthropic_key, "anthropic-version": "2023-06-01", "Content-Type": "application/json"},
-                json={"model": "claude-haiku-4-5-20251001", "max_tokens": 1200, "system": system, "messages": messages},
+                json={"model": "claude-opus-4-7", "max_tokens": 1200, "system": system, "messages": messages},
                 timeout=30,
             )
             data = aresp.json()
@@ -4252,7 +4252,7 @@ Use linguagem executiva, dados precisos, e termine com uma recomendação clara 
                 r = _req.post(
                     "https://api.anthropic.com/v1/messages",
                     headers={"x-api-key": anthropic_key, "anthropic-version": "2023-06-01", "Content-Type": "application/json"},
-                    json={"model": "claude-haiku-4-5-20251001", "max_tokens": 2500, "messages": [{"role": "user", "content": prompt}]},
+                    json={"model": "claude-opus-4-7", "max_tokens": 2500, "messages": [{"role": "user", "content": prompt}]},
                     timeout=60,
                 )
                 if r.status_code == 200:
