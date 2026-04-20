@@ -40,7 +40,8 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-COMTRADE_BASE = "https://comtradeapi.un.org/data/v1/get"
+COMTRADE_BASE   = "https://comtradeapi.un.org/public/v1/preview/C/A/HS"
+COMTRADE_BASE_V1 = "https://comtradeapi.un.org/data/v1/get"   # paid API key endpoint
 COMTRADE_REF  = "https://comtradeapi.un.org/files/v1/app/reference"
 
 # Brazil reporter code in UN Comtrade
@@ -140,8 +141,8 @@ class ComtradeClient:
             "includeDesc": True,
         }
 
-        # Build HS commodity code filter (chapter level = 4-digit)
-        params["cmdCode"] = f"{hs_chapter}00-{hs_chapter}99"
+        # Build HS commodity code filter (chapter level)
+        params["cmdCode"] = f"{hs_chapter}"
 
         cache_key = f"comtrade_bra_{hs_chapter}_{year}.json"
         cache_path = RAW_DIR / cache_key
@@ -152,11 +153,21 @@ class ComtradeClient:
             with open(cache_path) as f:
                 data = json.load(f)
         else:
-            if not self.api_key:
-                logger.warning("No Comtrade API key — using demo data.")
-                return self._demo_data(year, hs_chapter)
             try:
+                # Public endpoint — no API key required
                 data = self._get(COMTRADE_BASE, params)
+            except ComtradeHTTPError:
+                # Fallback to paid endpoint if public fails
+                if self.api_key:
+                    try:
+                        params["cmdCode"] = f"{hs_chapter}00-{hs_chapter}99"
+                        data = self._get(COMTRADE_BASE_V1, params)
+                    except Exception:
+                        logger.warning("Comtrade paid endpoint failed — using demo data.")
+                        return self._demo_data(year, hs_chapter)
+                else:
+                    logger.warning("Comtrade public endpoint failed — using demo data.")
+                    return self._demo_data(year, hs_chapter)
             except ComtradeQuotaError:
                 logger.warning("Comtrade quota exceeded — using demo data.")
                 return self._demo_data(year, hs_chapter)
