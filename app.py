@@ -4395,11 +4395,27 @@ TAM estimado para o segmento: US$ {max(total_fob * 3, 50_000_000):,.0f}. Crescim
         # Report body — parse markdown to PDF
         pdf.set_text_color(226, 234, 244)
         pdf.set_fill_color(10, 22, 40)
+
+        def _clean_for_pdf(text: str) -> str:
+            """Remove markdown e normaliza texto para latin-1 (fpdf2 core fonts)."""
+            t = _re.sub(r"\*\*(.+?)\*\*", r"\1", text)
+            t = _re.sub(r"\*(.+?)\*", r"\1", t)
+            t = _re.sub(r"`(.+?)`", r"\1", t)
+            # Emojis e símbolos comuns
+            replacements = {
+                "✅": "[OK]", "⚠️": "[!]", "❌": "[X]", "🏛️": "", "📄": "",
+                "⬇️": "", "→": "->", "–": "-", "—": "-", "\u2019": "'",
+                "\u2018": "'", "\u201c": '"', "\u201d": '"', "•": "-",
+                "★": "*", "©": "(c)", "®": "(R)", "™": "(TM)",
+            }
+            for k, v in replacements.items():
+                t = t.replace(k, v)
+            # Remove qualquer char fora do latin-1
+            t = t.encode("latin-1", "replace").decode("latin-1")
+            return t
+
         for line in ai_response.split("\n"):
-            clean = _re.sub(r"\*\*(.+?)\*\*", r"\1", line)  # strip bold markers
-            clean = _re.sub(r"\*(.+?)\*", r"\1", clean)
-            clean = clean.replace("✅", "[OK]").replace("⚠️", "[ATT]").replace("❌", "[NOK]")
-            clean = clean.encode("latin-1", "replace").decode("latin-1")
+            clean = _clean_for_pdf(line)
             if clean.startswith("## ") or clean.startswith("# "):
                 pdf.set_font("Helvetica", "B", 12)
                 pdf.set_text_color(0, 137, 123)
@@ -4425,8 +4441,8 @@ TAM estimado para o segmento: US$ {max(total_fob * 3, 50_000_000):,.0f}. Crescim
             type="primary",
         )
     except Exception as e_pdf:
-        logger.warning("PDF generation failed: %s", e_pdf)
-        # Fallback to text download
+        logger.error("PDF generation failed: %s", e_pdf, exc_info=True)
+        st.warning(f"Erro ao gerar PDF: {e_pdf}. Baixando como texto.")
         report_text = f"RELATORIO ESTRATEGICO — PHD Intel.AI\nPharmaIntel BR\nMolecula: {molecule} | Ano: {year_sel}\n{'='*60}\n\n{ai_response}\n\n{'='*60}\n© PharmaIntel BR"
         st.download_button(
             label="⬇️ Baixar Relatório (.txt)" if not is_en else "⬇️ Download Report (.txt)",
