@@ -2094,35 +2094,89 @@ def load_parquet(name: str, year: int) -> pd.DataFrame:
     return pd.DataFrame()
 
 
-def demo_imports(year: int = 2024, n: int = 500) -> pd.DataFrame:
+def demo_imports(year: int = 2024, n: int = 600) -> pd.DataFrame:
     """Generate realistic demo import data when real data is unavailable."""
     rng = np.random.default_rng(42)
+    # Includes all NCMs needed by _MOL_NCM_MAP — each molecule must have data
     ncms = [
-        ("30049099", "Outros medicamentos"), ("30049019", "Antibióticos"),
-        ("30043900", "Hormônios"), ("30059010", "Curativos"),
-        ("30021590", "Vacinas"), ("30064000", "Cimentos dentários"),
-        ("30061000", "Suturas estéreis"), ("30049031", "Insulina"),
-        ("30045000", "Vitaminas"), ("30049059", "Anestésicos"),
-        ("30049079", "Antivirais"), ("30049089", "Antineoplásicos"),
+        ("30049099", "Outros medicamentos"),
+        ("30049019", "Antibióticos - amoxicilina, azitromicina"),
+        ("30043900", "Hormônios - insulina, somatropina"),
+        ("30043100", "Insulina humana"),
+        ("30043200", "Insulina glargina e análogos"),
+        ("30021520", "Anticorpos monoclonais - trastuzumabe, bevacizumabe, rituximabe"),
+        ("30021590", "Outros anticorpos monoclonais - adalimumabe, nivolumabe"),
+        ("30021239", "Enoxaparina, heparina e anticoagulantes"),
+        ("30049059", "Antineoplásicos - paclitaxel, docetaxel, atorvastatina"),
+        ("30049069", "Imatinibe, ciprofloxacino"),
+        ("30049049", "Omeprazol, inibidores de bomba"),
+        ("30049079", "Antivirais"),
+        ("30049089", "Antineoplásicos orais"),
+        ("30021229", "Heparina sódica"),
+        ("30041011", "Amoxicilina"),
+        ("30041099", "Azitromicina, outros antibióticos"),
+        ("30043911", "Somatropina - hormônio do crescimento"),
+        ("30049099", "Metformina, hipoglicemiantes"),
     ]
-    countries = ["Germany","United States","India","China","Italy","Switzerland","France","Ireland","Belgium","Spain"]
-    months = rng.integers(1, 13, n)
-    ncm_idx = rng.integers(0, len(ncms), n)
+    # Realistic country weights by molecule type
+    countries_biologic = ["United States", "Switzerland", "Germany", "France", "Ireland"]
+    countries_generic  = ["India", "China", "Germany", "Brazil", "Italy"]
+    countries_all      = ["Germany","United States","India","China","Italy","Switzerland","France","Ireland","Belgium","Spain"]
+
     rows = []
+    # Generate bulk random rows
     for i in range(n):
-        co_ncm, ds_ncm = ncms[ncm_idx[i]]
-        fob = float(rng.lognormal(13, 1.8))
-        kg = fob / rng.uniform(15, 80)
+        ncm_entry = ncms[rng.integers(0, len(ncms))]
+        co_ncm, ds_ncm = ncm_entry
+        # Biologics have higher FOB value
+        is_biologic = co_ncm.startswith("30021")
+        mean_lognorm = 15.5 if is_biologic else 13.0
+        fob = float(rng.lognormal(mean_lognorm, 1.6))
+        kg = fob / rng.uniform(50, 800) if is_biologic else fob / rng.uniform(15, 80)
+        country_pool = countries_biologic if is_biologic else countries_all
         rows.append({
-            "co_ano": year, "co_mes": int(months[i]),
+            "co_ano": year, "co_mes": int(rng.integers(1, 13)),
             "co_ncm": co_ncm, "ds_ncm": ds_ncm,
-            "ds_pais": countries[rng.integers(0, len(countries))],
-            "vl_fob": fob, "kg_liquido": kg,
+            "ds_pais": country_pool[rng.integers(0, len(country_pool))],
+            "vl_fob": fob, "kg_liquido": max(kg, 0.001),
             "vl_fob_brl": fob * 5.10,
-            "preco_usd_kg": fob / kg,
+            "preco_usd_kg": fob / max(kg, 0.001),
             "risco_regulatorio": float(rng.uniform(0, 8)),
             "anvisa_ativo": bool(rng.random() > 0.15),
         })
+
+    # Guarantee at least 10 rows for each key molecule NCM
+    guaranteed = [
+        ("30021520", "Anticorpos monoclonais - trastuzumabe, bevacizumabe",
+         ["United States","Switzerland","Germany"], 16.5, 100, 600),
+        ("30021590", "Adalimumabe, nivolumabe, pembrolizumabe",
+         ["United States","Ireland","Germany"], 16.0, 100, 500),
+        ("30021239", "Enoxaparina, heparina",
+         ["Germany","France","India"], 14.0, 20, 200),
+        ("30043100", "Insulina humana",
+         ["Germany","France","Denmark"], 13.5, 30, 150),
+        ("30043200", "Insulina glargina, análogos",
+         ["Germany","France","Ireland"], 14.0, 50, 300),
+        ("30049059", "Paclitaxel, docetaxel, antineoplásicos",
+         ["India","China","Germany"], 13.0, 20, 100),
+        ("30041011", "Amoxicilina",
+         ["India","China","Germany"], 11.0, 5, 30),
+    ]
+    for co_ncm, ds_ncm, ctries, mean_ln, kg_min, kg_max in guaranteed:
+        for _ in range(12):  # 12 rows = 1 per month
+            fob = float(rng.lognormal(mean_ln, 0.8))
+            kg = fob / rng.uniform(kg_min, kg_max)
+            rows.append({
+                "co_ano": year, "co_mes": int(rng.integers(1, 13)),
+                "co_ncm": co_ncm, "ds_ncm": ds_ncm,
+                "ds_pais": ctries[rng.integers(0, len(ctries))],
+                "vl_fob": fob, "kg_liquido": max(kg, 0.001),
+                "vl_fob_brl": fob * 5.10,
+                "preco_usd_kg": fob / max(kg, 0.001),
+                "risco_regulatorio": float(rng.uniform(1, 6)),
+                "anvisa_ativo": True,
+            })
+
     df = pd.DataFrame(rows)
     df["periodo"] = pd.to_datetime(dict(year=df["co_ano"], month=df["co_mes"], day=1))
     return df
@@ -3954,32 +4008,64 @@ def _page_relatorio_estrategico(_year: int = 2025) -> None:
 
     # ── Molecule → NCM/keyword mapping ───────────────────────────────────────
     _MOL_NCM_MAP = {
-        "enoxaparina":    {"ncms": ["30021239"], "keywords": ["sangue", "heparin"]},
-        "heparina":       {"ncms": ["30021239", "30021229"], "keywords": ["heparin", "sangue"]},
+        "enoxaparina":    {"ncms": ["30021239"], "keywords": ["enoxaparina","heparin","sangue"]},
+        "heparina":       {"ncms": ["30021239", "30021229"], "keywords": ["heparina","heparin","sangue"]},
         "insulina":       {"ncms": ["30043100", "30043200"], "keywords": ["insulina"]},
-        "trastuzumabe":   {"ncms": ["30021520"], "keywords": ["trastuzumab"]},
-        "bevacizumabe":   {"ncms": ["30021520"], "keywords": ["bevacizumab"]},
-        "rituximabe":     {"ncms": ["30021520"], "keywords": ["rituximab"]},
-        "adalimumabe":    {"ncms": ["30021590"], "keywords": ["adalimumab"]},
-        "pembrolizumabe": {"ncms": ["30021590"], "keywords": ["pembrolizumab"]},
-        "nivolumabe":     {"ncms": ["30021590"], "keywords": ["nivolumab"]},
+        "insulina glargina": {"ncms": ["30043200"], "keywords": ["glargina","insulina"]},
+        "trastuzumabe":   {"ncms": ["30021520", "30021590"], "keywords": ["trastuzumab","trastuzumabe"]},
+        "bevacizumabe":   {"ncms": ["30021520", "30021590"], "keywords": ["bevacizumab","bevacizumabe"]},
+        "rituximabe":     {"ncms": ["30021520", "30021590"], "keywords": ["rituximab","rituximabe"]},
+        "adalimumabe":    {"ncms": ["30021590", "30021520"], "keywords": ["adalimumab","adalimumabe"]},
+        "pembrolizumabe": {"ncms": ["30021590"], "keywords": ["pembrolizumab","pembrolizumabe"]},
+        "nivolumabe":     {"ncms": ["30021590"], "keywords": ["nivolumab","nivolumabe"]},
         "filgrastim":     {"ncms": ["30021590"], "keywords": ["filgrastim"]},
         "epoetina":       {"ncms": ["30021590"], "keywords": ["epoetina","eritropoetina"]},
         "somatropina":    {"ncms": ["30043911"], "keywords": ["somatotropina","somatropina"]},
         "paclitaxel":     {"ncms": ["30049059"], "keywords": ["paclitaxel"]},
         "docetaxel":      {"ncms": ["30049059"], "keywords": ["docetaxel"]},
-        "imatinibe":      {"ncms": ["30049069"], "keywords": ["imatinib"]},
+        "imatinibe":      {"ncms": ["30049069"], "keywords": ["imatinib","imatinibe"]},
         "omeprazol":      {"ncms": ["30049049"], "keywords": ["omeprazol"]},
-        "atorvastatina":  {"ncms": ["30049059"], "keywords": ["atorvastatin"]},
-        "metformina":     {"ncms": ["30049099"], "keywords": ["metformin"]},
-        "amoxicilina":    {"ncms": ["30041011"], "keywords": ["amoxicil"]},
-        "azitromicina":   {"ncms": ["30041099"], "keywords": ["azitromicin"]},
-        "ciprofloxacino": {"ncms": ["30049069"], "keywords": ["ciprofloxacin"]},
+        "atorvastatina":  {"ncms": ["30049059"], "keywords": ["atorvastatin","atorvastatina"]},
+        "metformina":     {"ncms": ["30049099"], "keywords": ["metformin","metformina"]},
+        "amoxicilina":    {"ncms": ["30041011"], "keywords": ["amoxicil","amoxicilina"]},
+        "azitromicina":   {"ncms": ["30041099"], "keywords": ["azitromicin","azitromicina"]},
+        "ciprofloxacino": {"ncms": ["30049069"], "keywords": ["ciprofloxacin","ciprofloxacino"]},
+        "carboplatina":   {"ncms": ["30049059"], "keywords": ["carboplatina","carboplatin"]},
+        "oxaliplatina":   {"ncms": ["30049059"], "keywords": ["oxaliplatina","oxaliplatin"]},
+        "imunoglobulina": {"ncms": ["30021590"], "keywords": ["imunoglobulina","immunoglobulin"]},
+    }
+
+    # ── Fuzzy molecule name correction ───────────────────────────────────────
+    # Handles typos (traztuzumabe→trastuzumabe) and English names (trastuzumab→trastuzumabe)
+    _MOL_ALIASES = {
+        # Common typos
+        "traztuzumabe": "trastuzumabe", "trastuzumab": "trastuzumabe",
+        "bevacizumab": "bevacizumabe",  "rituximab": "rituximabe",
+        "adalimumab": "adalimumabe",    "pembrolizumab": "pembrolizumabe",
+        "nivolumab": "nivolumabe",      "enoxaparin": "enoxaparina",
+        "heparin": "heparina",          "insulin": "insulina",
+        "metformin": "metformina",      "amoxicillin": "amoxicilina",
+        "azithromycin": "azitromicina", "omeprazole": "omeprazol",
+        "paclitaxel": "paclitaxel",     "imatinib": "imatinibe",
+        "carboplatin": "carboplatina",  "oxaliplatin": "oxaliplatina",
+        "immunoglobulin": "imunoglobulina",
     }
 
     # Extract molecule from question if needed
     import re as _re2
-    mol_lower_check = molecule.lower()
+    from difflib import get_close_matches as _gcm
+    mol_lower_check = molecule.lower().strip()
+
+    # 1. Direct alias lookup (typos/English names)
+    if mol_lower_check in _MOL_ALIASES:
+        molecule = _MOL_ALIASES[mol_lower_check]
+    # 2. Fuzzy match against known molecules (handles partial typos)
+    elif mol_lower_check not in _MOL_NCM_MAP:
+        close = _gcm(mol_lower_check, list(_MOL_NCM_MAP.keys()) + list(_MOL_ALIASES.keys()), n=1, cutoff=0.75)
+        if close:
+            candidate = close[0]
+            molecule = _MOL_ALIASES.get(candidate, candidate)
+    # 3. Extract from long question
     if len(molecule.split()) > 3:
         for kw in _MOL_NCM_MAP:
             if kw in mol_lower_check:
@@ -4100,7 +4186,7 @@ def _page_relatorio_estrategico(_year: int = 2025) -> None:
             logger.warning("BPS fetch failed: %s", e_bps)
 
         # ── 5. PNCP — atas de registro de preços ──────────────────────────
-        # PNCP — busca atas vigentes com preço unitário real do item
+        # Busca atas farmacêuticas vigentes e filtra itens pelo nome da molécula
         pncp_n_atas       = 0
         pncp_preco_medio  = 0.0
         pncp_preco_min    = 0.0
@@ -4108,48 +4194,25 @@ def _page_relatorio_estrategico(_year: int = 2025) -> None:
         pncp_orgaos       = []
         pncp_itens_sample = []
         try:
-            from src.integrations.pncp_fetcher import buscar_atas_por_produto, buscar_itens_ata
-            from datetime import date as _date
-            hoje = str(_date.today())
-
-            atas_resp = buscar_atas_por_produto(molecule, tam_pagina=10)
+            from src.integrations.pncp_fetcher import buscar_atas_por_produto
+            atas_resp = buscar_atas_por_produto(molecule)
             atas = atas_resp.get("atas", [])
             pncp_n_atas = atas_resp.get("total", 0)
+            todos_precos = atas_resp.get("precos", [])
 
-            # Filtra atas vigentes (encerramento >= hoje)
-            atas_vigentes = [
-                a for a in atas
-                if not a.get("data_encerramento") or a.get("data_encerramento", "") >= hoje
-            ]
-
-            # Busca itens de cada ata vigente (max 5 atas para não travar)
-            todos_precos = []
-            for ata in atas_vigentes[:5]:
-                numero = ata.get("numero", "")
-                if not numero:
-                    continue
-                try:
-                    itens_resp = buscar_itens_ata(numero)
-                    for item in itens_resp.get("itens", []):
-                        desc = str(item.get("descricao", "")).lower()
-                        if molecule.lower() in desc or any(
-                            kw in desc for kw in mol_info.get("keywords", [])
-                        ):
-                            preco = float(item.get("preco_unitario", 0) or 0)
-                            if preco > 0:
-                                todos_precos.append(preco)
-                                pncp_itens_sample.append({
-                                    "orgao": ata.get("orgao", ""),
-                                    "uf": ata.get("uf", ""),
-                                    "descricao": item.get("descricao", ""),
-                                    "unidade": item.get("unidade", ""),
-                                    "preco": preco,
-                                    "marca": item.get("marca", ""),
-                                    "vigencia": ata.get("data_encerramento", ""),
-                                })
-                        pncp_orgaos.append(ata.get("orgao", ""))
-                except Exception:
-                    continue
+            for ata in atas:
+                pncp_orgaos.append(ata.get("orgao", ""))
+                preco = float(ata.get("item_preco", 0) or 0)
+                if preco > 0:
+                    pncp_itens_sample.append({
+                        "orgao":    ata.get("orgao", ""),
+                        "uf":       ata.get("uf", ""),
+                        "descricao": ata.get("item_descricao", ""),
+                        "unidade":  ata.get("item_unidade", ""),
+                        "preco":    preco,
+                        "marca":    ata.get("item_marca", ""),
+                        "vigencia": ata.get("data_encerramento", ""),
+                    })
 
             if todos_precos:
                 pncp_preco_medio = sum(todos_precos) / len(todos_precos)
@@ -4184,12 +4247,13 @@ REGISTROS ANVISA:
 - Registros ativos encontrados: {anvisa_count}
 - Amostras: {str(anvisa_sample[:2]) if anvisa_sample else 'Não disponível'}
 
-BPS — BANCO DE PREÇOS EM SAÚDE (Ministério da Saúde):
-- Total de compras públicas encontradas: {bps_total_compras}
-- PMVG (Preço Máximo Venda ao Governo/CMED): R$ {bps_pmvg:,.4f}/{bps_unidade if bps_unidade else 'unidade'}
-- PMC (Preço Máximo ao Consumidor/CMED): R$ {bps_pmc:,.4f}/{bps_unidade if bps_unidade else 'unidade'}
-- Preço médio referência: R$ {bps_preco_medio:,.4f}/unidade
-- Fonte: CMED/ANVISA — Preços máximos regulados por lei
+PREÇOS REGULADOS — CMED/ANVISA (Câmara de Regulação do Mercado de Medicamentos):
+- Apresentações cadastradas na CMED: {bps_total_compras}
+- PF médio (Preço de Fábrica / PMVG ao Governo): R$ {bps_pmvg:,.4f}/embalagem
+- PMC médio (Preço Máximo ao Consumidor): R$ {bps_pmc:,.4f}/embalagem
+- Apresentação de referência: {bps_unidade if bps_unidade else 'ver tabela CMED'}
+- Preço médio PF: R$ {bps_preco_medio:,.4f}/embalagem
+- Fonte: CMED/ANVISA — Tabela oficial publicada em 16/04/2026 (preços regulados por lei)
 
 PNCP — ATAS DE REGISTRO DE PREÇOS (ComprasNet):
 - Total de atas encontradas: {pncp_n_atas}
@@ -4291,10 +4355,9 @@ Registros ANVISA identificados: {anvisa_count}. Risco regulatório médio: {risc
 Registros de patentes relacionados: {len(patent_info)}. Consultar INPI (www.inpi.gov.br) e Espacenet para status atualizado de proteção intelectual e janelas de oportunidade para genéricos/biossimilares.
 
 **7. PREÇO DE VENDA NO BRASIL**
-{'**Preço médio nas atas ComprasNet (governo):** R$ ' + f'{pncp_preco_medio:,.4f}/unidade (min R$ {pncp_preco_min:,.4f} | max R$ {pncp_preco_max:,.4f})' if pncp_preco_medio > 0 else 'Dados ComprasNet não disponíveis para este produto.'}
-{'**PMVG (Preço Máx. Governo/CMED):** R$ ' + f'{bps_pmvg:,.4f}/{bps_unidade}' if bps_pmvg > 0 else ''}
-{'**PMC (Preço Máx. Consumidor/CMED):** R$ ' + f'{bps_pmc:,.4f}/{bps_unidade}' if bps_pmc > 0 else ''}
-Canal farmácia estimado: R$ {preco_venda_farmacia_brl_kg:,.2f}/kg | Canal hospitalar estimado: R$ {preco_venda_hospital_brl_kg:,.2f}/kg
+{'**✅ Preço médio nas atas vigentes PNCP/ComprasNet (preço real pago pelo governo):** R$ ' + f'{pncp_preco_medio:,.4f}/unidade | Mín: R$ {pncp_preco_min:,.4f} | Máx: R$ {pncp_preco_max:,.4f} | {pncp_n_atas} atas encontradas' if pncp_preco_medio > 0 else '⚠️ Preço de atas PNCP não disponível nesta consulta (API timeout ou produto não encontrado nas atas recentes).'}
+{'**PF médio CMED/ANVISA (teto ao governo — regulado por lei):** R$ ' + f'{bps_pmvg:,.4f} | PMC médio: R$ {bps_pmc:,.4f} | {bps_total_compras} apresentações cadastradas | Apresentação ref: {bps_unidade[:50] if bps_unidade else "ver CMED"}' if bps_pmvg > 0 else '⚠️ Molécula não encontrada na tabela CMED ANVISA.'}
+{'Canal farmácia estimado: R$ ' + f'{preco_venda_farmacia_brl_kg:,.2f}/kg | Canal hospitalar estimado: R$ {preco_venda_hospital_brl_kg:,.2f}/kg' if preco_venda_farmacia_brl_kg > 0 else '(Canal de venda: calcular com base no preço CMED acima × markup distribuidor)'}
 
 **8. POTENCIAL DE MERCADO**
 TAM estimado para o segmento: US$ {max(total_fob * 3, 50_000_000):,.0f}. Crescimento projetado 2025-2027: 10-15% a.a.
@@ -4323,8 +4386,11 @@ TAM estimado para o segmento: US$ {max(total_fob * 3, 50_000_000):,.0f}. Crescim
     c1.metric("Total FOB Importado", f"US$ {total_fob/1e6:.2f}M" if total_fob > 1e6 else f"US$ {total_fob:,.0f}")
     c2.metric("Preço CIF Médio", f"US$ {preco_cif_kg:,.0f}/kg" if preco_cif_kg > 0 else "N/D")
     c3.metric("Preço Venda Farmácia", f"R$ {preco_venda_farmacia_brl_kg:,.0f}/kg" if preco_venda_farmacia_brl_kg > 0 else "N/D")
-    c4.metric("Preço Médio ComprasNet", f"R$ {pncp_preco_medio:,.4f}/un" if pncp_preco_medio > 0 else "N/D")
-    c5.metric("Operações", str(n_ops))
+    # Preço de mercado: prioriza PNCP (ata real), fallback para CMED
+    _preco_mercado = pncp_preco_medio if pncp_preco_medio > 0 else bps_pmvg
+    _label_mercado = "Preço Ata PNCP/un" if pncp_preco_medio > 0 else "PF CMED/emb"
+    c4.metric(_label_mercado, f"R$ {_preco_mercado:,.2f}" if _preco_mercado > 0 else "N/D")
+    c5.metric("Operações Importação", str(n_ops))
     c6.metric("Registros ANVISA", str(anvisa_count))
 
     st.markdown("---")

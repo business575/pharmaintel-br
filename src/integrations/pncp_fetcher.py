@@ -4,12 +4,18 @@ pncp_fetcher.py
 PharmaIntel BR — Integração com o Portal Nacional de Contratações Públicas (PNCP).
 
 Fornece acesso a:
-- Atas de Registro de Preços por produto/molécula
-- Contratos de compras públicas farmacêuticas
-- Itens licitados com preços unitários
+- Atas de Registro de Preços com itens e preços unitários
+- Filtragem por molécula/produto nos itens das atas
 
 API pública, sem necessidade de chave de API.
 Documentação: https://pncp.gov.br/api/pncp/swagger-ui.html
+
+IMPORTANTE: O endpoint /v1/atas NÃO tem filtro por palavra-chave no servidor.
+A estratégia correta é:
+  1. Buscar atas com keywords farmacêuticas genéricas no objetoContratacao
+  2. Buscar os itens de cada ata encontrada
+  3. Filtrar itens pelo nome da molécula
+
 """
 
 from __future__ import annotations
@@ -22,7 +28,8 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-BASE_URL = "https://pncp.gov.br/api/consulta/v1"
+BASE_URL     = "https://pncp.gov.br/api/consulta/v1"
+BASE_PNCP_V1 = "https://pncp.gov.br/api/pncp/v1"
 
 SESSION = requests.Session()
 SESSION.headers.update({
@@ -31,13 +38,19 @@ SESSION.headers.update({
 })
 SESSION.verify = False
 
+# Palavras-chave farmacêuticas para identificar atas farmacêuticas
+_PHARMA_KEYWORDS = [
+    "medicamento", "farmac", "hospitalar", "insumo farmac",
+    "registro de preços de medicamentos", "material médico",
+]
 
-def _get(endpoint: str, params: dict = None, retries: int = 3) -> dict | list:
+
+def _get(endpoint: str, params: dict = None, retries: int = 2, timeout: int = 15) -> dict | list:
     """GET request com retry e backoff."""
     url = f"{BASE_URL}{endpoint}"
     for attempt in range(retries):
         try:
-            resp = SESSION.get(url, params=params, timeout=20)
+            resp = SESSION.get(url, params=params, timeout=timeout)
             if resp.status_code == 200:
                 return resp.json()
             elif resp.status_code == 429:
@@ -49,8 +62,14 @@ def _get(endpoint: str, params: dict = None, retries: int = 3) -> dict | list:
         except Exception as exc:
             logger.warning("PNCP request error (attempt %s): %s", attempt + 1, exc)
             if attempt < retries - 1:
-                time.sleep(2 ** attempt)
+                time.sleep(1)
     return {}
+
+
+def _is_pharma_ata(objeto: str) -> bool:
+    """Verifica se o objeto da ata parece ser farmacêutico."""
+    o = objeto.lower()
+    return any(kw in o for kw in _PHARMA_KEYWORDS)
 
 
 def buscar_atas_por_produto(
@@ -59,53 +78,102 @@ def buscar_atas_por_produto(
     tam_pagina: int = 20,
 ) -> dict:
     """
-    Busca Atas de Registro de Preços no PNCP por descrição de produto.
-    API PNCP v1 (consulta) — requer dataInicial, dataFinal e codigoModalidadeContratacao.
-    Modalidade 6 = Pregão Eletrônico (mais comum para medicamentos).
+    Busca Atas de Registro de Preços vigentes no PNCP contendo o produto.
+
+    Estratégia:
+      - Varre páginas de atas recentes
+      - Identifica atas farmacêuticas pelo objetoContratacao
+      - Busca itens de cada ata farmacêutica
+      - Filtra itens pelo nome da molécula
 
     Returns:
         dict com 'atas' (lista) e 'total'
     """
     from datetime import date, timedelta
     hoje = date.today()
-    data_inicial = (hoje - timedelta(days=365)).strftime("%Y-%m-%d")
-    data_final   = hoje.strftime("%Y-%m-%d")
+    data_inicial = (hoje - timedelta(days=180)).strftime("%Y%m%d")
+    data_final   = hoje.strftime("%Y%m%d")
 
-    params = {
-        "dataInicial": data_inicial,
-        "dataFinal":   data_final,
-        "codigoModalidadeContratacao": 6,  # Pregão Eletrônico
-        "pagina":      pagina,
-        "tamanhoPagina": min(tam_pagina, 20),
-    }
-    data = _get("/contratacoes/publicacao", params=params)
+    keyword = descricao.lower().strip()
+    atas_com_produto = []
+    precos_encontrados = []
 
-    if not data or not isinstance(data, dict):
-        return {"atas": [], "total": 0, "descricao": descricao}
+    # Varre até 8 páginas de atas buscando atas farmacêuticas
+    for pg in range(1, 9):
+        params = {
+            "dataInicial":   data_inicial,
+            "dataFinal":     data_final,
+            "pagina":        pg,
+            "tamanhoPagina": 50,
+        }
+        data = _get("/atas", params=params)
+        if not data or not isinstance(data, dict) or not data.get("data"):
+            break
 
-    atas = []
-    keyword = descricao.lower()
-    for item in data.get("data", []):
-        objeto = str(item.get("objetoCompra", "")).lower()
-        if keyword not in objeto:
-            continue
-        atas.append({
-            "orgao": item.get("orgaoEntidade", {}).get("razaoSocial", ""),
-            "uf": item.get("unidadeOrgao", {}).get("ufSigla", ""),
-            "numero": item.get("numeroControlePNCP", ""),
-            "objeto": item.get("objetoCompra", ""),
-            "valor_total": item.get("valorTotalEstimado", 0),
-            "data_publicacao": item.get("dataPublicacaoGlobal", ""),
-            "data_encerramento": item.get("dataEncerramentoVigencia", ""),
-            "link": f"https://pncp.gov.br/app/editais/{item.get('numeroControlePNCP', '')}",
-        })
+        pharma_atas = [
+            item for item in data.get("data", [])
+            if _is_pharma_ata(str(item.get("objetoContratacao", "")))
+            and not item.get("cancelado", False)
+        ]
+
+        # Para cada ata farmacêutica, busca itens e filtra pela molécula
+        for ata in pharma_atas[:8]:  # max 8 atas por página para não travar
+            numero = ata.get("numeroControlePNCPAta", "")
+            if not numero:
+                continue
+            try:
+                itens_resp = buscar_itens_ata(numero)
+                for item in itens_resp.get("itens", []):
+                    desc_item = str(item.get("descricao", "")).lower()
+                    if keyword in desc_item or _partial_match(keyword, desc_item):
+                        preco = float(item.get("preco_unitario", 0) or 0)
+                        vigencia = str(ata.get("vigenciaFim", ""))
+                        hoje_str = hoje.strftime("%Y-%m-%d")
+                        # Inclui apenas atas vigentes
+                        if preco > 0 and (not vigencia or vigencia >= hoje_str):
+                            precos_encontrados.append(preco)
+                            atas_com_produto.append({
+                                "orgao":            ata.get("nomeOrgao", ""),
+                                "uf":               "",
+                                "numero":           numero,
+                                "objeto":           ata.get("objetoContratacao", ""),
+                                "valor_total":      preco,
+                                "data_publicacao":  ata.get("dataPublicacaoPncp", ""),
+                                "data_encerramento": vigencia,
+                                "item_descricao":   item.get("descricao", ""),
+                                "item_unidade":     item.get("unidade", ""),
+                                "item_preco":       preco,
+                                "item_marca":       item.get("marca", ""),
+                                "link": f"https://pncp.gov.br/app/atas/{numero}",
+                                "cancelado": False,
+                            })
+            except Exception:
+                continue
+
+        # Se já encontramos preços suficientes, para
+        if len(precos_encontrados) >= 10:
+            break
+
+        # Se acabaram as atas
+        total_regs = data.get("totalRegistros", 0)
+        if pg * 50 >= total_regs:
+            break
 
     return {
-        "atas": atas,
-        "total": data.get("totalRegistros", len(atas)),
-        "descricao": descricao,
-        "pagina": pagina,
+        "atas":       atas_com_produto,
+        "total":      len(atas_com_produto),
+        "precos":     precos_encontrados,
+        "descricao":  descricao,
+        "pagina":     pagina,
     }
+
+
+def _partial_match(keyword: str, text: str) -> bool:
+    """Match parcial para lidar com nomes compostos (ex: 'insulina glargina' em 'glargina 100ui')."""
+    parts = keyword.split()
+    if len(parts) > 1:
+        return all(p in text for p in parts if len(p) > 3)
+    return False
 
 
 def buscar_itens_ata(numero_controle_pncp: str) -> dict:
@@ -118,9 +186,16 @@ def buscar_itens_ata(numero_controle_pncp: str) -> dict:
     Returns:
         dict com 'itens' (lista com descrição, quantidade, preço unitário)
     """
-    # Formata o número para URL
     numero_url = numero_controle_pncp.replace("/", "%2F")
-    data = _get(f"/atas/{numero_url}/itens", params={"pagina": 1, "tam_pagina": 500})
+    url = f"{BASE_PNCP_V1}/atas/{numero_url}/itens"
+    try:
+        resp = SESSION.get(url, params={"pagina": 1, "tamanhoPagina": 500}, timeout=15)
+        if resp.status_code == 200:
+            data = resp.json()
+        else:
+            return {"itens": [], "numero": numero_controle_pncp}
+    except Exception:
+        return {"itens": [], "numero": numero_controle_pncp}
 
     if not data or "data" not in data:
         return {"itens": [], "numero": numero_controle_pncp}
@@ -128,13 +203,13 @@ def buscar_itens_ata(numero_controle_pncp: str) -> dict:
     itens = []
     for item in data.get("data", []):
         itens.append({
-            "numero_item": item.get("numeroItem", ""),
-            "descricao": item.get("descricao", ""),
-            "unidade": item.get("unidadeMedida", ""),
-            "quantidade": item.get("quantidadeHomologada", 0),
+            "numero_item":   item.get("numeroItem", ""),
+            "descricao":     item.get("descricao", ""),
+            "unidade":       item.get("unidadeMedida", ""),
+            "quantidade":    item.get("quantidadeHomologada", 0),
             "preco_unitario": item.get("valorUnitarioHomologado", 0),
-            "marca": item.get("marcaFabricante", ""),
-            "fabricante": item.get("nomeFabricante", ""),
+            "marca":         item.get("marcaFabricante", ""),
+            "fabricante":    item.get("nomeFabricante", ""),
         })
 
     return {"itens": itens, "numero": numero_controle_pncp, "total": len(itens)}
@@ -149,19 +224,9 @@ def buscar_compras_farmaceuticas(
 ) -> dict:
     """
     Busca compras públicas farmacêuticas no PNCP.
-
-    Args:
-        ncm: código NCM (ex: "30049069")
-        descricao: descrição do produto
-        ano: ano de publicação
-        pagina: página dos resultados
-        tam_pagina: itens por página
-
-    Returns:
-        dict com 'compras' (lista) e 'total'
     """
     params = {
-        "pagina": pagina,
+        "pagina":     pagina,
         "tam_pagina": tam_pagina,
         "ano_publicacao": ano,
     }
@@ -177,8 +242,8 @@ def buscar_compras_farmaceuticas(
     for item in data.get("data", []):
         compras.append({
             "orgao": item.get("orgaoEntidade", {}).get("razaoSocial", ""),
-            "uf": item.get("unidadeOrgao", {}).get("ufSigla", ""),
-            "tipo": item.get("tipoDocumento", ""),
+            "uf":    item.get("unidadeOrgao", {}).get("ufSigla", ""),
+            "tipo":  item.get("tipoDocumento", ""),
             "objeto": item.get("objetoCompra", ""),
             "valor_total": item.get("valorTotalEstimado", 0),
             "data_publicacao": item.get("dataPublicacaoGlobal", ""),
@@ -187,6 +252,6 @@ def buscar_compras_farmaceuticas(
 
     return {
         "compras": compras,
-        "total": data.get("totalRegistros", len(compras)),
-        "ano": ano,
+        "total":   data.get("totalRegistros", len(compras)),
+        "ano":     ano,
     }
