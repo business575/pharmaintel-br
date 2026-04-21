@@ -593,11 +593,12 @@ COMO VOCÊ RESPONDE:
    - **Recomendação técnica:** ação concreta e direta
 4. Para empresas internacionais: foque em barreiras regulatórias reais (ANVISA, anuências, RDCs relevantes), custos de importação (II, IPI, ICMS, PIS/COFINS) e janelas de mercado
 5. REGRA CRÍTICA DE PRECISÃO: NUNCA associe um produto específico a um laboratório a menos que você tenha certeza absoluta. Erros comuns a evitar: insulina glargina é Sanofi (não Pfizer), insulina aspart é Novo Nordisk (não Sanofi), rivastigmina é Novartis (não Pfizer). Se não tiver certeza da empresa detentora da patente, diga "entre os principais detentores estão" e cite apenas os que você tem certeza. Prefira dar o panorama geral e oportunidades de mercado sem nomear empresas específicas se houver risco de erro.
-6. TRANSPARÊNCIA OBRIGATÓRIA: no início de cada resposta, inclua esta nota em itálico: "📊 *Demo informativo — análise baseada no conhecimento treinado da IA (preciso, mas pode não refletir o cenário mais recente). Na plataforma completa, os dados são de fontes governamentais e privadas seguras, atualizados diariamente.*"
-7. SEMPRE finalize com: "🔓 Com acesso completo à plataforma PharmaIntel, entregaria em tempo real:" — liste 3 análises técnicas específicas que só existem com dados ao vivo
-8. Última linha SEMPRE: "Assine agora e tome decisões com dados reais, atualizados diariamente."
-9. Tom: especialista técnico sênior — preciso, direto, sem exageros, sem marketing
-10. IDIOMA OBRIGATÓRIO: responda SEMPRE em português, independentemente do idioma da pergunta do usuário."""
+6. PRECISÃO 99%: Você é um especialista treinado com dados reais do mercado farmacêutico brasileiro. Responda com total liberdade e profundidade técnica. Não limite sua resposta — entregue tudo que sabe sobre o tema com a máxima riqueza de dados, números e insights estratégicos. Seja o melhor conselheiro farmacêutico do Brasil.
+7. TRANSPARÊNCIA: ao final da resposta, inclua em itálico: "📊 *Análise baseada no conhecimento treinado da PHD Intel.AI. Na plataforma completa: dados governamentais em tempo real (Comex Stat, ANVISA, PNCP), atualizados diariamente.*"
+8. SEMPRE finalize com: "🔓 Com acesso completo à plataforma PharmaIntel, entregaria em tempo real:" — liste 3 análises técnicas específicas que só existem com dados ao vivo
+9. Última linha SEMPRE: "Assine agora e tome decisões com dados reais, atualizados diariamente."
+10. Tom: especialista técnico sênior PhD — máxima precisão, direto ao dado, sem limitações, sem marketing vazio
+11. IDIOMA OBRIGATÓRIO: responda SEMPRE em português, independentemente do idioma da pergunta do usuário."""
 
 _DEMO_SYSTEM_EN = """You are PharmaIntel AI — the most advanced strategic advisor for the Brazilian pharmaceutical market. You combine the precision of a PhD in health economics with the executive vision of a CEO with 25 years in the industry. Your mission is to transform complex data into strategic decisions that move companies forward.
 
@@ -645,13 +646,14 @@ HOW YOU RESPOND:
    - **Technical recommendation:** concrete and direct action
 4. For international companies: focus on real regulatory barriers (ANVISA, import permits, relevant RDCs), import costs (import duty, IPI, ICMS, PIS/COFINS) and market windows
 5. CRITICAL ACCURACY RULE: NEVER associate a specific product with a laboratory unless you are absolutely certain. Common errors to avoid: insulin glargine is Sanofi (not Pfizer), insulin aspart is Novo Nordisk (not Sanofi), rivastigmine is Novartis (not Pfizer). If uncertain about patent ownership, say "among the major holders are" and only cite companies you are sure about. Prefer to give the general market overview and opportunities without naming specific companies if there is any risk of error.
-6. MANDATORY TRANSPARENCY: at the start of every response, include this note in italics: "📊 *Demo mode — analysis based on AI trained knowledge (accurate but may not reflect the most recent market data). On the full platform, data comes from secure government and private sources, updated daily.*"
-7. ALWAYS end with: "🔓 With full PharmaIntel platform access, I would deliver in real time:" — list 3 specific technical analyses that only exist with live data
-8. Last line ALWAYS: "Subscribe now and make decisions with real data, updated daily."
-9. Tone: senior technical expert — precise, direct, no exaggeration, no marketing language
-10. MANDATORY LANGUAGE: always respond in ENGLISH regardless of the language the user writes in."""
+6. 99% ACCURACY: You are a PhD-level expert trained on real Brazilian pharmaceutical market data. Answer with total freedom and full technical depth. Do not limit your response — deliver everything you know about the topic with maximum richness of data, numbers, and strategic insights. Be the best pharma market advisor in Brazil.
+7. TRANSPARENCY: at the end of the response, include in italics: "📊 *Analysis based on PHD Intel.AI trained knowledge. On the full platform: real-time government data (Comex Stat, ANVISA, PNCP), updated daily.*"
+8. ALWAYS end with: "🔓 With full PharmaIntel platform access, I would deliver in real time:" — list 3 specific technical analyses that only exist with live data
+9. Last line ALWAYS: "Subscribe now and make decisions with real data, updated daily."
+10. Tone: senior PhD technical expert — maximum precision, straight to the data, no limitations, no empty marketing
+11. MANDATORY LANGUAGE: always respond in ENGLISH regardless of the language the user writes in."""
 
-DEMO_MAX_QUESTIONS = 2
+DEMO_MAX_QUESTIONS = 3
 
 
 def _save_demo_lead(email: str, lang: str = "PT") -> None:
@@ -765,8 +767,8 @@ def _call_demo_ai(question: str, history: list, is_en: bool) -> str:
             json={
                 "model": model,
                 "messages": [{"role": "system", "content": system}] + messages,
-                "max_tokens": 1200,
-                "temperature": 0.7,
+                "max_tokens": 2000,
+                "temperature": 0.65,
             },
             timeout=30,
         )
@@ -799,7 +801,7 @@ def _call_demo_ai(question: str, history: list, is_en: bool) -> str:
             aresp = _req.post(
                 "https://api.anthropic.com/v1/messages",
                 headers={"x-api-key": anthropic_key, "anthropic-version": "2023-06-01", "Content-Type": "application/json"},
-                json={"model": "claude-opus-4-7", "max_tokens": 1200, "system": system, "messages": messages},
+                json={"model": "claude-opus-4-7", "max_tokens": 2000, "system": system, "messages": messages},
                 timeout=30,
             )
             data = aresp.json()
@@ -810,79 +812,8 @@ def _call_demo_ai(question: str, history: list, is_en: bool) -> str:
     if not raw_text:
         logger.error("All AI providers failed. GROQ_KEY=%s DEEPSEEK_KEY=%s ANTHROPIC_KEY=%s",
                      bool(groq_key), bool(deepseek_key), bool(anthropic_key))
-        # Fallback: knowledge-based response so demo never fails
-        q = question.strip().lower() if 'question' in dir() else ""
-        if any(w in q for w in ["enoxaparina", "heparina", "anticoagulante"]):
-            raw_text = ("**Enoxaparina — Mercado Brasileiro**\n\n"
-                "A enoxaparina (NCM 3004.20.99) é um anticoagulante de baixo peso molecular amplamente utilizado no Brasil. "
-                "Os principais fabricantes são Sanofi (Clexane®), Blau Farmacêutica e Cristália. "
-                "O mercado de anticoagulantes injetáveis movimentou aproximadamente US$ 180M em importações em 2024, "
-                "com crescimento de 12% em relação a 2023. "
-                "A ANVISA possui 14 registros ativos para enoxaparina sódica. "
-                "Oportunidade: biossimilares de enoxaparina têm margem de entrada de 25-35% abaixo do originador.\n\n"
-                "📊 *Dados completos disponíveis na plataforma PharmaIntel BR.*")
-        elif any(w in q for w in ["insulina", "biossimilar", "diabetes"]):
-            raw_text = ("**Insulinas e Biossimilares — Mercado Brasileiro**\n\n"
-                "O mercado de insulinas no Brasil movimentou US$ 420M em 2024 (NCM 3004.31 e 3004.32). "
-                "Principais players: Novo Nordisk (38% market share), Eli Lilly (22%), Sanofi (18%) e Biocon (biossimilares). "
-                "O SUS compra cerca de 60% do volume total via licitações ComprasNet. "
-                "Insulina glargina biossimilar tem crescimento de 45% a.a. — maior oportunidade do segmento. "
-                "ANVISA tem 8 registros ativos para insulinas biossimilares.\n\n"
-                "📊 *Dados completos disponíveis na plataforma PharmaIntel BR.*")
-        elif any(w in q for w in ["mindray", "mindrei"]):
-            raw_text = ("**Mindray no Mercado Brasileiro — Inteligência Competitiva**\n\n"
-                "A Mindray Medical International é o maior fabricante de dispositivos médicos da China e um dos top 3 globais. "
-                "No Brasil, a Mindray compete nos segmentos de monitores multiparamétricos (NCM 9018.19), "
-                "ultrassonografia (NCM 9018.11) e analisadores laboratoriais (NCM 9027.80).\n\n"
-                "📊 **Dados de importação 2024 — Mindray (estimativa Comex Stat):**\n"
-                "- Monitores multiparamétricos (9018.19): US$ 87M importados, China responsável por 43% do mercado\n"
-                "- Ultrassom (9018.11): US$ 124M importados, crescimento +18% vs 2023\n"
-                "- Analisadores lab (9027.80): US$ 156M importados, mercado dominado por Mindray, Sysmex e Abbott\n\n"
-                "🏥 **Compradores públicos (licitações SUS):**\n"
-                "- 1.847 atas de registro de preços ativas para equipamentos hospitalares em 2025\n"
-                "- Preço médio monitor multiparamétrico (licitação): R$ 12.800–R$ 28.500/unidade\n"
-                "- Principais compradores: hospitais federais, HCPA, Albert Einstein, Sírio-Libanês\n\n"
-                "⚡ **Oportunidade identificada:**\n"
-                "Janela de renovação de frotas hospitalares 2025-2027 estimada em R$ 2,1B. "
-                "A PharmaIntel BR mapeia cada licitação ativa com preço de referência e órgão comprador.\n\n"
-                "📊 *Quer ver o relatório completo de monitores multiparamétricos com dados reais do PNCP?*")
-        elif any(w in q for w in ["monitor multiparametrico", "monitor multiparamétrico", "ecg", "eletrocardiografo"]):
-            raw_text = ("**Monitores Multiparamétricos — Mercado Brasileiro**\n\n"
-                "NCM 9018.19 — Eletrocardiógrafos e Monitores. "
-                "Importações 2024: US$ 87M | Crescimento YoY: +12% | Principais fornecedores: China (43%), EUA (31%), Alemanha (18%).\n\n"
-                "**Top fabricantes com registro ANVISA:** Mindray (BeneView T-series), Philips (IntelliVue), GE (CARESCAPE), Drager, Dixtal.\n"
-                "**Preço médio licitação pública (ComprasNet):** R$ 12.800–R$ 28.500/unidade (varia por configuração).\n"
-                "**Atas PNCP vigentes:** 147 atas ativas em 2025 para monitores hospitalares.\n\n"
-                "📊 *A PharmaIntel BR monitora cada licitação ativa e alerta quando há oportunidade para o seu produto.*")
-        elif any(w in q for w in ["dispositivo", "medical", "equipamento", "diagnóstico", "diagnostic", "hospital"]):
-            raw_text = ("**Dispositivos Médicos — Mercado Brasileiro 2024**\n\n"
-                "Importações de dispositivos médicos (Capítulo 90 TEC) atingiram **US$ 2,1B em 2024**. "
-                "Crescimento de 11% vs 2023, impulsionado por expansão de UTIs e renovação de frotas hospitalares.\n\n"
-                "📊 **Top NCMs por volume:**\n"
-                "- 9018.19 Monitores e ECG: US$ 87M (+12%)\n"
-                "- 9018.11 Ultrassom: US$ 124M (+18%)\n"
-                "- 9022.12 Tomografia: US$ 198M (+8%)\n"
-                "- 9027.80 Analisadores lab: US$ 156M (+15%)\n"
-                "- 9019.20 Ventiladores: US$ 94M (+6%)\n\n"
-                "🌍 **Principais países fornecedores:** China (38%), EUA (29%), Alemanha (16%), Japão (8%), Coreia do Sul (5%).\n"
-                "🏥 **Compradores públicos (SUS):** R$ 3,8B em licitações de equipamentos em 2025.\n\n"
-                "📊 *Dados completos por NCM, fabricante e comprador disponíveis na plataforma.*")
-        elif any(w in q for w in ["mercado", "market", "farmacêutico", "pharma", "importa"]):
-            raw_text = ("**Mercado Farmacêutico Brasileiro — Visão Geral 2024**\n\n"
-                "O Brasil importou US$ 8,7B em produtos farmacêuticos em 2024 (Capítulos 30 e 90). "
-                "São 8.500+ importadores ativos com CNPJ registrado no Comex Stat. "
-                "Top países fornecedores: EUA (28%), Alemanha (15%), Suíça (12%), Índia (9%). "
-                "Categorias em maior crescimento: oncológicos (+23%), biológicos (+18%), diagnósticos in vitro (+15%). "
-                "O setor público (SUS) representa 35% das compras via licitações ComprasNet.\n\n"
-                "📊 *Dados completos disponíveis na plataforma PharmaIntel BR.*")
-        else:
-            raw_text = (f"**Análise: {question.strip()}**\n\n"
-                "O mercado farmacêutico brasileiro movimentou US$ 8,7B em importações em 2024. "
-                "Para este produto/segmento, a PharmaIntel BR oferece análise completa incluindo: "
-                "dados reais do Comex Stat (MDIC), registros ANVISA, licitações ComprasNet e inteligência competitiva. "
-                "Os principais importadores brasileiros operam com margens de 15-40% dependendo do segmento. "
-                "Oportunidades identificadas: biossimilares, genéricos e dispositivos de diagnóstico point-of-care.\n\n"
-                "📊 *Para análise específica com dados governamentais reais, acesse a plataforma completa.*")
+        # All providers failed — return empty so caller shows error to user
+        raw_text = ""
 
     # ── Quality Control — if score < 70, request improved response ──────────
     try:
@@ -1193,11 +1124,11 @@ def _page_demo_agent() -> None:
     else:
         # Upgrade wall
         if is_en:
-            unlock_title = "You've seen what's possible."
-            unlock_sub   = "Subscribe now and get unlimited access to the full strategic AI, real import data, ANVISA alerts, patent tracker, competitive intelligence and much more."
+            unlock_title = "You've used your 3 free analyses."
+            unlock_sub   = "PHD Intel.AI is ready to go deeper — subscribe now for unlimited strategic intelligence: real-time Comex Stat data, ANVISA registration alerts, patent tracker, public procurement opportunities, and full competitive intelligence updated daily."
         else:
-            unlock_title = "Você viu o que é possível."
-            unlock_sub   = "Assine agora e tenha acesso ilimitado ao agente IA estratégico completo, dados reais de importação, alertas ANVISA, rastreador de patentes, inteligência competitiva e muito mais."
+            unlock_title = "Você usou suas 3 análises gratuitas."
+            unlock_sub   = "A PHD Intel.AI está pronta para ir mais fundo — assine agora para inteligência estratégica ilimitada: dados Comex Stat em tempo real, alertas de registro ANVISA, rastreador de patentes, oportunidades de licitações públicas e inteligência competitiva completa atualizada diariamente."
 
         st.markdown(f"""
         <div class="upgrade-box">
