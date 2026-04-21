@@ -782,7 +782,7 @@ def _call_demo_ai(question: str, history: list, is_en: bool) -> str:
     groq_key = os.getenv("GROQ_API_KEY", "").strip()
     if groq_key and not raw_text:
         try:
-            raw_text = _openai_compat_call("https://api.groq.com/openai/v1", groq_key, "llama-3.3-70b-versatile", timeout=20)
+            raw_text = _openai_compat_call("https://api.groq.com/openai/v1", groq_key, "llama-3.3-70b-specdec", timeout=20)
         except Exception as exc1:
             logger.warning("Groq demo failed: %s", exc1)
 
@@ -4467,7 +4467,7 @@ Use linguagem executiva, dados precisos dos fornecidos acima. Quando os dados mo
 
         if groq_key:
             try:
-                ai_response = _ai_call("https://api.groq.com/openai/v1", groq_key, "llama-3.3-70b-versatile")
+                ai_response = _ai_call("https://api.groq.com/openai/v1", groq_key, "llama-3.3-70b-specdec")
             except Exception:
                 pass
         if not ai_response and deepseek_key:
