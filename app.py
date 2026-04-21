@@ -829,14 +829,44 @@ def _call_demo_ai(question: str, history: list, is_en: bool) -> str:
                 "Insulina glargina biossimilar tem crescimento de 45% a.a. — maior oportunidade do segmento. "
                 "ANVISA tem 8 registros ativos para insulinas biossimilares.\n\n"
                 "📊 *Dados completos disponíveis na plataforma PharmaIntel BR.*")
-        elif any(w in q for w in ["dispositivo", "medical", "equipamento", "diagnóstico", "diagnostic"]):
-            raw_text = ("**Dispositivos Médicos — Mercado Brasileiro**\n\n"
-                "Importações de dispositivos médicos (Capítulo 90 TEC) atingiram US$ 2,1B em 2024. "
-                "Top NCMs: 9018.90 (instrumentos cirúrgicos), 9022.12 (tomógrafos) e 9027.80 (analisadores). "
-                "EUA, Alemanha e China respondem por 67% das importações. "
-                "Principais importadores: Medtronic Brasil, Johnson & Johnson MedTech, Siemens Healthineers. "
-                "Crescimento projetado de 8% para 2025 impulsionado por expansão hospitalar.\n\n"
-                "📊 *Dados completos disponíveis na plataforma PharmaIntel BR.*")
+        elif any(w in q for w in ["mindray", "mindrei"]):
+            raw_text = ("**Mindray no Mercado Brasileiro — Inteligência Competitiva**\n\n"
+                "A Mindray Medical International é o maior fabricante de dispositivos médicos da China e um dos top 3 globais. "
+                "No Brasil, a Mindray compete nos segmentos de monitores multiparamétricos (NCM 9018.19), "
+                "ultrassonografia (NCM 9018.11) e analisadores laboratoriais (NCM 9027.80).\n\n"
+                "📊 **Dados de importação 2024 — Mindray (estimativa Comex Stat):**\n"
+                "- Monitores multiparamétricos (9018.19): US$ 87M importados, China responsável por 43% do mercado\n"
+                "- Ultrassom (9018.11): US$ 124M importados, crescimento +18% vs 2023\n"
+                "- Analisadores lab (9027.80): US$ 156M importados, mercado dominado por Mindray, Sysmex e Abbott\n\n"
+                "🏥 **Compradores públicos (licitações SUS):**\n"
+                "- 1.847 atas de registro de preços ativas para equipamentos hospitalares em 2025\n"
+                "- Preço médio monitor multiparamétrico (licitação): R$ 12.800–R$ 28.500/unidade\n"
+                "- Principais compradores: hospitais federais, HCPA, Albert Einstein, Sírio-Libanês\n\n"
+                "⚡ **Oportunidade identificada:**\n"
+                "Janela de renovação de frotas hospitalares 2025-2027 estimada em R$ 2,1B. "
+                "A PharmaIntel BR mapeia cada licitação ativa com preço de referência e órgão comprador.\n\n"
+                "📊 *Quer ver o relatório completo de monitores multiparamétricos com dados reais do PNCP?*")
+        elif any(w in q for w in ["monitor multiparametrico", "monitor multiparamétrico", "ecg", "eletrocardiografo"]):
+            raw_text = ("**Monitores Multiparamétricos — Mercado Brasileiro**\n\n"
+                "NCM 9018.19 — Eletrocardiógrafos e Monitores. "
+                "Importações 2024: US$ 87M | Crescimento YoY: +12% | Principais fornecedores: China (43%), EUA (31%), Alemanha (18%).\n\n"
+                "**Top fabricantes com registro ANVISA:** Mindray (BeneView T-series), Philips (IntelliVue), GE (CARESCAPE), Drager, Dixtal.\n"
+                "**Preço médio licitação pública (ComprasNet):** R$ 12.800–R$ 28.500/unidade (varia por configuração).\n"
+                "**Atas PNCP vigentes:** 147 atas ativas em 2025 para monitores hospitalares.\n\n"
+                "📊 *A PharmaIntel BR monitora cada licitação ativa e alerta quando há oportunidade para o seu produto.*")
+        elif any(w in q for w in ["dispositivo", "medical", "equipamento", "diagnóstico", "diagnostic", "hospital"]):
+            raw_text = ("**Dispositivos Médicos — Mercado Brasileiro 2024**\n\n"
+                "Importações de dispositivos médicos (Capítulo 90 TEC) atingiram **US$ 2,1B em 2024**. "
+                "Crescimento de 11% vs 2023, impulsionado por expansão de UTIs e renovação de frotas hospitalares.\n\n"
+                "📊 **Top NCMs por volume:**\n"
+                "- 9018.19 Monitores e ECG: US$ 87M (+12%)\n"
+                "- 9018.11 Ultrassom: US$ 124M (+18%)\n"
+                "- 9022.12 Tomografia: US$ 198M (+8%)\n"
+                "- 9027.80 Analisadores lab: US$ 156M (+15%)\n"
+                "- 9019.20 Ventiladores: US$ 94M (+6%)\n\n"
+                "🌍 **Principais países fornecedores:** China (38%), EUA (29%), Alemanha (16%), Japão (8%), Coreia do Sul (5%).\n"
+                "🏥 **Compradores públicos (SUS):** R$ 3,8B em licitações de equipamentos em 2025.\n\n"
+                "📊 *Dados completos por NCM, fabricante e comprador disponíveis na plataforma.*")
         elif any(w in q for w in ["mercado", "market", "farmacêutico", "pharma", "importa"]):
             raw_text = ("**Mercado Farmacêutico Brasileiro — Visão Geral 2024**\n\n"
                 "O Brasil importou US$ 8,7B em produtos farmacêuticos em 2024 (Capítulos 30 e 90). "
@@ -2097,8 +2127,9 @@ def load_parquet(name: str, year: int) -> pd.DataFrame:
 def demo_imports(year: int = 2024, n: int = 600) -> pd.DataFrame:
     """Generate realistic demo import data when real data is unavailable."""
     rng = np.random.default_rng(42)
-    # Includes all NCMs needed by _MOL_NCM_MAP — each molecule must have data
+    # Capítulo 30 (medicamentos) + Capítulo 90 (dispositivos médicos)
     ncms = [
+        # --- Capítulo 30 — Medicamentos ---
         ("30049099", "Outros medicamentos"),
         ("30049019", "Antibióticos - amoxicilina, azitromicina"),
         ("30043900", "Hormônios - insulina, somatropina"),
@@ -2107,33 +2138,47 @@ def demo_imports(year: int = 2024, n: int = 600) -> pd.DataFrame:
         ("30021520", "Anticorpos monoclonais - trastuzumabe, bevacizumabe, rituximabe"),
         ("30021590", "Outros anticorpos monoclonais - adalimumabe, nivolumabe"),
         ("30021239", "Enoxaparina, heparina e anticoagulantes"),
-        ("30049059", "Antineoplásicos - paclitaxel, docetaxel, atorvastatina"),
+        ("30049059", "Antineoplásicos - paclitaxel, docetaxel"),
         ("30049069", "Imatinibe, ciprofloxacino"),
-        ("30049049", "Omeprazol, inibidores de bomba"),
-        ("30049079", "Antivirais"),
-        ("30049089", "Antineoplásicos orais"),
-        ("30021229", "Heparina sódica"),
+        ("30049049", "Omeprazol, inibidores de bomba de prótons"),
+        ("30049079", "Antivirais - sofosbuvir, remdesivir"),
         ("30041011", "Amoxicilina"),
         ("30041099", "Azitromicina, outros antibióticos"),
         ("30043911", "Somatropina - hormônio do crescimento"),
-        ("30049099", "Metformina, hipoglicemiantes"),
+        # --- Capítulo 90 — Dispositivos Médicos ---
+        ("90181900", "Monitores multiparamétricos - eletrocardiógrafos"),
+        ("90181100", "Aparelhos de ultrassonografia"),
+        ("90221200", "Aparelhos de tomografia computadorizada"),
+        ("90278099", "Analisadores de hematologia e bioquímica"),
+        ("90189099", "Instrumentos e aparelhos para medicina"),
+        ("90192000", "Ventiladores pulmonares e respiradores"),
+        ("90211000", "Implantes ortopédicos - fixadores"),
+        ("90183100", "Seringas com ou sem agulha"),
+        ("90184900", "Instrumentos para odontologia"),
+        ("90278011", "Analisadores de gases sanguíneos"),
+        ("90272000", "Cromatógrafos para análise"),
     ]
-    # Realistic country weights by molecule type
     countries_biologic = ["United States", "Switzerland", "Germany", "France", "Ireland"]
-    countries_generic  = ["India", "China", "Germany", "Brazil", "Italy"]
+    countries_devices  = ["China", "United States", "Germany", "Japan", "South Korea"]
     countries_all      = ["Germany","United States","India","China","Italy","Switzerland","France","Ireland","Belgium","Spain"]
 
     rows = []
-    # Generate bulk random rows
     for i in range(n):
         ncm_entry = ncms[rng.integers(0, len(ncms))]
         co_ncm, ds_ncm = ncm_entry
-        # Biologics have higher FOB value
         is_biologic = co_ncm.startswith("30021")
-        mean_lognorm = 15.5 if is_biologic else 13.0
-        fob = float(rng.lognormal(mean_lognorm, 1.6))
-        kg = fob / rng.uniform(50, 800) if is_biologic else fob / rng.uniform(15, 80)
-        country_pool = countries_biologic if is_biologic else countries_all
+        is_device   = co_ncm.startswith("90")
+        if is_biologic:
+            mean_lognorm, kg_div_lo, kg_div_hi = 15.5, 50, 800
+            country_pool = countries_biologic
+        elif is_device:
+            mean_lognorm, kg_div_lo, kg_div_hi = 14.5, 10, 200
+            country_pool = countries_devices
+        else:
+            mean_lognorm, kg_div_lo, kg_div_hi = 13.0, 15, 80
+            country_pool = countries_all
+        fob = float(rng.lognormal(mean_lognorm, 1.5))
+        kg  = fob / rng.uniform(kg_div_lo, kg_div_hi)
         rows.append({
             "co_ano": year, "co_mes": int(rng.integers(1, 13)),
             "co_ncm": co_ncm, "ds_ncm": ds_ncm,
@@ -2145,7 +2190,7 @@ def demo_imports(year: int = 2024, n: int = 600) -> pd.DataFrame:
             "anvisa_ativo": bool(rng.random() > 0.15),
         })
 
-    # Guarantee at least 10 rows for each key molecule NCM
+    # Guarantee 12+ rows per key NCM (1 per month pattern)
     guaranteed = [
         ("30021520", "Anticorpos monoclonais - trastuzumabe, bevacizumabe",
          ["United States","Switzerland","Germany"], 16.5, 100, 600),
@@ -2161,6 +2206,17 @@ def demo_imports(year: int = 2024, n: int = 600) -> pd.DataFrame:
          ["India","China","Germany"], 13.0, 20, 100),
         ("30041011", "Amoxicilina",
          ["India","China","Germany"], 11.0, 5, 30),
+        # Dispositivos médicos — garantidos para demo Mindray
+        ("90181900", "Monitores multiparamétricos, eletrocardiógrafos, Mindray, Philips",
+         ["China","United States","Germany"], 14.5, 10, 80),
+        ("90181100", "Aparelhos de ultrassonografia - Mindray, GE, Siemens",
+         ["China","United States","Germany"], 15.0, 20, 150),
+        ("90221200", "Tomografia computadorizada - Siemens, GE, Philips",
+         ["Germany","United States","Japan"], 17.0, 50, 500),
+        ("90278099", "Analisadores hematologia/bioquímica - Mindray, Sysmex, Abbott",
+         ["China","Japan","United States"], 14.0, 5, 50),
+        ("90192000", "Ventiladores pulmonares - Mindray, Draeger, Hamilton",
+         ["China","Germany","Switzerland"], 15.5, 15, 100),
     ]
     for co_ncm, ds_ncm, ctries, mean_ln, kg_min, kg_max in guaranteed:
         for _ in range(12):  # 12 rows = 1 per month
@@ -4033,6 +4089,18 @@ def _page_relatorio_estrategico(_year: int = 2025) -> None:
         "carboplatina":   {"ncms": ["30049059"], "keywords": ["carboplatina","carboplatin"]},
         "oxaliplatina":   {"ncms": ["30049059"], "keywords": ["oxaliplatina","oxaliplatin"]},
         "imunoglobulina": {"ncms": ["30021590"], "keywords": ["imunoglobulina","immunoglobulin"]},
+        # --- Dispositivos Médicos (Capítulo 90) ---
+        "monitor multiparametrico": {"ncms": ["90181900"], "keywords": ["monitor","multiparametrico","eletrocardio","mindray","philips","ecg"]},
+        "monitor":        {"ncms": ["90181900"], "keywords": ["monitor","multiparametrico","eletrocardio"]},
+        "ultrassom":      {"ncms": ["90181100"], "keywords": ["ultrassom","ultrassonografia","ecografia","mindray","ge","siemens"]},
+        "tomografia":     {"ncms": ["90221200"], "keywords": ["tomografia","tomografo","ct scan","siemens","ge"]},
+        "analisador":     {"ncms": ["90278099"], "keywords": ["analisador","hematologia","bioquimica","mindray","sysmex","abbott"]},
+        "hematologia":    {"ncms": ["90278099"], "keywords": ["hematologia","hemograma","analisador","mindray","sysmex"]},
+        "ventilador":     {"ncms": ["90192000"], "keywords": ["ventilador","respirador","vmi","mindray","draeger"]},
+        "bisturi":        {"ncms": ["90189099"], "keywords": ["bisturi","eletrocirurgico","cirurgico"]},
+        "seringa":        {"ncms": ["90183100"], "keywords": ["seringa","agulha","injecao"]},
+        "desfibrilador":  {"ncms": ["90181900"], "keywords": ["desfibrilador","dea","cardioversor"]},
+        "mindray":        {"ncms": ["90181900","90181100","90278099","90192000"], "keywords": ["mindray","monitor","ultrassom","analisador","ventilador"]},
     }
 
     # ── Fuzzy molecule name correction ───────────────────────────────────────
@@ -4049,6 +4117,14 @@ def _page_relatorio_estrategico(_year: int = 2025) -> None:
         "paclitaxel": "paclitaxel",     "imatinib": "imatinibe",
         "carboplatin": "carboplatina",  "oxaliplatin": "oxaliplatina",
         "immunoglobulin": "imunoglobulina",
+        # Medical devices
+        "patient monitor": "monitor multiparametrico",
+        "multiparameter monitor": "monitor multiparametrico",
+        "monitor multiparametrico": "monitor multiparametrico",
+        "ultrasound": "ultrassom",
+        "hematology analyzer": "hematologia",
+        "biochemistry analyzer": "analisador",
+        "ventilator": "ventilador",
     }
 
     # Extract molecule from question if needed
