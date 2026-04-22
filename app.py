@@ -2912,18 +2912,55 @@ def page_empresas(year: int) -> None:
     # ── Tab 4: Company search ──────────────────────────────────────────────
     with tab4:
         st.markdown('<div class="section-title">Buscar Empresa</div>', unsafe_allow_html=True)
-        query = st.text_input("Nome ou parte do nome da empresa (mín. 3 caracteres):", placeholder="Ex: SANOFI, PFIZER, EMS...")
+        query = st.text_input("Nome ou parte do nome da empresa (mín. 3 caracteres):", placeholder="Ex: SANOFI, PFIZER, EMS, MINDRAY...")
 
         if query and len(query) >= 3:
-            mask = emp_df["razao_social"].str.upper().str.contains(query.upper(), na=False)
-            results = emp_df[mask].copy()
+            q_upper = query.upper()
+
+            # Busca em medicamentos (emp_df)
+            mask_med = emp_df["razao_social"].str.upper().str.contains(q_upper, na=False)
+            results = emp_df[mask_med].copy()
+            results["_fonte"] = "Medicamentos"
+
+            # Busca também em dispositivos médicos (anvisa_dispositivos)
+            disp_path = PROCESSED_DIR_LOCAL / "anvisa_dispositivos.parquet"
+            if disp_path.exists():
+                try:
+                    disp_df = pd.read_parquet(disp_path, columns=["no_razao_social_empresa", "nu_cnpj_empresa",
+                                                                     "no_produto", "co_situacao_assunto_doc"])
+                    mask_disp = disp_df["no_razao_social_empresa"].str.upper().str.contains(q_upper, na=False)
+                    disp_results = disp_df[mask_disp].copy()
+                    if not disp_results.empty:
+                        disp_summary = (
+                            disp_results.groupby("no_razao_social_empresa")
+                            .agg(
+                                cnpj=("nu_cnpj_empresa", "first"),
+                                total_registros=("no_produto", "count"),
+                                registros_ativos=("co_situacao_assunto_doc", lambda x: (x == "Publicado deferimento").sum()),
+                            )
+                            .reset_index()
+                            .rename(columns={"no_razao_social_empresa": "razao_social"})
+                        )
+                        disp_summary["cnpj_fmt"] = disp_summary["cnpj"].astype(str).str.zfill(14).apply(
+                            lambda c: f"{c[:2]}.{c[2:5]}.{c[5:8]}/{c[8:12]}-{c[12:]}" if len(c) == 14 else c
+                        )
+                        disp_summary["pct_conformidade"] = (
+                            disp_summary["registros_ativos"] / disp_summary["total_registros"] * 100
+                        ).round(1)
+                        disp_summary["alertas_vencendo"] = 0
+                        disp_summary["_fonte"] = "Dispositivos Médicos"
+                        results = pd.concat([results, disp_summary], ignore_index=True)
+                except Exception:
+                    pass
 
             if results.empty:
                 st.warning(f"Nenhuma empresa encontrada para '{query}'.")
             else:
                 st.caption(f"{len(results)} empresa(s) encontrada(s)")
-                for _, row in results.head(5).iterrows():
-                    with st.expander(f"**{row['razao_social']}** — CNPJ: {row.get('cnpj_fmt', 'N/D')}"):
+                for _, row in results.head(10).iterrows():
+                    fonte = row.get("_fonte", "")
+                    fonte_label = f" · {fonte}" if fonte else ""
+                    with st.expander(f"**{row['razao_social']}** — CNPJ: {row.get('cnpj_fmt', 'N/D')}{fonte_label}"):
                         mc1, mc2, mc3 = st.columns(3)
                         mc1.metric("Registros Ativos",   int(row.get("registros_ativos", 0)))
                         mc2.metric("Conformidade",        f"{row.get('pct_conformidade', 0):.1f}%")
