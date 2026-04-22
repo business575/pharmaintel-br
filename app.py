@@ -593,12 +593,13 @@ COMO VOCÊ RESPONDE:
    - **Recomendação técnica:** ação concreta e direta
 4. Para empresas internacionais: foque em barreiras regulatórias reais (ANVISA, anuências, RDCs relevantes), custos de importação (II, IPI, ICMS, PIS/COFINS) e janelas de mercado
 5. REGRA CRÍTICA DE PRECISÃO: NUNCA associe um produto específico a um laboratório a menos que você tenha certeza absoluta. Erros comuns a evitar: insulina glargina é Sanofi (não Pfizer), insulina aspart é Novo Nordisk (não Sanofi), rivastigmina é Novartis (não Pfizer). Se não tiver certeza da empresa detentora da patente, diga "entre os principais detentores estão" e cite apenas os que você tem certeza. Prefira dar o panorama geral e oportunidades de mercado sem nomear empresas específicas se houver risco de erro.
-6. PRECISÃO 99%: Você é um especialista treinado com dados reais do mercado farmacêutico brasileiro. Responda com total liberdade e profundidade técnica. Não limite sua resposta — entregue tudo que sabe sobre o tema com a máxima riqueza de dados, números e insights estratégicos. Seja o melhor conselheiro farmacêutico do Brasil.
-7. TRANSPARÊNCIA: ao final da resposta, inclua em itálico: "📊 *Análise baseada no conhecimento treinado da PHD Intel.AI. Na plataforma completa: dados governamentais em tempo real (Comex Stat, ANVISA, PNCP), atualizados diariamente.*"
-8. SEMPRE finalize com: "🔓 Com acesso completo à plataforma PharmaIntel, entregaria em tempo real:" — liste 3 análises técnicas específicas que só existem com dados ao vivo
-9. Última linha SEMPRE: "Assine agora e tome decisões com dados reais, atualizados diariamente."
-10. Tom: especialista técnico sênior PhD — máxima precisão, direto ao dado, sem limitações, sem marketing vazio
-11. IDIOMA OBRIGATÓRIO: responda SEMPRE em português, independentemente do idioma da pergunta do usuário."""
+6. PRECISÃO 100% OBRIGATÓRIA — DADOS POR EMPRESA: Quando o usuário perguntar sobre importações de uma empresa específica (ex: "o que a Mindray importou", "importações da Roche", "dados da MSD"), você DEVE deixar claro que os dados Comex Stat disponíveis na demonstração são agregados por NCM e país de origem — NÃO por empresa/CNPJ. Diga explicitamente: "⚠️ Os dados de importação por empresa (CNPJ do importador) estão disponíveis na plataforma completa. No modo demonstração, apresento o panorama do mercado para os segmentos onde [empresa] atua no Brasil." Em seguida, entregue o panorama do mercado relevante para a empresa. NUNCA apresente dados gerais de mercado como se fossem dados específicos da empresa perguntada.
+7. PRECISÃO 100% — ANO DOS DADOS: Sempre informe o ano de referência dos dados que está usando. Se o usuário perguntar sobre 2025 e você tiver apenas dados de 2024, diga claramente: "Os dados mais recentes disponíveis são de 2024. Para 2025 em tempo real, acesse a plataforma completa." NUNCA misture anos sem avisar.
+8. TRANSPARÊNCIA: ao final da resposta, inclua em itálico: "📊 *Análise baseada no conhecimento treinado da PHD Intel.AI. Na plataforma completa: dados governamentais em tempo real (Comex Stat, ANVISA, PNCP), atualizados diariamente.*"
+9. SEMPRE finalize com: "🔓 Com acesso completo à plataforma PharmaIntel, entregaria em tempo real:" — liste 3 análises técnicas específicas que só existem com dados ao vivo
+10. Última linha SEMPRE: "Assine agora e tome decisões com dados reais, atualizados diariamente."
+11. Tom: especialista técnico sênior PhD — máxima precisão, direto ao dado, sem limitações, sem marketing vazio
+12. IDIOMA OBRIGATÓRIO: responda SEMPRE em português, independentemente do idioma da pergunta do usuário."""
 
 _DEMO_SYSTEM_EN = """You are PharmaIntel AI — the most advanced strategic advisor for the Brazilian pharmaceutical market. You combine the precision of a PhD in health economics with the executive vision of a CEO with 25 years in the industry. Your mission is to transform complex data into strategic decisions that move companies forward.
 
@@ -846,8 +847,14 @@ def _phd_knowledge_response(question: str, is_en: bool) -> str:
     if any(w in q for w in ["oncol", "oncolog", "cancer", "câncer", "tumor", "quimio", "imunoterapia",
                              "trastuzumabe", "bevacizumabe", "rituximabe", "pembrolizumabe", "nivolumabe",
                              "carboplatina", "oxaliplatina", "imatinibe", "erlotinibe", "palbociclib"]):
+        company_query = any(w in q for w in ["roche", "msd", "merck", "bristol", "astrazeneca", "pfizer", "novartis",
+                                               "importações da", "importou a", "o que a", "dados da", "histórico da"])
         return (
-            "**Oncológicos — Mercado Brasileiro 2024**\n\n"
+            ("⚠️ **Dados de importação por empresa (CNPJ) estão disponíveis na plataforma completa.**\n"
+             "No modo demonstração, apresento o panorama do mercado oncológico brasileiro — "
+             "com os principais players e preços de referência.\n\n"
+             if company_query else "") +
+            "**Oncológicos — Mercado Brasileiro (referência 2024)**\n\n"
             "**Panorama:** O Brasil importou ~US$ 1,4B em oncológicos em 2024 (NCMs 3002.13, 3002.15, 3004.90). "
             "O mercado oncológico é o maior segmento de importação farmacêutica, crescendo +23% vs 2023, "
             "impulsionado por biossimilares e imunoterápicos aprovados pela ANVISA.\n\n"
@@ -908,29 +915,36 @@ def _phd_knowledge_response(question: str, is_en: bool) -> str:
     if any(w in q for w in ["mindray", "monitor", "ultrassom", "ventilador", "analisador",
                              "dispositivo", "equipamento", "medical device", "capítulo 90", "chapter 90",
                              "hematologia", "ecg", "eletrocardiogr"]):
+        mindray_specific = "mindray" in q
         return (
-            "**Dispositivos Médicos — Mercado Brasileiro 2024**\n\n"
+            ("⚠️ **Dados de importação por empresa (CNPJ) estão disponíveis na plataforma completa.**\n"
+             "No modo demonstração, apresento o panorama do mercado de dispositivos médicos no Brasil — "
+             "segmento onde a Mindray é um dos principais players.\n\n"
+             if mindray_specific else "") +
+            "**Dispositivos Médicos — Mercado Brasileiro (referência 2024)**\n\n"
             "**Panorama:** Importações do Capítulo 90 (dispositivos e equipamentos médicos) atingiram "
-            "**US$ 2,1B em 2024**, crescimento +11% vs 2023. China lidera fornecimentos com 38% de participação.\n\n"
-            "**Top segmentos e fabricantes com moléculas/produtos exclusivos:**\n"
-            "| NCM | Segmento | Valor 2024 | Top fabricante |\n"
+            "**US$ 2,1B em 2024**, crescimento +11% vs 2023. China lidera com 38% de participação.\n\n"
+            "**Top segmentos — valor importado e principais fabricantes (2024):**\n"
+            "| NCM | Segmento | Valor 2024 | Principais fabricantes |\n"
             "|---|---|---|---|\n"
             "| 90181900 | Monitores multiparamétricos e ECG | US$ 87M (+12%) | Mindray, Philips, GE |\n"
             "| 90181100 | Ultrassom diagnóstico | US$ 124M (+18%) | Mindray, GE, Siemens |\n"
             "| 90221200 | Tomografia computadorizada | US$ 198M (+8%) | Siemens, GE, Canon |\n"
             "| 90278099 | Analisadores hematológicos/bioquímicos | US$ 156M (+15%) | Mindray, Sysmex, Abbott |\n"
             "| 90192000 | Ventiladores mecânicos | US$ 94M (+6%) | Mindray, Draeger, Hamilton |\n\n"
-            "**Mindray no Brasil:**\n"
-            "Maior fabricante de dispositivos médicos da China, top 3 global. No Brasil compete em "
-            "monitores (BeneView T-series, ePM-series), ultrassom (Resona, DC-series), "
-            "analisadores hematológicos (BC-series) e ventiladores (SV-series).\n"
-            "Preços de licitação pública: Monitor R$ 12.800–R$ 28.500 | Ventilador R$ 45.000–R$ 98.000\n\n"
-            "**Compradores públicos (SUS 2025):**\n"
+            "**Mindray no Brasil (perfil de mercado):**\n"
+            "Top 3 global em dispositivos médicos. Presente nos segmentos de monitores (BeneView T-series, ePM-series), "
+            "ultrassom (Resona, DC-series), analisadores hematológicos (BC-series) e ventiladores (SV-series).\n"
+            "Preços de referência em licitações públicas: Monitor R$ 12.800–R$ 28.500 | Ventilador R$ 45.000–R$ 98.000\n\n"
+            "**Mercado público (SUS — referência 2024/2025):**\n"
             "R$ 3,8B em licitações de equipamentos hospitalares. "
             "1.847 atas de registro de preços ativas no PNCP para equipamentos médicos.\n\n"
-            "*📊 Análise baseada no conhecimento treinado da PHD Intel.AI. Na plataforma completa: dados reais atualizados diariamente.*\n\n"
-            "🔓 **Com acesso completo:** todas as atas PNCP vigentes com preço unitário e órgão comprador, "
-            "ranking de importadores por NCM, alertas de licitações abertas por categoria.\n\n"
+            "*📊 Análise baseada no conhecimento treinado da PHD Intel.AI — referência 2024. "
+            "Na plataforma completa: importações por CNPJ em tempo real, NCMs detalhados por empresa, atualizados diariamente.*\n\n"
+            "🔓 **Com acesso completo à plataforma PharmaIntel, entregaria em tempo real:**\n"
+            "1. Volume e valor exato importado pela Mindray Brasil por NCM em 2025 (Comex Stat por CNPJ)\n"
+            "2. Todas as atas PNCP vigentes com preço unitário, órgão comprador e validade\n"
+            "3. Alertas de licitações abertas por categoria de equipamento com prazo de participação\n\n"
             "Assine agora e tome decisões com dados reais, atualizados diariamente."
         )
 
