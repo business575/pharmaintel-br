@@ -958,6 +958,8 @@ class ToolExecutor:
                 .reset_index()
                 .sort_values("vl_fob_usd", ascending=False)
             )
+            total = df["vl_fob_usd"].sum()
+            df["participacao_pct"] = (df["vl_fob_usd"] / total * 100).round(2) if total > 0 else 0.0
         if min_risk > 0 and "risco_regulatorio" in df.columns:
             df = df[df["risco_regulatorio"] >= min_risk]
         rows = []
