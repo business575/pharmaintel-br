@@ -107,15 +107,8 @@ def _start_patent_scheduler() -> None:
 # _start_patent_scheduler()
 
 # Telegram bot — starts once via cache_resource
-@st.cache_resource
-def _init_telegram():
-    try:
-        from src.integrations.telegram_bot import start_bot as _start_telegram
-        _start_telegram()
-    except Exception as _tg_exc:
-        logger.warning("Telegram bot not started: %s", _tg_exc)
-
-_init_telegram()
+# Telegram bot disabled to save memory on 512MB tier
+# _init_telegram()
 
 PROCESSED_DIR = ROOT / "data" / "processed"
 PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
@@ -2926,6 +2919,7 @@ def page_empresas(year: int) -> None:
             disp_path = PROCESSED_DIR_LOCAL / "anvisa_dispositivos.parquet"
             if disp_path.exists():
                 try:
+                    import gc
                     disp_df = pd.read_parquet(disp_path, columns=["no_razao_social_empresa", "nu_cnpj_empresa",
                                                                      "no_produto", "co_situacao_assunto_doc"])
                     mask_disp = disp_df["no_razao_social_empresa"].str.upper().str.contains(q_upper, na=False)
@@ -2950,6 +2944,8 @@ def page_empresas(year: int) -> None:
                         disp_summary["alertas_vencendo"] = 0
                         disp_summary["_fonte"] = "Dispositivos Médicos"
                         results = pd.concat([results, disp_summary], ignore_index=True)
+                    del disp_df
+                    gc.collect()
                 except Exception:
                     pass
 

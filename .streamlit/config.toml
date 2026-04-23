@@ -2,6 +2,14 @@
 headless = true
 enableCORS = false
 enableXsrfProtection = false
+maxUploadSize = 10
+maxMessageSize = 50
+
+[runner]
+fastReruns = true
+
+[client]
+showErrorDetails = false
 
 [browser]
 gatherUsageStats = false
