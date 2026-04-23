@@ -2993,7 +2993,7 @@ def page_etl(year: int) -> None:
 
     col1, col2, col3 = st.columns([1, 1, 2])
     with col1:
-        run_year = st.selectbox("Ano", [2026, 2025, 2024, 2023, 2022], index=1)
+        run_year = st.selectbox("Ano", [2026, 2025, 2024, 2023, 2022], index=0)
     with col2:
         force = st.checkbox("Forçar re-download", value=False)
     with col3:
@@ -3794,7 +3794,7 @@ def sidebar() -> tuple[str, int]:
         st.session_state["page_key"] = page_key
 
         st.markdown("<hr style='border-color:#1E3A5F;'>", unsafe_allow_html=True)
-        year = st.selectbox(_t("year_label"), [2026, 2025, 2024, 2023, 2022], index=1)
+        year = st.selectbox(_t("year_label"), [2026, 2025, 2024, 2023, 2022], index=0)
 
         # Data status
         st.markdown(f'<p style="color:#8899AA; font-size:0.75rem; margin:0.5rem 0 0.25rem;">{_t("data_status")}</p>', unsafe_allow_html=True)
