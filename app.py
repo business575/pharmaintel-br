@@ -4695,6 +4695,7 @@ TAM estimado: US$ {max(total_fob * 3, 50_000_000):,.0f}. Crescimento projetado 2
                 self.cell(0, 6, f"Dados: Comex Stat/MDIC, ANVISA, INPI  |  Pagina {self.page_no()}  |  © PharmaIntel BR", align="C")
 
         pdf = _PDF()
+        pdf.set_margins(10, 10, 10)
         pdf.set_auto_page_break(auto=True, margin=15)
         pdf.add_page()
 
@@ -4734,8 +4735,9 @@ TAM estimado: US$ {max(total_fob * 3, 50_000_000):,.0f}. Crescimento projetado 2
         pdf.ln(8)
 
         # Report body — parse markdown to PDF
+        pdf.set_x(pdf.l_margin)
         pdf.set_text_color(226, 234, 244)
-        pdf.set_fill_color(10, 22, 40)
+        pdf.set_fill_color(255, 255, 255)
 
         def _clean_for_pdf(text: str) -> str:
             """Remove markdown e normaliza texto para latin-1 (fpdf2 core fonts)."""
@@ -4771,21 +4773,24 @@ TAM estimado: US$ {max(total_fob * 3, 50_000_000):,.0f}. Crescimento projetado 2
             t = t.encode("latin-1", "replace").decode("latin-1")
             return t
 
+        eff_w = pdf.w - pdf.l_margin - pdf.r_margin
         for line in ai_response.split("\n"):
             clean = _clean_for_pdf(line)
-            if clean.startswith("## ") or clean.startswith("# "):
-                pdf.set_font("Helvetica", "B", 12)
-                pdf.set_text_color(0, 137, 123)
-                pdf.multi_cell(0, 7, clean.lstrip("# ").strip())
-                pdf.set_text_color(226, 234, 244)
-            elif clean.startswith("**") or (_re.match(r"^\d+\.\s+\*\*", line)):
-                pdf.set_font("Helvetica", "B", 10)
-                pdf.multi_cell(0, 6, clean.strip())
-            elif clean.strip() == "" or clean.strip() == "---":
+            if not clean.strip():
                 pdf.ln(3)
+                continue
+            pdf.set_x(pdf.l_margin)
+            if _re.match(r"^\d+\.\s+[A-Z]", clean) or clean.startswith("##"):
+                pdf.set_font("Helvetica", "B", 10)
+                pdf.set_text_color(0, 137, 123)
+                pdf.multi_cell(eff_w, 6, clean.lstrip("# ").strip())
+                pdf.set_text_color(0, 0, 0)
+            elif clean.strip() == "---":
+                pdf.ln(2)
             else:
                 pdf.set_font("Helvetica", "", 9)
-                pdf.multi_cell(0, 5, clean.strip())
+                pdf.set_text_color(0, 0, 0)
+                pdf.multi_cell(eff_w, 5, clean.strip())
 
         pdf_bytes = bytes(pdf.output())
 
