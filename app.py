@@ -4653,7 +4653,6 @@ Proximos passos concretos:
 ---
 
 Relatorio gerado por PHD Intel.AI | PharmaIntel BR | pharmaceuticaai.com
-Dados: Comex Stat/MDIC, ANVISA, PNCP — atualizados diariamente.
 Para inteligencia estrategica continua: pharmaceuticaai.com"""
             else:
                 ai_response = f"""## Relatorio Estrategico — {molecule.title()}
@@ -4751,7 +4750,7 @@ TAM estimado: US$ {max(total_fob * 3, 50_000_000):,.0f}. Crescimento projetado 2
                 self.set_y(-12)
                 self.set_font("Helvetica", "I", 7)
                 self.set_text_color(136, 153, 170)
-                self.cell(0, 6, f"Dados: Comex Stat/MDIC, ANVISA, INPI  |  Pagina {self.page_no()}  |  © PharmaIntel BR", align="C")
+                self.cell(0, 6, f"PHD Intel.AI | PharmaIntel BR | pharmaceuticaai.com  |  Pagina {self.page_no()}", align="C")
 
         pdf = _PDF()
         pdf.set_margins(10, 10, 10)
