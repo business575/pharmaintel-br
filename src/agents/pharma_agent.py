@@ -937,12 +937,17 @@ class ToolExecutor:
                 "ncms_distintos": int(df["co_ncm"].nunique()) if "co_ncm" in df.columns else 0,
             }
         row = kpis.iloc[0]
+        # suporta dois formatos de coluna (ETL legado vs atual)
+        fob = float(row.get("total_vl_fob_usd", row.get("total_fob_usd", 0)))
+        brl = float(row.get("total_vl_fob_brl", fob * 5.70))
+        ops = int(row.get("total_operacoes", row.get("n_pais", 0)))
+        ncms = int(row.get("ncms_distintos", row.get("n_ncm", 0)))
         return {
             "ano": yr,
-            "total_fob_usd": _fmt_usd(float(row.get("total_vl_fob_usd", 0))),
-            "total_fob_brl": f"R$ {float(row.get('total_vl_fob_brl', 0))/1e9:.1f}B",
-            "total_operacoes": int(row.get("total_operacoes", 0)),
-            "ncms_distintos": int(row.get("ncms_distintos", 0)),
+            "total_fob_usd": _fmt_usd(fob),
+            "total_fob_brl": f"R$ {brl/1e9:.1f}B",
+            "total_operacoes": ops,
+            "ncms_distintos": ncms,
         }
 
     def _tool_get_top_ncm(self, top_n: int = 10, min_risk: float = 0.0) -> dict:
