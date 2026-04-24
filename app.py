@@ -4300,7 +4300,7 @@ def _page_relatorio_estrategico(_year: int = 2025) -> None:
         preco_venda_farmacia_brl_kg = preco_cif_brl_kg * fator_canal_farmacia
         preco_venda_hospital_brl_kg = preco_cif_brl_kg * fator_canal_hospital
 
-        # ── 2. ANVISA data ────────────────────────────────────────────────
+        # ── 2. ANVISA data — busca em medicamentos E dispositivos ────────────
         anvisa_count = 0
         anvisa_sample = []
         try:
@@ -4316,6 +4316,22 @@ def _page_relatorio_estrategico(_year: int = 2025) -> None:
                         break
         except Exception:
             pass
+        # Se não encontrou em medicamentos, busca em dispositivos médicos
+        if anvisa_count == 0:
+            try:
+                disp_path = PROCESSED_DIR / "anvisa_dispositivos.parquet"
+                if disp_path.exists():
+                    import gc
+                    df_disp = pd.read_parquet(disp_path, columns=["no_razao_social_empresa", "no_produto", "co_situacao_assunto_doc"])
+                    for col in ["no_razao_social_empresa", "no_produto"]:
+                        hit = df_disp[df_disp[col].str.lower().str.contains(mol_lower, na=False)]
+                        if not hit.empty:
+                            anvisa_count = len(hit)
+                            break
+                    del df_disp
+                    gc.collect()
+            except Exception:
+                pass
 
         # ── 3. Patent data ────────────────────────────────────────────────
         patent_info = []
@@ -4663,7 +4679,7 @@ TAM estimado: US$ {max(total_fob * 3, 50_000_000):,.0f}. Crescimento projetado 2
             def header(self):
                 self.set_font("Helvetica", "B", 11)
                 self.set_text_color(0, 137, 123)
-                self.cell(0, 8, "PharmaIntel BR — pharmaceuticaai.com", align="L")
+                self.cell(0, 8, "PharmaIntel BR | pharmaceuticaai.com", align="L")
                 self.set_font("Helvetica", "", 8)
                 self.set_text_color(136, 153, 170)
                 self.cell(0, 8, f"PHD Intel.AI  |  {pd.Timestamp.now().strftime('%d/%m/%Y %H:%M')}", align="R")
