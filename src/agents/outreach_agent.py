@@ -244,23 +244,50 @@ Tom: executivo, direto, sem enrolar. Apenas os parágrafos em HTML (<p> tags).""
 # ---------------------------------------------------------------------------
 
 def _send_outreach_email(to_email: str, subject: str, html_body: str) -> bool:
-    """Send via Resend. Returns True on success."""
-    try:
-        import resend
-        resend.api_key = os.getenv("RESEND_API_KEY", "")
-        if not resend.api_key:
-            logger.error("RESEND_API_KEY not set")
-            return False
-        resend.Emails.send({
-            "from": RESEND_FROM,
-            "to": [to_email],
-            "subject": subject,
-            "html": html_body,
-        })
-        return True
-    except Exception as exc:
-        logger.error("Send outreach email failed: %s", exc)
-        return False
+    """Send via Brevo (primary) or Resend (fallback). Returns True on success."""
+    # ── Brevo (primary) ──────────────────────────────────────────────────────
+    brevo_key = os.getenv("BREVO_API_KEY", "")
+    if brevo_key:
+        try:
+            import httpx as _httpx
+            sender_name, sender_email = RESEND_FROM.split("<")
+            sender_email = sender_email.rstrip(">").strip()
+            sender_name  = sender_name.strip()
+            r = _httpx.post(
+                "https://api.brevo.com/v3/smtp/email",
+                headers={"api-key": brevo_key, "Content-Type": "application/json"},
+                json={
+                    "sender":   {"name": sender_name, "email": sender_email},
+                    "to":       [{"email": to_email}],
+                    "subject":  subject,
+                    "htmlContent": html_body,
+                },
+                timeout=15,
+            )
+            if r.status_code in (200, 201):
+                return True
+            logger.warning("Brevo error %s: %s", r.status_code, r.text[:200])
+        except Exception as exc:
+            logger.warning("Brevo send failed: %s", exc)
+
+    # ── Resend (fallback) ────────────────────────────────────────────────────
+    resend_key = os.getenv("RESEND_API_KEY", "")
+    if resend_key:
+        try:
+            import resend as _resend
+            _resend.api_key = resend_key
+            _resend.Emails.send({
+                "from": RESEND_FROM,
+                "to": [to_email],
+                "subject": subject,
+                "html": html_body,
+            })
+            return True
+        except Exception as exc:
+            logger.error("Resend send failed: %s", exc)
+
+    logger.error("Nenhum provedor de email configurado (BREVO_API_KEY ou RESEND_API_KEY)")
+    return False
 
 
 # ---------------------------------------------------------------------------

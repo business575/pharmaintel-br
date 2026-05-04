@@ -215,11 +215,7 @@ para o perfil de vocês. Quando teria disponibilidade esta semana?</p>"""
 # ---------------------------------------------------------------------------
 
 def _send_email(to_email: str, empresa: str, body_html: str) -> bool:
-    """Envia email via Resend."""
-    if not RESEND_KEY:
-        logger.warning("RESEND_API_KEY não configurado")
-        return False
-
+    """Envia email via Brevo (primário) ou Resend (fallback)."""
     html = f"""
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
   <div style="background:#0A1628;padding:20px;border-radius:8px 8px 0 0;">
@@ -229,9 +225,9 @@ def _send_email(to_email: str, empresa: str, body_html: str) -> bool:
   <div style="background:#ffffff;padding:28px;border:1px solid #e0e0e0;">
     {body_html}
     <div style="margin:24px 0;text-align:center;">
-      <a href="{DEMO_URL}" style="background:#4DB6AC;color:#fff;padding:12px 28px;
+      <a href="https://calendly.com/vinicius-hospitalar/30min" style="background:#4DB6AC;color:#fff;padding:12px 28px;
          border-radius:6px;text-decoration:none;font-weight:700;">
-        Acessar Plataforma Demo →
+        Agendar conversa de 30 min →
       </a>
     </div>
     <hr style="border:none;border-top:1px solid #eee;margin:20px 0;">
@@ -244,23 +240,49 @@ def _send_email(to_email: str, empresa: str, body_html: str) -> bool:
   </div>
 </div>"""
 
-    try:
-        r = httpx.post(
-            "https://api.resend.com/emails",
-            headers={"Authorization": f"Bearer {RESEND_KEY}", "Content-Type": "application/json"},
-            json={
-                "from": FROM_EMAIL,
-                "reply_to": "business@globalhealthcareaccess.com",
-                "to": [to_email],
-                "subject": f"Inteligência de mercado para {empresa} — PharmaIntel BR",
-                "html": html,
-            },
-            timeout=15,
-        )
-        return r.status_code in (200, 201)
-    except Exception as e:
-        logger.error(f"Resend error: {e}")
-        return False
+    # ── Brevo (primário) ─────────────────────────────────────────────────────
+    brevo_key = os.getenv("BREVO_API_KEY", "")
+    if brevo_key:
+        try:
+            r = httpx.post(
+                "https://api.brevo.com/v3/smtp/email",
+                headers={"api-key": brevo_key, "Content-Type": "application/json"},
+                json={
+                    "sender":      {"name": "Vinicius Figueiredo", "email": "business@globalhealthcareaccess.com"},
+                    "to":          [{"email": to_email}],
+                    "replyTo":     {"email": "business@globalhealthcareaccess.com"},
+                    "subject":     f"Inteligência de mercado para {empresa} — PharmaIntel BR",
+                    "htmlContent": html,
+                },
+                timeout=15,
+            )
+            if r.status_code in (200, 201):
+                return True
+            logger.warning("Brevo error %s: %s", r.status_code, r.text[:200])
+        except Exception as e:
+            logger.warning(f"Brevo error: {e}")
+
+    # ── Resend (fallback) ────────────────────────────────────────────────────
+    if RESEND_KEY:
+        try:
+            r = httpx.post(
+                "https://api.resend.com/emails",
+                headers={"Authorization": f"Bearer {RESEND_KEY}", "Content-Type": "application/json"},
+                json={
+                    "from":     FROM_EMAIL,
+                    "reply_to": "business@globalhealthcareaccess.com",
+                    "to":       [to_email],
+                    "subject":  f"Inteligência de mercado para {empresa} — PharmaIntel BR",
+                    "html":     html,
+                },
+                timeout=15,
+            )
+            return r.status_code in (200, 201)
+        except Exception as e:
+            logger.error(f"Resend error: {e}")
+
+    logger.error("Nenhum provedor configurado (BREVO_API_KEY ou RESEND_API_KEY)")
+    return False
 
 
 # ---------------------------------------------------------------------------
