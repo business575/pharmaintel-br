@@ -14,9 +14,10 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-RESEND_FROM = "PharmaIntel BR <onboarding@resend.dev>"
-DEMO_URL    = "https://pharmaintel-br.onrender.com"
-DAILY_LIMIT = 20
+RESEND_FROM  = "PharmaIntel BR <business@globalhealthcareaccess.com>"
+DEMO_URL     = "https://pharmaintel-br.onrender.com"
+CALENDLY_URL = "https://calendly.com/vinicius-hospitalar/30min"
+DAILY_LIMIT  = 20
 
 
 # ---------------------------------------------------------------------------
@@ -24,11 +25,18 @@ DAILY_LIMIT = 20
 # ---------------------------------------------------------------------------
 
 def _is_international(company: dict) -> bool:
-    """Detect international prospects by email domain or description."""
+    """Detect international prospects by email domain, description or segment."""
     email = company.get("email", "")
-    desc  = company.get("description", "").lower()
+    desc  = (company.get("description", "") + " " + company.get("segment", "")).lower()
     intl_tlds = (".ch", ".us", ".uk", ".de", ".fr", ".cn", ".in", ".jp", ".ca", ".au")
-    return any(email.endswith(t) for t in intl_tlds) or "switzerland" in desc or "suíça" in desc
+    if any(email.endswith(t) for t in intl_tlds):
+        return True
+    intl_keywords = (
+        "switzerland", "suíça", "uk ", "german", "french", "china", "chinese",
+        "us biotech", "uk biotech", "spanish", "swedish", "irish", "italian",
+        "latam", "latin america", "international", "global", "europe",
+    )
+    return any(kw in desc for kw in intl_keywords)
 
 
 def _build_email_en(company: dict, ai_body: str) -> tuple[str, str]:
@@ -55,7 +63,12 @@ def _build_email_en(company: dict, ai_body: str) -> tuple[str, str]:
       <p style="margin:0;font-weight:600;color:#0A1628;">Try the free AI demo:</p>
       <a href="{DEMO_URL}" style="color:#00897B;font-size:15px;">{DEMO_URL}</a>
     </div>
-    <p>Available for a 15-minute call this week.</p>
+    <div style="text-align:center;margin:24px 0;">
+      <a href="{CALENDLY_URL}" style="background:#4DB6AC;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:700;font-size:15px;">
+        Book a 30-min call →
+      </a>
+    </div>
+    <p>Happy to show you exactly what we track for your market.</p>
     <p>Best regards,<br>
     <strong>Vinicius</strong><br>
     PharmaIntel BR<br>
@@ -87,7 +100,12 @@ def _build_email_pt(company: dict, ai_body: str) -> tuple[str, str]:
       <p style="margin:0;font-weight:600;color:#0A1628;">Acesse a demonstração gratuita:</p>
       <a href="{DEMO_URL}" style="color:#00897B;font-size:15px;">{DEMO_URL}</a>
     </div>
-    <p>Disponível para uma conversa de 15 minutos esta semana.</p>
+    <div style="text-align:center;margin:24px 0;">
+      <a href="{CALENDLY_URL}" style="background:#4DB6AC;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:700;font-size:15px;">
+        Agendar conversa de 30 min →
+      </a>
+    </div>
+    <p>Posso mostrar em 30 minutos o que a plataforma entrega para o perfil de vocês.</p>
     <p>Atenciosamente,<br>
     <strong>Vinicius</strong><br>
     PharmaIntel BR<br>
@@ -118,7 +136,12 @@ def _build_partner_email_pt(company: dict, ai_body: str) -> tuple[str, str]:
       <p style="margin:0;font-weight:600;color:#0A1628;">Conheça a plataforma:</p>
       <a href="{DEMO_URL}" style="color:#00897B;">{DEMO_URL}</a>
     </div>
-    <p>Podemos agendar uma call esta semana para explorar as oportunidades?</p>
+    <div style="text-align:center;margin:24px 0;">
+      <a href="{CALENDLY_URL}" style="background:#26C6DA;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:700;font-size:15px;">
+        Agendar call de 30 min →
+      </a>
+    </div>
+    <p>Podemos explorar as oportunidades em 30 minutos — quando tiver disponibilidade?</p>
     <p>Atenciosamente,<br><strong>Vinicius</strong><br>PharmaIntel BR</p>
   </div>
 </div>"""
