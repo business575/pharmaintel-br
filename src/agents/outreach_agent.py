@@ -244,49 +244,48 @@ Tom: executivo, direto, sem enrolar. Apenas os parágrafos em HTML (<p> tags).""
 # ---------------------------------------------------------------------------
 
 def _send_outreach_email(to_email: str, subject: str, html_body: str) -> bool:
-    """Send via Brevo (primary) or Resend (fallback). Returns True on success."""
-    # ── Brevo (primary) ──────────────────────────────────────────────────────
+    """Send via Gmail SMTP (primary), Brevo or Resend (fallback)."""
+    import smtplib
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+
+    # ── Gmail SMTP (primary) ─────────────────────────────────────────────────
+    gmail_user = os.getenv("GMAIL_USER", "")
+    gmail_pass = os.getenv("GMAIL_APP_PASSWORD", "")
+    if gmail_user and gmail_pass:
+        try:
+            msg = MIMEMultipart("alternative")
+            msg["From"]    = f"Vinicius Figueiredo | PharmaIntel BR <{gmail_user}>"
+            msg["To"]      = to_email
+            msg["Subject"] = subject
+            msg["Reply-To"] = gmail_user
+            msg.attach(MIMEText(html_body, "html", "utf-8"))
+            with smtplib.SMTP("smtp.gmail.com", 587) as server:
+                server.starttls()
+                server.login(gmail_user, gmail_pass)
+                server.sendmail(gmail_user, to_email, msg.as_string())
+            return True
+        except Exception as exc:
+            logger.warning("Gmail SMTP failed: %s", exc)
+
+    # ── Brevo (fallback) ─────────────────────────────────────────────────────
     brevo_key = os.getenv("BREVO_API_KEY", "")
     if brevo_key:
         try:
             import httpx as _httpx
-            sender_name, sender_email = RESEND_FROM.split("<")
-            sender_email = sender_email.rstrip(">").strip()
-            sender_name  = sender_name.strip()
             r = _httpx.post(
                 "https://api.brevo.com/v3/smtp/email",
                 headers={"api-key": brevo_key, "Content-Type": "application/json"},
-                json={
-                    "sender":   {"name": sender_name, "email": sender_email},
-                    "to":       [{"email": to_email}],
-                    "subject":  subject,
-                    "htmlContent": html_body,
-                },
+                json={"sender": {"name": "Vinicius Figueiredo", "email": gmail_user or "business@globalhealthcareaccess.com"},
+                      "to": [{"email": to_email}], "subject": subject, "htmlContent": html_body},
                 timeout=15,
             )
             if r.status_code in (200, 201):
                 return True
-            logger.warning("Brevo error %s: %s", r.status_code, r.text[:200])
         except Exception as exc:
-            logger.warning("Brevo send failed: %s", exc)
+            logger.warning("Brevo failed: %s", exc)
 
-    # ── Resend (fallback) ────────────────────────────────────────────────────
-    resend_key = os.getenv("RESEND_API_KEY", "")
-    if resend_key:
-        try:
-            import resend as _resend
-            _resend.api_key = resend_key
-            _resend.Emails.send({
-                "from": RESEND_FROM,
-                "to": [to_email],
-                "subject": subject,
-                "html": html_body,
-            })
-            return True
-        except Exception as exc:
-            logger.error("Resend send failed: %s", exc)
-
-    logger.error("Nenhum provedor de email configurado (BREVO_API_KEY ou RESEND_API_KEY)")
+    logger.error("Nenhum provedor de email configurado")
     return False
 
 
