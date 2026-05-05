@@ -2499,6 +2499,27 @@ def page_overview(year: int) -> None:
             apply_theme(fig4, "Operações por Faixa de Risco")
             st.plotly_chart(fig4, width="stretch")
 
+    # ── Botão Download Relatório PDF ─────────────────────────────────────────
+    st.markdown("---")
+    col_pdf, col_info = st.columns([1, 3])
+    with col_pdf:
+        if st.button("📄 Baixar Relatório PDF", type="primary", use_container_width=True):
+            with st.spinner("Gerando relatório..."):
+                try:
+                    from src.utils.report_generator import generate_pdf_report
+                    pdf_bytes = generate_pdf_report(year=year)
+                    st.download_button(
+                        label="⬇️ Download PDF",
+                        data=pdf_bytes,
+                        file_name=f"PharmaIntelBR_Relatorio_{year}.pdf",
+                        mime="application/pdf",
+                        use_container_width=True,
+                    )
+                except Exception as e:
+                    st.error(f"Erro ao gerar relatório: {e}")
+    with col_info:
+        st.caption("Relatório executivo com KPIs, Top NCMs, Países e Alertas ANVISA em PDF.")
+
 
 def page_importacoes(year: int) -> None:
     render_header(_t("header_imports"))
