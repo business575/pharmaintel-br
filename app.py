@@ -157,6 +157,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "nav_comtrade":   "UN Comtrade",
         "nav_etl":        "Pipeline ETL",
         "nav_agent":      "Agente IA",
+        "nav_trials":     "🔬 Estudos Clínicos",
         "nav_report":     "📄 Relatório Estratégico",
         # Sidebar labels
         "year_label":     "Ano de referência",
@@ -260,6 +261,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "nav_comtrade":   "UN Comtrade",
         "nav_etl":        "ETL Pipeline",
         "nav_agent":      "AI Agent",
+        "nav_trials":     "🔬 Clinical Trials",
         "nav_report":     "📄 Strategic Report",
         # Sidebar labels
         "year_label":     "Reference year",
@@ -357,10 +359,10 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 }
 
 # Internal navigation keys (language-independent)
-_NAV_KEYS = ["overview", "imports", "anvisa", "companies", "comtrade", "etl", "agent", "report"]
+_NAV_KEYS = ["overview", "imports", "anvisa", "companies", "comtrade", "etl", "agent", "trials", "report"]
 _NAV_T_KEYS = [
     "nav_overview", "nav_imports", "nav_anvisa", "nav_companies",
-    "nav_comtrade", "nav_etl", "nav_agent", "nav_report",
+    "nav_comtrade", "nav_etl", "nav_agent", "nav_trials", "nav_report",
 ]
 
 
@@ -4909,6 +4911,7 @@ def main() -> None:
         "comtrade":   page_comtrade,
         "etl":        page_etl,
         "agent":      page_agent,
+        "trials":     page_trials,
         "outreach":   _page_outreach,
         "director":   _page_admin_director,
         "quality":    _page_quality,
@@ -4923,6 +4926,102 @@ def main() -> None:
             fn()
         else:
             fn(year)
+
+
+def page_trials(year: int) -> None:
+    """Página de busca de Clinical Trials via PubMed."""
+    render_header(_t("nav_trials"))
+
+    st.markdown("""
+    <p style="color:#8899AA; font-size:0.9rem; margin-bottom:1rem;">
+    Busca em tempo real no PubMed — 35M+ artigos científicos incluindo NEJM, JAMA, Lancet e estudos clínicos brasileiros.
+    </p>
+    """, unsafe_allow_html=True)
+
+    col_q, col_btn = st.columns([4, 1])
+    with col_q:
+        query = st.text_input(
+            "Princípio ativo ou termo de busca",
+            placeholder="Ex: pembrolizumab, semaglutida, antineoplásicos, insulin",
+            key="pubmed_query",
+        )
+    with col_btn:
+        st.markdown("<div style='margin-top:1.75rem'>", unsafe_allow_html=True)
+        buscar = st.button("🔍 Buscar", type="primary", use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    col_f1, col_f2, col_f3 = st.columns(3)
+    with col_f1:
+        from_year = st.selectbox("A partir de", [2020, 2019, 2018, 2015, 2010], index=0)
+    with col_f2:
+        max_res = st.selectbox("Resultados", [10, 20, 30], index=0)
+    with col_f3:
+        brazil_only = st.checkbox("Apenas estudos com afiliação Brasil", value=False)
+
+    # Chips de sugestão
+    st.markdown("**Buscas frequentes:**")
+    chips = ["pembrolizumab", "semaglutida", "trastuzumab", "bevacizumab",
+             "nivolumab", "rituximab", "lenalidomide", "imatinib"]
+    cols = st.columns(len(chips))
+    for i, chip in enumerate(chips):
+        with cols[i]:
+            if st.button(chip, key=f"chip_{chip}", use_container_width=True):
+                st.session_state["pubmed_query"] = chip
+                st.session_state["pubmed_run"] = chip
+                st.rerun()
+
+    run_query = query if buscar and query else st.session_state.pop("pubmed_run", None)
+
+    if run_query:
+        with st.spinner(f"Buscando trials para '{run_query}' no PubMed..."):
+            try:
+                from src.integrations.pubmed_fetcher import search_clinical_trials, get_total_trials_brazil
+                results = search_clinical_trials(
+                    query=f'"{run_query}"[Title/Abstract]',
+                    max_results=max_res,
+                    from_year=from_year,
+                    brazil_only=brazil_only,
+                )
+                total_br = get_total_trials_brazil(f'"{run_query}"[Title/Abstract]')
+            except Exception as e:
+                st.error(f"Erro ao consultar PubMed: {e}")
+                return
+
+        if not results:
+            st.warning("Nenhum clinical trial encontrado. Tente um termo diferente.")
+            return
+
+        total = results[0].get("total_count", len(results))
+        c1, c2 = st.columns(2)
+        c1.metric("Clinical Trials encontrados", f"{total:,}".replace(",", "."))
+        c2.metric("Trials com afiliação Brasil", f"{total_br:,}".replace(",", "."))
+
+        st.markdown("---")
+
+        for i, art in enumerate(results):
+            with st.container():
+                st.markdown(f"""
+                <div style="background:#111827;border:1px solid rgba(255,255,255,0.07);
+                            border-radius:10px;padding:1rem 1.2rem;margin-bottom:0.75rem;">
+                    <div style="font-size:0.95rem;font-weight:600;color:#F0F4FF;margin-bottom:0.3rem;">
+                        {i+1}. {art['title']}
+                    </div>
+                    <div style="font-size:0.78rem;color:#8892A4;">
+                        <span style="color:#00D4A1;font-weight:500;">{art['journal']}</span>
+                        &nbsp;·&nbsp; {art['year']}
+                        &nbsp;·&nbsp; {art['authors']}
+                    </div>
+                    <div style="margin-top:0.5rem;">
+                        <a href="{art['pubmed_url']}" target="_blank"
+                           style="color:#42A5F5;font-size:0.78rem;text-decoration:none;">
+                           🔗 Ver no PubMed →
+                        </a>
+                        {"&nbsp;&nbsp;<a href='https://doi.org/" + art['doi'] + "' target='_blank' style='color:#42A5F5;font-size:0.78rem;text-decoration:none;'>📄 DOI</a>" if art.get('doi') else ""}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+        st.caption("Fonte: PubMed / NCBI — National Center for Biotechnology Information")
 
 
 if __name__ == "__main__":
