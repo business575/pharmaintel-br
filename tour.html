@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PharmaIntel BR — Guided Tour</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0B0F1A; color: #F0F4FF; font-family: 'Segoe UI', Arial, sans-serif; }
+  .header { background: #0D1117; padding: 20px 32px; border-bottom: 1px solid rgba(255,255,255,0.07); display: flex; align-items: center; justify-content: space-between; }
+  .logo { font-size: 1.4rem; font-weight: 700; } .logo span { color: #00D4A1; }
+  .tagline { font-size: 0.75rem; color: #8892A4; }
+  .hero { text-align: center; padding: 60px 20px 40px; }
+  .hero h1 { font-size: 2.2rem; font-weight: 700; margin-bottom: 12px; }
+  .hero h1 span { color: #00D4A1; }
+  .hero p { color: #8892A4; font-size: 1rem; max-width: 600px; margin: 0 auto; }
+  .steps { max-width: 900px; margin: 0 auto; padding: 20px; }
+  .step { background: #111827; border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; padding: 28px; margin-bottom: 20px; display: flex; gap: 24px; align-items: flex-start; transition: border-color 0.2s; }
+  .step:hover { border-color: rgba(0,212,161,0.3); }
+  .step-icon { font-size: 2.5rem; flex-shrink: 0; }
+  .step-num { font-size: 0.7rem; color: #00D4A1; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 6px; }
+  .step h2 { font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; }
+  .step p { color: #8892A4; font-size: 0.88rem; line-height: 1.65; margin-bottom: 14px; }
+  .metrics { display: flex; gap: 24px; flex-wrap: wrap; }
+  .metric { text-align: center; }
+  .metric-val { font-size: 1.4rem; font-weight: 700; }
+  .metric-lbl { font-size: 0.68rem; color: #8892A4; }
+  .pricing { max-width: 900px; margin: 0 auto 40px; padding: 0 20px; }
+  .pricing h2 { text-align: center; font-size: 1.3rem; margin-bottom: 24px; }
+  .plans { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+  .plan { background: #111827; border-radius: 12px; padding: 20px; }
+  .plan-name { font-weight: 700; font-size: 1rem; margin-bottom: 4px; }
+  .plan-price { font-size: 1.5rem; font-weight: 700; margin-bottom: 14px; }
+  .plan ul { list-style: none; }
+  .plan ul li { color: #8892A4; font-size: 0.82rem; margin-bottom: 6px; }
+  .plan ul li::before { content: "✓ "; color: #00D4A1; }
+  .cta { text-align: center; padding: 40px 20px 60px; }
+  .cta h2 { font-size: 1.4rem; margin-bottom: 8px; }
+  .cta p { color: #8892A4; margin-bottom: 28px; }
+  .btn { display: inline-block; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.95rem; margin: 0 8px 12px; transition: opacity 0.2s; }
+  .btn:hover { opacity: 0.85; }
+  .btn-primary { background: #00D4A1; color: #0B0F1A; }
+  .btn-secondary { background: rgba(255,255,255,0.08); color: #F0F4FF; border: 1px solid rgba(255,255,255,0.15); }
+  @media (max-width: 600px) { .plans { grid-template-columns: 1fr; } .step { flex-direction: column; } .hero h1 { font-size: 1.6rem; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="logo">PharmaIntel<span>BR</span></div>
+    <div class="tagline">Brazilian Pharma Market Intelligence</div>
+  </div>
+  <a href="https://calendly.com/vinicius-hospitalar/30min" class="btn btn-primary" style="padding:10px 20px;font-size:0.85rem;">Book a Demo →</a>
+</div>
+
+<div class="hero">
+  <h1>Brazil's <span>$24 Billion</span> Pharma Market.<br>Fully Transparent.</h1>
+  <p>Real-time import data, ANVISA monitoring, clinical trials intelligence and AI — in one platform built for the Brazilian pharmaceutical market.</p>
+</div>
+
+<div class="steps">
+
+  <div class="step">
+    <div class="step-icon">📊</div>
+    <div>
+      <div class="step-num">Feature 1</div>
+      <h2>Real-Time Import Intelligence</h2>
+      <p>Every pharmaceutical import into Brazil tracked in real time. NCM codes, countries of origin, FOB values, monthly trends, and competitor activity — all from Comex Stat (MDIC).</p>
+      <div class="metrics">
+        <div class="metric"><div class="metric-val" style="color:#00D4A1;">$24B</div><div class="metric-lbl">pharma imports 2025</div></div>
+        <div class="metric"><div class="metric-val" style="color:#42A5F5;">54,297</div><div class="metric-lbl">tracked transactions</div></div>
+        <div class="metric"><div class="metric-val" style="color:#FFB74D;">142</div><div class="metric-lbl">origin countries</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-icon">🛡️</div>
+    <div>
+      <div class="step-num">Feature 2</div>
+      <h2>ANVISA Intelligence — 17,247 Products</h2>
+      <p>Real-time ANVISA registration status for every product in Brazil. Compliance alerts, expiry warnings, and regulatory risk scoring. Know before your regulator does.</p>
+      <div class="metrics">
+        <div class="metric"><div class="metric-val" style="color:#00D4A1;">17,247</div><div class="metric-lbl">active registrations</div></div>
+        <div class="metric"><div class="metric-val" style="color:#42A5F5;">23,304</div><div class="metric-lbl">expiry alerts tracked</div></div>
+        <div class="metric"><div class="metric-val" style="color:#FFB74D;">97,107</div><div class="metric-lbl">medical devices</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-icon">🔬</div>
+    <div>
+      <div class="step-num">Feature 3</div>
+      <h2>Clinical Trials — NEJM, Lancet, JAMA Live</h2>
+      <p>Search 35M+ PubMed articles by active ingredient. See which clinical trials are running in Brazil for your therapeutic area, with direct links to full articles and DOIs.</p>
+      <div class="metrics">
+        <div class="metric"><div class="metric-val" style="color:#00D4A1;">35M+</div><div class="metric-lbl">scientific articles</div></div>
+        <div class="metric"><div class="metric-val" style="color:#42A5F5;">981</div><div class="metric-lbl">pembrolizumab trials</div></div>
+        <div class="metric"><div class="metric-val" style="color:#FFB74D;">2,268</div><div class="metric-lbl">antineoplastic trials BR</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-icon">🤖</div>
+    <div>
+      <div class="step-num">Feature 4</div>
+      <h2>AI Agent — Ask Anything About Brazil</h2>
+      <p>Ask in English or Portuguese. Get strategic insights grounded in real import data, ANVISA records, and competitive intelligence — not hallucinations.</p>
+      <div class="metrics">
+        <div class="metric"><div class="metric-val" style="color:#00D4A1;">Groq</div><div class="metric-lbl">Llama 3.3 — Starter</div></div>
+        <div class="metric"><div class="metric-val" style="color:#42A5F5;">GPT-4o</div><div class="metric-lbl">OpenAI — Pro</div></div>
+        <div class="metric"><div class="metric-val" style="color:#FFB74D;">Claude</div><div class="metric-lbl">Anthropic — Enterprise</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-icon">📄</div>
+    <div>
+      <div class="step-num">Feature 5</div>
+      <h2>PDF Reports — One Click</h2>
+      <p>Generate a complete executive PDF report with KPIs, Top NCMs, countries, and ANVISA alerts. Real data, no estimates. Ready to share with your board or partners.</p>
+      <div class="metrics">
+        <div class="metric"><div class="metric-val" style="color:#00D4A1;">3 pages</div><div class="metric-lbl">executive summary</div></div>
+        <div class="metric"><div class="metric-val" style="color:#42A5F5;">1 click</div><div class="metric-lbl">instant generation</div></div>
+        <div class="metric"><div class="metric-val" style="color:#FFB74D;">100%</div><div class="metric-lbl">real data</div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="pricing">
+  <h2>Plans & Pricing</h2>
+  <div class="plans">
+    <div class="plan" style="border:1px solid #00D4A140;">
+      <div class="plan-name" style="color:#00D4A1;">Starter</div>
+      <div class="plan-price">US$299<span style="font-size:0.9rem;font-weight:400;color:#8892A4;">/mo</span></div>
+      <ul>
+        <li>Full import dashboard</li>
+        <li>ANVISA monitoring</li>
+        <li>Clinical trials search</li>
+        <li>AI Agent (Groq/Llama)</li>
+        <li>PDF reports</li>
+      </ul>
+    </div>
+    <div class="plan" style="border:1px solid #42A5F540;">
+      <div class="plan-name" style="color:#42A5F5;">Pro</div>
+      <div class="plan-price">US$499<span style="font-size:0.9rem;font-weight:400;color:#8892A4;">/mo</span></div>
+      <ul>
+        <li>Everything in Starter</li>
+        <li>AI Agent (GPT-4o)</li>
+        <li>ComprasNet alerts</li>
+        <li>Priority support</li>
+        <li>API access</li>
+      </ul>
+    </div>
+    <div class="plan" style="border:1px solid #FFB74D40;">
+      <div class="plan-name" style="color:#FFB74D;">Enterprise</div>
+      <div class="plan-price">US$1,499<span style="font-size:0.9rem;font-weight:400;color:#8892A4;">/mo</span></div>
+      <ul>
+        <li>Everything in Pro</li>
+        <li>AI Agent (Claude Opus)</li>
+        <li>White-label option</li>
+        <li>Dedicated analyst</li>
+        <li>Custom reports</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="cta">
+  <h2>Ready to see the platform live?</h2>
+  <p>Book a 30-minute demo or access the full platform now.</p>
+  <a href="https://calendly.com/vinicius-hospitalar/30min" class="btn btn-primary">📅 Book a 30-min Demo</a>
+  <a href="https://pharmaintel-br.onrender.com" class="btn btn-secondary">🚀 Access Platform</a>
+</div>
+
+</body>
+</html>
