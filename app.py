@@ -156,6 +156,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "nav_companies":  "Empresas",
         "nav_comtrade":   "UN Comtrade",
         "nav_etl":        "Pipeline ETL",
+        "nav_tour":       "🚀 Tour Guiado",
         "nav_agent":      "Agente IA",
         "nav_trials":     "🔬 Estudos Clínicos",
         "nav_report":     "📄 Relatório Estratégico",
@@ -258,6 +259,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "nav_imports":    "Imports",
         "nav_anvisa":     "ANVISA",
         "nav_companies":  "Companies",
+        "nav_tour":       "🚀 Guided Tour",
         "nav_comtrade":   "UN Comtrade",
         "nav_etl":        "ETL Pipeline",
         "nav_agent":      "AI Agent",
@@ -359,9 +361,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 }
 
 # Internal navigation keys (language-independent)
-_NAV_KEYS = ["overview", "imports", "anvisa", "companies", "comtrade", "etl", "agent", "trials", "report"]
+_NAV_KEYS = ["tour", "overview", "imports", "anvisa", "companies", "comtrade", "etl", "agent", "trials", "report"]
 _NAV_T_KEYS = [
-    "nav_overview", "nav_imports", "nav_anvisa", "nav_companies",
+    "nav_tour", "nav_overview", "nav_imports", "nav_anvisa", "nav_companies",
     "nav_comtrade", "nav_etl", "nav_agent", "nav_trials", "nav_report",
 ]
 
@@ -4905,6 +4907,7 @@ def main() -> None:
 
     pages = {
         "overview":   page_overview,
+        "tour":       page_tour,
         "imports":    page_importacoes,
         "anvisa":     page_anvisa,
         "companies":  page_empresas,
@@ -4926,6 +4929,255 @@ def main() -> None:
             fn()
         else:
             fn(year)
+
+
+def page_tour(year: int) -> None:
+    """Guided tour — walks prospect through platform benefits step by step."""
+    lang = st.session_state.get("lang", "PT")
+
+    if lang == "EN":
+        title = "🚀 Platform Tour — See Everything in 5 Minutes"
+        subtitle = "Brazil's only real-time pharma market intelligence platform"
+        steps = [
+            {
+                "icon": "📊",
+                "step": "Step 1",
+                "title": "Brazil Pharma Market — $24B in Real-Time",
+                "desc": "Every pharmaceutical import into Brazil tracked in real time. NCM codes, countries, FOB values, monthly trends. Your competitors are visible here.",
+                "metric1": "$24B", "label1": "imports in 2025",
+                "metric2": "54,297", "label2": "tracked transactions",
+                "metric3": "142", "label3": "origin countries",
+                "nav": "imports", "btn": "→ See Import Data",
+            },
+            {
+                "icon": "🛡️",
+                "step": "Step 2",
+                "title": "ANVISA Intelligence — 17,247 Products Monitored",
+                "desc": "Real-time ANVISA registration status for every product in Brazil. Compliance alerts, expiry warnings, and regulatory risk scoring — automatically.",
+                "metric1": "17,247", "label1": "active ANVISA registrations",
+                "metric2": "23,304", "label2": "products tracked for expiry",
+                "metric3": "97,107", "label3": "medical devices monitored",
+                "nav": "anvisa", "btn": "→ See ANVISA Data",
+            },
+            {
+                "icon": "🔬",
+                "step": "Step 3",
+                "title": "Clinical Trials — NEJM, Lancet, JAMA in Real Time",
+                "desc": "Search 35M+ PubMed articles by active ingredient. See which clinical trials are running in Brazil for your therapeutic area. Powered by NCBI.",
+                "metric1": "35M+", "label1": "scientific articles",
+                "metric2": "981", "label2": "pembrolizumab trials",
+                "metric3": "2,268", "label3": "antineoplastic trials in Brazil",
+                "nav": "trials", "btn": "→ Search Clinical Trials",
+            },
+            {
+                "icon": "🤖",
+                "step": "Step 4",
+                "title": "AI Agent — Ask Anything About the Brazilian Market",
+                "desc": "Ask in plain English or Portuguese. Get strategic insights grounded in real import data, ANVISA records, and competitive intelligence.",
+                "metric1": "Groq", "label1": "Llama 3.3 70B — Starter",
+                "metric2": "GPT-4o", "label2": "OpenAI — Pro",
+                "metric3": "Claude", "label3": "Anthropic — Enterprise",
+                "nav": "agent", "btn": "→ Talk to the AI Agent",
+            },
+            {
+                "icon": "📄",
+                "step": "Step 5",
+                "title": "Export — PDF Reports in One Click",
+                "desc": "Generate a complete executive PDF report with KPIs, top NCMs, countries, and ANVISA alerts. Ready to share with your team or board.",
+                "metric1": "3 pages", "label1": "executive report",
+                "metric2": "1 click", "label2": "instant generation",
+                "metric3": "100%", "label3": "real data — no estimates",
+                "nav": "overview", "btn": "→ Generate PDF Report",
+            },
+        ]
+        cta_title = "Ready to access the full platform?"
+        cta_desc = "Start your 7-day free trial or talk to us about an Enterprise plan."
+        cta_trial = "Start Free Trial"
+        cta_call = "Book a 30-min Demo"
+        pricing_title = "Plans & Pricing"
+        plans = [
+            {"name": "Starter", "price": "US$299/mo", "color": "#00D4A1", "features": ["Full import dashboard", "ANVISA monitoring", "Clinical trials search", "AI Agent (Groq)", "PDF reports"]},
+            {"name": "Pro", "price": "US$499/mo", "color": "#42A5F5", "features": ["Everything in Starter", "AI Agent (GPT-4o)", "ComprasNet procurement alerts", "Priority support", "API access"]},
+            {"name": "Enterprise", "price": "US$1,499/mo", "color": "#FFB74D", "features": ["Everything in Pro", "AI Agent (Claude Opus)", "White-label option", "Dedicated analyst", "Custom reports"]},
+        ]
+    else:
+        title = "🚀 Tour Guiado — Conheça tudo em 5 minutos"
+        subtitle = "A única plataforma de inteligência farmacêutica brasileira em tempo real"
+        steps = [
+            {
+                "icon": "📊",
+                "step": "Passo 1",
+                "title": "Mercado Farmacêutico Brasileiro — $24B em Tempo Real",
+                "desc": "Cada importação farmacêutica do Brasil rastreada em tempo real. Códigos NCM, países, valores FOB, tendências mensais. Seus concorrentes estão visíveis aqui.",
+                "metric1": "$24B", "label1": "em importações em 2025",
+                "metric2": "54.297", "label2": "transações rastreadas",
+                "metric3": "142", "label3": "países de origem",
+                "nav": "imports", "btn": "→ Ver Dados de Importação",
+            },
+            {
+                "icon": "🛡️",
+                "step": "Passo 2",
+                "title": "Inteligência ANVISA — 17.247 Produtos Monitorados",
+                "desc": "Status de registro ANVISA em tempo real para cada produto no Brasil. Alertas de compliance, avisos de vencimento e scoring de risco regulatório — automaticamente.",
+                "metric1": "17.247", "label1": "registros ANVISA ativos",
+                "metric2": "23.304", "label2": "produtos com vencimento monitorado",
+                "metric3": "97.107", "label3": "dispositivos médicos monitorados",
+                "nav": "anvisa", "btn": "→ Ver Dados ANVISA",
+            },
+            {
+                "icon": "🔬",
+                "step": "Passo 3",
+                "title": "Clinical Trials — NEJM, Lancet, JAMA em Tempo Real",
+                "desc": "Busque 35M+ artigos do PubMed por princípio ativo. Veja quais trials estão rodando no Brasil para sua área terapêutica. Powered by NCBI.",
+                "metric1": "35M+", "label1": "artigos científicos",
+                "metric2": "981", "label2": "trials de pembrolizumab",
+                "metric3": "2.268", "label3": "trials de antineoplásicos no Brasil",
+                "nav": "trials", "btn": "→ Buscar Clinical Trials",
+            },
+            {
+                "icon": "🤖",
+                "step": "Passo 4",
+                "title": "Agente IA — Pergunte qualquer coisa sobre o mercado",
+                "desc": "Pergunte em português ou inglês. Receba insights estratégicos baseados em dados reais de importação, registros ANVISA e inteligência competitiva.",
+                "metric1": "Groq", "label1": "Llama 3.3 70B — Starter",
+                "metric2": "GPT-4o", "label2": "OpenAI — Pro",
+                "metric3": "Claude", "label3": "Anthropic — Enterprise",
+                "nav": "agent", "btn": "→ Falar com o Agente IA",
+            },
+            {
+                "icon": "📄",
+                "step": "Passo 5",
+                "title": "Exportar — Relatórios PDF em Um Clique",
+                "desc": "Gere um relatório executivo completo em PDF com KPIs, top NCMs, países e alertas ANVISA. Pronto para compartilhar com sua equipe ou diretoria.",
+                "metric1": "3 páginas", "label1": "relatório executivo",
+                "metric2": "1 clique", "label2": "geração instantânea",
+                "metric3": "100%", "label3": "dados reais — sem estimativas",
+                "nav": "overview", "btn": "→ Gerar Relatório PDF",
+            },
+        ]
+        cta_title = "Pronto para acessar a plataforma completa?"
+        cta_desc = "Comece seu trial gratuito de 7 dias ou fale conosco sobre um plano Enterprise."
+        cta_trial = "Começar Trial Grátis"
+        cta_call = "Agendar Demo de 30 min"
+        pricing_title = "Planos e Preços"
+        plans = [
+            {"name": "Starter", "price": "R$497/mês", "color": "#00D4A1", "features": ["Dashboard completo de importações", "Monitoramento ANVISA", "Busca de clinical trials", "Agente IA (Groq)", "Relatórios PDF"]},
+            {"name": "Pro", "price": "R$997/mês", "color": "#42A5F5", "features": ["Tudo do Starter", "Agente IA (GPT-4o)", "Alertas ComprasNet", "Suporte prioritário", "Acesso à API"]},
+            {"name": "Enterprise", "price": "R$2.497/mês", "color": "#FFB74D", "features": ["Tudo do Pro", "Agente IA (Claude Opus)", "White-label", "Analista dedicado", "Relatórios customizados"]},
+        ]
+
+    # ── Header ────────────────────────────────────────────────────────────────
+    st.markdown(f"""
+    <div style="text-align:center;padding:2rem 0 1rem;">
+        <h1 style="font-size:2rem;font-weight:700;color:#F0F4FF;">{title}</h1>
+        <p style="color:#8892A4;font-size:1rem;">{subtitle}</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── Step tracker ─────────────────────────────────────────────────────────
+    if "tour_step" not in st.session_state:
+        st.session_state.tour_step = 0
+
+    current = st.session_state.tour_step
+    total   = len(steps)
+
+    # Progress bar
+    progress_pct = int((current + 1) / total * 100)
+    st.markdown(f"""
+    <div style="background:rgba(255,255,255,0.05);border-radius:20px;height:6px;margin-bottom:0.5rem;">
+        <div style="background:#00D4A1;width:{progress_pct}%;height:6px;border-radius:20px;transition:width 0.4s;"></div>
+    </div>
+    <p style="color:#8892A4;font-size:0.75rem;text-align:right;margin-bottom:1.5rem;">{current+1}/{total}</p>
+    """, unsafe_allow_html=True)
+
+    # ── Current step card ─────────────────────────────────────────────────────
+    s = steps[current]
+    st.markdown(f"""
+    <div style="background:#111827;border:1px solid rgba(0,212,161,0.3);border-radius:16px;padding:2rem;margin-bottom:1.5rem;">
+        <div style="font-size:0.75rem;color:#00D4A1;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:0.5rem;">
+            {s['step']}
+        </div>
+        <div style="font-size:2.5rem;margin-bottom:0.75rem;">{s['icon']}</div>
+        <h2 style="color:#F0F4FF;font-size:1.4rem;font-weight:700;margin-bottom:0.75rem;">{s['title']}</h2>
+        <p style="color:#8892A4;font-size:0.95rem;line-height:1.7;margin-bottom:1.5rem;">{s['desc']}</p>
+        <div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:1.5rem;">
+            <div style="text-align:center;">
+                <div style="font-size:1.6rem;font-weight:700;color:#00D4A1;">{s['metric1']}</div>
+                <div style="font-size:0.72rem;color:#8892A4;">{s['label1']}</div>
+            </div>
+            <div style="text-align:center;">
+                <div style="font-size:1.6rem;font-weight:700;color:#42A5F5;">{s['metric2']}</div>
+                <div style="font-size:0.72rem;color:#8892A4;">{s['label2']}</div>
+            </div>
+            <div style="text-align:center;">
+                <div style="font-size:1.6rem;font-weight:700;color:#FFB74D;">{s['metric3']}</div>
+                <div style="font-size:0.72rem;color:#8892A4;">{s['label3']}</div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── Navigation buttons ────────────────────────────────────────────────────
+    col_prev, col_nav, col_next = st.columns([1, 2, 1])
+    with col_prev:
+        if current > 0:
+            if st.button("← Back" if lang == "EN" else "← Anterior", use_container_width=True):
+                st.session_state.tour_step -= 1
+                st.rerun()
+    with col_nav:
+        if st.button(s["btn"], type="primary", use_container_width=True):
+            st.session_state.page_key = s["nav"]
+            st.rerun()
+    with col_next:
+        if current < total - 1:
+            if st.button("Next →" if lang == "EN" else "Próximo →", use_container_width=True):
+                st.session_state.tour_step += 1
+                st.rerun()
+
+    # Step dots
+    dots = "".join([
+        f'<span style="display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 4px;background:{"#00D4A1" if i == current else "rgba(255,255,255,0.15"});"></span>'
+        for i in range(total)
+    ])
+    st.markdown(f'<div style="text-align:center;margin:1rem 0;">{dots}</div>', unsafe_allow_html=True)
+
+    # ── Pricing ───────────────────────────────────────────────────────────────
+    st.markdown(f"""
+    <h3 style="color:#F0F4FF;font-size:1.2rem;font-weight:700;margin:2rem 0 1rem;text-align:center;">
+        {pricing_title}
+    </h3>
+    """, unsafe_allow_html=True)
+
+    cols = st.columns(3)
+    for i, plan in enumerate(plans):
+        with cols[i]:
+            features_html = "".join([f'<li style="color:#8892A4;font-size:0.82rem;margin-bottom:0.3rem;">✓ {f}</li>' for f in plan["features"]])
+            st.markdown(f"""
+            <div style="background:#111827;border:1px solid {plan['color']}40;border-radius:12px;padding:1.25rem;height:100%;">
+                <div style="color:{plan['color']};font-weight:700;font-size:1rem;margin-bottom:0.25rem;">{plan['name']}</div>
+                <div style="color:#F0F4FF;font-size:1.4rem;font-weight:700;margin-bottom:1rem;">{plan['price']}</div>
+                <ul style="list-style:none;padding:0;margin:0">{features_html}</ul>
+            </div>
+            """, unsafe_allow_html=True)
+
+    # ── CTA ───────────────────────────────────────────────────────────────────
+    st.markdown(f"""
+    <div style="background:linear-gradient(135deg,#0B1426,#112240);border:1px solid rgba(0,212,161,0.25);
+                border-radius:16px;padding:2rem;text-align:center;margin-top:2rem;">
+        <h3 style="color:#F0F4FF;font-size:1.3rem;font-weight:700;margin-bottom:0.5rem;">{cta_title}</h3>
+        <p style="color:#8892A4;font-size:0.9rem;margin-bottom:1.5rem;">{cta_desc}</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col_a, col_b = st.columns(2)
+    with col_a:
+        if st.button(f"📅 {cta_call}", type="primary", use_container_width=True):
+            st.markdown('<meta http-equiv="refresh" content="0;url=https://calendly.com/vinicius-hospitalar/30min">', unsafe_allow_html=True)
+            st.markdown("**[Clique aqui para agendar →](https://calendly.com/vinicius-hospitalar/30min)**")
+    with col_b:
+        if st.button(f"🚀 {cta_trial}", use_container_width=True):
+            st.session_state.page_key = "overview"
+            st.rerun()
 
 
 def page_trials(year: int) -> None:
