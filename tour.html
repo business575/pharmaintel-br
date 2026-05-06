@@ -67,33 +67,49 @@
   <p>Real-time import data, ANVISA monitoring, clinical trials intelligence and AI — in one platform built for the Brazilian pharmaceutical market.</p>
 </div>
 
-<!-- VIDEO SECTION -->
+<!-- LIVE DEMO SECTION -->
 <div class="video-section">
-  <div class="video-wrapper" id="videoWrapper">
-    <!-- Replace VIDEO_ID below with your YouTube or Loom video ID -->
-    <!-- YouTube: <iframe src="https://www.youtube.com/embed/VIDEO_ID?autoplay=1" allowfullscreen></iframe> -->
-    <!-- Loom: <iframe src="https://www.loom.com/embed/VIDEO_ID" allowfullscreen></iframe> -->
-    <div class="video-placeholder" onclick="loadVideo()">
-      <div class="play-btn">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="#0B0F1A">
-          <path d="M8 5v14l11-7z"/>
-        </svg>
+  <div style="background:#111827;border:1px solid rgba(0,212,161,0.25);border-radius:16px;padding:40px 20px;text-align:center;">
+    <div style="font-size:0.75rem;color:#00D4A1;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:12px;">Live Platform</div>
+    <h2 style="font-size:1.5rem;font-weight:700;margin-bottom:10px;">See It Live — No Sign-Up Required</h2>
+    <p style="color:#8892A4;font-size:0.9rem;max-width:500px;margin:0 auto 28px;">Access the full platform right now. Real data, real AI, real insights about Brazil's $24B pharma market.</p>
+    <div style="display:flex;justify-content:center;gap:32px;flex-wrap:wrap;margin-bottom:32px;">
+      <div style="text-align:center;">
+        <div style="font-size:2rem;font-weight:700;color:#00D4A1;" id="counter1">0</div>
+        <div style="font-size:0.72rem;color:#8892A4;">imports tracked</div>
       </div>
-      <div style="color:#F0F4FF;font-weight:700;font-size:1rem;margin-bottom:6px;">Watch Platform Demo</div>
-      <div class="video-label">2 min · See all 5 features in action</div>
+      <div style="text-align:center;">
+        <div style="font-size:2rem;font-weight:700;color:#42A5F5;" id="counter2">0</div>
+        <div style="font-size:0.72rem;color:#8892A4;">ANVISA registrations</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:2rem;font-weight:700;color:#FFB74D;" id="counter3">0</div>
+        <div style="font-size:0.72rem;color:#8892A4;">clinical trials</div>
+      </div>
     </div>
+    <a href="https://pharmaintel-br.onrender.com/?page=tour" target="_blank"
+       style="background:#00D4A1;color:#0B0F1A;padding:15px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:1rem;display:inline-block;margin-bottom:12px;">
+      ▶ Access Live Platform Demo
+    </a>
+    <div style="color:#8892A4;font-size:0.78rem;margin-top:8px;">No sign-up · No credit card · Full access</div>
   </div>
 </div>
 
 <script>
-function loadVideo() {
-  // Replace with your actual video URL when ready
-  // Loom example: var videoUrl = 'https://www.loom.com/embed/YOUR_VIDEO_ID';
-  // YouTube example: var videoUrl = 'https://www.youtube.com/embed/YOUR_VIDEO_ID?autoplay=1';
-  var videoUrl = 'https://pharmaintel-br.onrender.com'; // placeholder — replace with real video
-  var wrapper = document.getElementById('videoWrapper');
-  wrapper.innerHTML = '<iframe src="' + videoUrl + '" allowfullscreen allow="autoplay"></iframe>';
+function animateCounter(id, target, suffix) {
+  var el = document.getElementById(id);
+  var start = 0; var duration = 2000; var step = target / (duration / 16);
+  var timer = setInterval(function() {
+    start += step;
+    if (start >= target) { start = target; clearInterval(timer); }
+    el.textContent = Math.floor(start).toLocaleString() + (suffix || '');
+  }, 16);
 }
+window.addEventListener('load', function() {
+  animateCounter('counter1', 54297, '');
+  animateCounter('counter2', 17247, '');
+  animateCounter('counter3', 35000000, '+');
+});
 </script>
 
 <div class="steps">
