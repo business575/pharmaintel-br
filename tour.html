@@ -67,48 +67,200 @@
   <p>Real-time import data, ANVISA monitoring, clinical trials intelligence and AI — in one platform built for the Brazilian pharmaceutical market.</p>
 </div>
 
-<!-- LIVE DEMO SECTION -->
+<!-- ANIMATED DEMO VIDEO -->
 <div class="video-section">
-  <div style="background:#111827;border:1px solid rgba(0,212,161,0.25);border-radius:16px;padding:40px 20px;text-align:center;">
-    <div style="font-size:0.75rem;color:#00D4A1;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:12px;">Live Platform</div>
-    <h2 style="font-size:1.5rem;font-weight:700;margin-bottom:10px;">See It Live — No Sign-Up Required</h2>
-    <p style="color:#8892A4;font-size:0.9rem;max-width:500px;margin:0 auto 28px;">Access the full platform right now. Real data, real AI, real insights about Brazil's $24B pharma market.</p>
-    <div style="display:flex;justify-content:center;gap:32px;flex-wrap:wrap;margin-bottom:32px;">
-      <div style="text-align:center;">
-        <div style="font-size:2rem;font-weight:700;color:#00D4A1;" id="counter1">0</div>
-        <div style="font-size:0.72rem;color:#8892A4;">imports tracked</div>
+  <div style="background:#0D1117;border:1px solid rgba(0,212,161,0.3);border-radius:16px;overflow:hidden;">
+
+    <!-- Browser chrome mockup -->
+    <div style="background:#1a1a2e;padding:10px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,0.07);">
+      <div style="width:12px;height:12px;border-radius:50%;background:#FF5F57;"></div>
+      <div style="width:12px;height:12px;border-radius:50%;background:#FEBC2E;"></div>
+      <div style="width:12px;height:12px;border-radius:50%;background:#28C840;"></div>
+      <div style="background:rgba(255,255,255,0.06);border-radius:6px;padding:4px 16px;margin-left:8px;font-size:0.72rem;color:#8892A4;flex:1;text-align:center;">pharmaintel-br.onrender.com</div>
+    </div>
+
+    <!-- Animated platform screens -->
+    <div style="position:relative;min-height:380px;padding:20px;" id="demoContainer">
+
+      <!-- Screen 1: Import Data -->
+      <div class="demo-screen active" id="screen1">
+        <div style="font-size:0.7rem;color:#00D4A1;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:12px;">📊 Import Intelligence — Comex Stat</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;">
+          <div style="background:#111827;border-radius:8px;padding:12px;border:1px solid rgba(0,212,161,0.2);">
+            <div style="font-size:0.65rem;color:#8892A4;margin-bottom:4px;">TOTAL FOB (USD)</div>
+            <div style="font-size:1.3rem;font-weight:700;color:#00D4A1;" class="count-up" data-target="24.1">0</div>
+            <div style="font-size:0.65rem;color:#8892A4;">billion · 2025</div>
+          </div>
+          <div style="background:#111827;border-radius:8px;padding:12px;border:1px solid rgba(66,165,245,0.2);">
+            <div style="font-size:0.65rem;color:#8892A4;margin-bottom:4px;">TRANSACTIONS</div>
+            <div style="font-size:1.3rem;font-weight:700;color:#42A5F5;" class="count-up" data-target="54297">0</div>
+            <div style="font-size:0.65rem;color:#8892A4;">tracked</div>
+          </div>
+          <div style="background:#111827;border-radius:8px;padding:12px;border:1px solid rgba(255,183,77,0.2);">
+            <div style="font-size:0.65rem;color:#8892A4;margin-bottom:4px;">COUNTRIES</div>
+            <div style="font-size:1.3rem;font-weight:700;color:#FFB74D;" class="count-up" data-target="142">0</div>
+            <div style="font-size:0.65rem;color:#8892A4;">origin</div>
+          </div>
+          <div style="background:#111827;border-radius:8px;padding:12px;border:1px solid rgba(255,82,82,0.2);">
+            <div style="font-size:0.65rem;color:#8892A4;margin-bottom:4px;">UNIQUE NCMs</div>
+            <div style="font-size:1.3rem;font-weight:700;color:#FF5252;" class="count-up" data-target="583">0</div>
+            <div style="font-size:0.65rem;color:#8892A4;">tracked</div>
+          </div>
+        </div>
+        <div style="background:#111827;border-radius:8px;padding:12px;border:1px solid rgba(255,255,255,0.06);">
+          <div style="font-size:0.7rem;color:#8892A4;margin-bottom:8px;">TOP NCMs BY VALUE</div>
+          <div class="bar-row" data-label="Imunológicos (30021590)" data-val="3.6B" data-pct="100" data-color="#00D4A1"></div>
+          <div class="bar-row" data-label="Hormônios polipeptídicos (30043929)" data-val="1.7B" data-pct="46" data-color="#42A5F5"></div>
+          <div class="bar-row" data-label="Antineoplásicos (30049069)" data-val="1.6B" data-pct="44" data-color="#FFB74D"></div>
+          <div class="bar-row" data-label="Vacinas medicina humana (30024129)" data-val="917M" data-pct="25" data-color="#AB47BC"></div>
+        </div>
       </div>
-      <div style="text-align:center;">
-        <div style="font-size:2rem;font-weight:700;color:#42A5F5;" id="counter2">0</div>
-        <div style="font-size:0.72rem;color:#8892A4;">ANVISA registrations</div>
+
+      <!-- Screen 2: ANVISA -->
+      <div class="demo-screen" id="screen2" style="display:none;">
+        <div style="font-size:0.7rem;color:#00D4A1;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:12px;">🛡️ ANVISA Intelligence</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
+          <div style="background:#111827;border-radius:8px;padding:12px;border:1px solid rgba(0,212,161,0.2);text-align:center;">
+            <div style="font-size:1.6rem;font-weight:700;color:#00D4A1;">17,247</div>
+            <div style="font-size:0.68rem;color:#8892A4;">Active Registrations</div>
+          </div>
+          <div style="background:#111827;border-radius:8px;padding:12px;border:1px solid rgba(255,82,82,0.2);text-align:center;">
+            <div style="font-size:1.6rem;font-weight:700;color:#FF5252;">23,304</div>
+            <div style="font-size:0.68rem;color:#8892A4;">Expiry Alerts</div>
+          </div>
+          <div style="background:#111827;border-radius:8px;padding:12px;border:1px solid rgba(66,165,245,0.2);text-align:center;">
+            <div style="font-size:1.6rem;font-weight:700;color:#42A5F5;">97,107</div>
+            <div style="font-size:0.68rem;color:#8892A4;">Medical Devices</div>
+          </div>
+        </div>
+        <div style="background:#111827;border-radius:8px;padding:12px;border:1px solid rgba(255,82,82,0.2);">
+          <div style="font-size:0.7rem;color:#FF5252;font-weight:600;margin-bottom:8px;">⚠️ COMPLIANCE ALERTS</div>
+          <div style="font-size:0.78rem;color:#F0F4FF;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);">1234.5678.001 · PEMBROLIZUMAB 25mg/ml · Expiring 2026-08-15</div>
+          <div style="font-size:0.78rem;color:#F0F4FF;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);">1234.5678.002 · TRASTUZUMAB 150mg · Expiring 2026-09-22</div>
+          <div style="font-size:0.78rem;color:#F0F4FF;padding:6px 0;">1234.5678.003 · SEMAGLUTIDE 1mg · Expiring 2026-10-01</div>
+        </div>
       </div>
-      <div style="text-align:center;">
-        <div style="font-size:2rem;font-weight:700;color:#FFB74D;" id="counter3">0</div>
-        <div style="font-size:0.72rem;color:#8892A4;">clinical trials</div>
+
+      <!-- Screen 3: AI Agent -->
+      <div class="demo-screen" id="screen3" style="display:none;">
+        <div style="font-size:0.7rem;color:#00D4A1;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:12px;">🤖 AI Agent — Ask Anything</div>
+        <div style="background:#111827;border-radius:8px;padding:16px;border:1px solid rgba(255,255,255,0.06);min-height:280px;">
+          <div style="display:flex;gap:10px;margin-bottom:16px;">
+            <div style="width:28px;height:28px;border-radius:50%;background:#1E3A5F;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.7rem;">👤</div>
+            <div style="background:rgba(255,255,255,0.06);border-radius:8px;padding:10px 14px;font-size:0.82rem;max-width:80%;">Which antineoplastic drugs had the highest import growth in Brazil in 2025?</div>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <div style="width:28px;height:28px;border-radius:50%;background:#00D4A120;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.8rem;">💊</div>
+            <div style="background:rgba(0,212,161,0.06);border:1px solid rgba(0,212,161,0.15);border-radius:8px;padding:10px 14px;font-size:0.82rem;max-width:85%;">
+              <div id="aiTyping"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Screen 4: Clinical Trials -->
+      <div class="demo-screen" id="screen4" style="display:none;">
+        <div style="font-size:0.7rem;color:#00D4A1;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:12px;">🔬 Clinical Trials — PubMed Live</div>
+        <div style="background:#111827;border-radius:8px;padding:12px;border:1px solid rgba(255,255,255,0.06);margin-bottom:12px;">
+          <div style="display:flex;gap:8px;">
+            <div style="background:rgba(255,255,255,0.06);border-radius:6px;padding:8px 14px;font-size:0.82rem;flex:1;color:#8892A4;">pembrolizumab</div>
+            <div style="background:#00D4A1;color:#0B0F1A;border-radius:6px;padding:8px 14px;font-size:0.82rem;font-weight:700;cursor:pointer;">Search</div>
+          </div>
+        </div>
+        <div style="font-size:0.72rem;color:#8892A4;margin-bottom:8px;">981 clinical trials found</div>
+        <div style="background:#111827;border-radius:8px;padding:10px;border:1px solid rgba(255,255,255,0.06);margin-bottom:6px;">
+          <div style="font-size:0.8rem;font-weight:600;color:#F0F4FF;margin-bottom:3px;">Pembrolizumab in combination with gemcitabine and cisplatin...</div>
+          <div style="font-size:0.72rem;color:#00D4A1;">The Lancet · 2023 · <span style="color:#42A5F5;">pubmed.ncbi.nlm.nih.gov/37075781</span></div>
+        </div>
+        <div style="background:#111827;border-radius:8px;padding:10px;border:1px solid rgba(255,255,255,0.06);margin-bottom:6px;">
+          <div style="font-size:0.8rem;font-weight:600;color:#F0F4FF;margin-bottom:3px;">Overall Survival with Pembrolizumab in Early-Stage Triple-Negative Breast Cancer</div>
+          <div style="font-size:0.72rem;color:#00D4A1;">NEJM · 2024 · <span style="color:#42A5F5;">pubmed.ncbi.nlm.nih.gov/39282906</span></div>
+        </div>
+        <div style="background:#111827;border-radius:8px;padding:10px;border:1px solid rgba(255,255,255,0.06);">
+          <div style="font-size:0.8rem;font-weight:600;color:#F0F4FF;margin-bottom:3px;">Enfortumab Vedotin and Pembrolizumab in Untreated Advanced Urothelial Cancer</div>
+          <div style="font-size:0.72rem;color:#00D4A1;">NEJM · 2024 · <span style="color:#42A5F5;">pubmed.ncbi.nlm.nih.gov/38446675</span></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Progress indicators -->
+    <div style="background:#0D1117;padding:12px 20px;border-top:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:12px;">
+      <div id="dot1" onclick="goToScreen(0)" style="width:8px;height:8px;border-radius:50%;background:#00D4A1;cursor:pointer;transition:all 0.3s;"></div>
+      <div id="dot2" onclick="goToScreen(1)" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.2);cursor:pointer;transition:all 0.3s;"></div>
+      <div id="dot3" onclick="goToScreen(2)" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.2);cursor:pointer;transition:all 0.3s;"></div>
+      <div id="dot4" onclick="goToScreen(3)" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.2);cursor:pointer;transition:all 0.3s;"></div>
+      <div style="flex:1;text-align:right;">
+        <span id="screenLabel" style="font-size:0.72rem;color:#8892A4;">Import Intelligence</span>
       </div>
     </div>
-    <a href="https://pharmaintel-br.onrender.com/?page=tour" target="_blank"
-       style="background:#00D4A1;color:#0B0F1A;padding:15px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:1rem;display:inline-block;margin-bottom:12px;">
-      ▶ Access Live Platform Demo
-    </a>
-    <div style="color:#8892A4;font-size:0.78rem;margin-top:8px;">No sign-up · No credit card · Full access</div>
   </div>
 </div>
 
+<style>
+.demo-screen { animation: fadeIn 0.5s ease; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+.bar-row { margin-bottom:6px; }
+</style>
+
 <script>
-function animateCounter(id, target, suffix) {
-  var el = document.getElementById(id);
-  var start = 0; var duration = 2000; var step = target / (duration / 16);
-  var timer = setInterval(function() {
-    start += step;
-    if (start >= target) { start = target; clearInterval(timer); }
-    el.textContent = Math.floor(start).toLocaleString() + (suffix || '');
-  }, 16);
+var screens = ['screen1','screen2','screen3','screen4'];
+var labels = ['Import Intelligence','ANVISA Monitoring','AI Agent','Clinical Trials'];
+var dots = ['dot1','dot2','dot3','dot4'];
+var current = 0;
+var timer;
+
+function goToScreen(idx) {
+  document.getElementById(screens[current]).style.display = 'none';
+  document.getElementById(dots[current]).style.background = 'rgba(255,255,255,0.2)';
+  current = idx;
+  document.getElementById(screens[current]).style.display = 'block';
+  document.getElementById(dots[current]).style.background = '#00D4A1';
+  document.getElementById('screenLabel').textContent = labels[current];
+  if (current === 0) initBars();
+  if (current === 2) startTyping();
+  clearInterval(timer);
+  timer = setInterval(function(){ goToScreen((current+1)%4); }, 5000);
 }
-window.addEventListener('load', function() {
-  animateCounter('counter1', 54297, '');
-  animateCounter('counter2', 17247, '');
-  animateCounter('counter3', 35000000, '+');
+
+function initBars() {
+  var rows = document.querySelectorAll('.bar-row');
+  rows.forEach(function(row) {
+    var label = row.dataset.label, val = row.dataset.val, pct = row.dataset.pct, color = row.dataset.color;
+    row.innerHTML = '<div style="display:flex;justify-content:space-between;font-size:0.72rem;margin-bottom:3px;"><span style="color:#F0F4FF;">'+label+'</span><span style="color:'+color+';">'+val+'</span></div><div style="background:rgba(255,255,255,0.06);border-radius:3px;height:5px;overflow:hidden;"><div style="background:'+color+';height:5px;border-radius:3px;width:0;transition:width 1s ease;" data-w="'+pct+'%"></div></div>';
+    setTimeout(function(){ row.querySelector('[data-w]').style.width = row.querySelector('[data-w]').dataset.w; }, 100);
+  });
+}
+
+var aiText = '📊 Based on Comex Stat 2025 data:\n\n1. Pembrolizumab (NCM 30049069) — +34% YoY — US$1.65B\n2. Nivolumab — +28% YoY — US$890M\n3. Trastuzumab biosimilars — +22% YoY — US$445M\n\nKey driver: ANVISA fast-track approvals for oncology products accelerated market access in Q1-Q2 2025.';
+var aiIdx = 0;
+function startTyping() {
+  document.getElementById('aiTyping').textContent = '';
+  aiIdx = 0;
+  var t = setInterval(function(){
+    if(aiIdx < aiText.length){
+      document.getElementById('aiTyping').textContent += aiText[aiIdx];
+      aiIdx++;
+    } else { clearInterval(t); }
+  }, 18);
+}
+
+function animateCounter(el, target, isB) {
+  var start=0, duration=1800, step=target/(duration/16);
+  var t=setInterval(function(){
+    start+=step;
+    if(start>=target){start=target;clearInterval(t);}
+    el.textContent = isB ? start.toFixed(1)+'B' : Math.floor(start).toLocaleString();
+  },16);
+}
+
+window.addEventListener('load', function(){
+  document.querySelectorAll('.count-up').forEach(function(el){
+    var t=parseFloat(el.dataset.target);
+    animateCounter(el,t,t<100);
+  });
+  initBars();
+  timer = setInterval(function(){ goToScreen((current+1)%4); }, 5000);
 });
 </script>
 
