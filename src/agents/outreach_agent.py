@@ -193,7 +193,23 @@ monitoramento ANVISA (17.247 registros), alertas de vencimento, análise de conc
 Mencione 1-2 benefícios específicos para o perfil desta empresa.
 Tom: executivo, direto, sem enrolar. Apenas os parágrafos em HTML (<p> tags)."""
 
-    # Try Anthropic first
+    # 1. OpenAI GPT-4o (Pro tier — best writing quality)
+    try:
+        from openai import OpenAI as _OAI
+        key = os.getenv("OPENAI_API_KEY", "")
+        if key:
+            client = _OAI(api_key=key)
+            resp = client.chat.completions.create(
+                model="gpt-4o",
+                max_tokens=300,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.6,
+            )
+            return resp.choices[0].message.content.strip()
+    except Exception as exc:
+        logger.warning("OpenAI body gen failed: %s", exc)
+
+    # 2. Anthropic Claude (Enterprise fallback)
     try:
         import anthropic as _ant
         key = os.getenv("ANTHROPIC_API_KEY", "")
@@ -208,7 +224,7 @@ Tom: executivo, direto, sem enrolar. Apenas os parágrafos em HTML (<p> tags).""
     except Exception as exc:
         logger.warning("Anthropic body gen failed: %s", exc)
 
-    # Groq fallback
+    # 3. Groq Llama (Starter fallback — free)
     try:
         from groq import Groq
         key = os.getenv("GROQ_API_KEY", "")

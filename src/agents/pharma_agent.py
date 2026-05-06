@@ -53,8 +53,8 @@ BUDGET_PATH   = Path(__file__).resolve().parents[2] / "data" / "ai_budget.json"
 
 # Models per plan
 MODEL_STARTER    = "llama-3.3-70b-versatile"   # Groq — Starter (free, fast)
-MODEL_PRO        = "deepseek-chat"              # DeepSeek V3 — Pro (free, precise)
-MODEL_ENTERPRISE = "claude-opus-4-7"             # Anthropic — Enterprise (best)
+MODEL_PRO        = "gpt-4o"                     # OpenAI GPT-4o — Pro
+MODEL_ENTERPRISE = "claude-opus-4-7"            # Anthropic Claude — Enterprise (best)
 PLANS_PRO_MODELS       = {"pro"}
 PLANS_ENTERPRISE_MODELS = {"enterprise"}
 
