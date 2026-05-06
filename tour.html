@@ -10,10 +10,18 @@
   .header { background: #0D1117; padding: 20px 32px; border-bottom: 1px solid rgba(255,255,255,0.07); display: flex; align-items: center; justify-content: space-between; }
   .logo { font-size: 1.4rem; font-weight: 700; } .logo span { color: #00D4A1; }
   .tagline { font-size: 0.75rem; color: #8892A4; }
-  .hero { text-align: center; padding: 60px 20px 40px; }
+  .hero { text-align: center; padding: 60px 20px 20px; }
   .hero h1 { font-size: 2.2rem; font-weight: 700; margin-bottom: 12px; }
   .hero h1 span { color: #00D4A1; }
-  .hero p { color: #8892A4; font-size: 1rem; max-width: 600px; margin: 0 auto; }
+  .hero p { color: #8892A4; font-size: 1rem; max-width: 600px; margin: 0 auto 28px; }
+  .video-section { max-width: 860px; margin: 0 auto 20px; padding: 0 20px; }
+  .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; border-radius: 16px; overflow: hidden; background: #111827; border: 1px solid rgba(0,212,161,0.25); }
+  .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
+  .video-placeholder { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; }
+  .play-btn { width: 72px; height: 72px; background: #00D4A1; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; transition: transform 0.2s; }
+  .play-btn:hover { transform: scale(1.1); }
+  .play-btn svg { margin-left: 6px; }
+  .video-label { color: #8892A4; font-size: 0.88rem; }
   .steps { max-width: 900px; margin: 0 auto; padding: 20px; }
   .step { background: #111827; border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; padding: 28px; margin-bottom: 20px; display: flex; gap: 24px; align-items: flex-start; transition: border-color 0.2s; }
   .step:hover { border-color: rgba(0,212,161,0.3); }
@@ -58,6 +66,35 @@
   <h1>Brazil's <span>$24 Billion</span> Pharma Market.<br>Fully Transparent.</h1>
   <p>Real-time import data, ANVISA monitoring, clinical trials intelligence and AI — in one platform built for the Brazilian pharmaceutical market.</p>
 </div>
+
+<!-- VIDEO SECTION -->
+<div class="video-section">
+  <div class="video-wrapper" id="videoWrapper">
+    <!-- Replace VIDEO_ID below with your YouTube or Loom video ID -->
+    <!-- YouTube: <iframe src="https://www.youtube.com/embed/VIDEO_ID?autoplay=1" allowfullscreen></iframe> -->
+    <!-- Loom: <iframe src="https://www.loom.com/embed/VIDEO_ID" allowfullscreen></iframe> -->
+    <div class="video-placeholder" onclick="loadVideo()">
+      <div class="play-btn">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="#0B0F1A">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+      </div>
+      <div style="color:#F0F4FF;font-weight:700;font-size:1rem;margin-bottom:6px;">Watch Platform Demo</div>
+      <div class="video-label">2 min · See all 5 features in action</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function loadVideo() {
+  // Replace with your actual video URL when ready
+  // Loom example: var videoUrl = 'https://www.loom.com/embed/YOUR_VIDEO_ID';
+  // YouTube example: var videoUrl = 'https://www.youtube.com/embed/YOUR_VIDEO_ID?autoplay=1';
+  var videoUrl = 'https://pharmaintel-br.onrender.com'; // placeholder — replace with real video
+  var wrapper = document.getElementById('videoWrapper');
+  wrapper.innerHTML = '<iframe src="' + videoUrl + '" allowfullscreen allow="autoplay"></iframe>';
+}
+</script>
 
 <div class="steps">
 
