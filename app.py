@@ -4903,6 +4903,14 @@ TAM estimado: US$ {max(total_fob * 3, 50_000_000):,.0f}. Crescimento projetado 2
 # ===========================================================================
 
 def main() -> None:
+    # URL parameter routing — ?page=tour opens tour directly
+    try:
+        params = st.query_params
+        if "page" in params and params["page"] in ["tour", "overview", "imports", "anvisa", "trials", "agent"]:
+            st.session_state["page_key"] = params["page"]
+    except Exception:
+        pass
+
     page_key, year = sidebar()
 
     pages = {
