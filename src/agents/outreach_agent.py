@@ -25,18 +25,27 @@ DAILY_LIMIT  = 20
 # ---------------------------------------------------------------------------
 
 def _is_international(company: dict) -> bool:
-    """Detect international prospects by email domain, description or segment."""
-    email = company.get("email", "")
-    desc  = (company.get("description", "") + " " + company.get("segment", "")).lower()
-    intl_tlds = (".ch", ".us", ".uk", ".de", ".fr", ".cn", ".in", ".jp", ".ca", ".au")
-    if any(email.endswith(t) for t in intl_tlds):
-        return True
-    intl_keywords = (
-        "switzerland", "suíça", "uk ", "german", "french", "china", "chinese",
-        "us biotech", "uk biotech", "spanish", "swedish", "irish", "italian",
-        "latam", "latin america", "international", "global", "europe",
+    """Detect international prospects — EN email. Brazilian companies get PT.
+    Rule: .com.br email OR known Brazilian company name → PT. Everything else → EN.
+    """
+    email = company.get("email", "").lower()
+    name  = company.get("company_name", "").lower()
+
+    # Definitive: Brazilian email domain → PT
+    if any(email.endswith(d) for d in (".com.br", ".org.br", ".net.br", ".gov.br")):
+        return False
+
+    # Known Brazilian companies by name → PT
+    br_companies = (
+        "grupo cimed", "pharmedic", "eurofarma", "ems pharma", "cristália",
+        "libbs", "medley", "aché", "hypera", "unimed", "samaritano",
+        "ac camargo", "brisa advisors", "cristalia",
     )
-    return any(kw in desc for kw in intl_keywords)
+    if any(br in name for br in br_companies):
+        return False
+
+    # Everything else (international .com, country TLDs, etc.) → EN
+    return True
 
 
 def _build_email_en(company: dict, ai_body: str) -> tuple[str, str]:
