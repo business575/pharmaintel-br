@@ -52,6 +52,26 @@ def _check_env() -> bool:
 
 
 # ---------------------------------------------------------------------------
+# Step 0 — Inbox Scan (responde emails de prospects automaticamente)
+# ---------------------------------------------------------------------------
+
+def step_inbox() -> dict:
+    logger.info("=== STEP 0: Inbox Scan ===")
+    try:
+        from src.agents.inbox_agent import run_inbox_scan
+        result = run_inbox_scan(auto_reply=True, dry_run=False)
+        logger.info(
+            "Inbox: %d lidos | %d interesse | %d perguntas | %d respondidos",
+            result["scanned"], result["interesse"],
+            result["perguntas"], result["respostas_enviadas"],
+        )
+        return result
+    except Exception as exc:
+        logger.error("Inbox scan falhou: %s", exc)
+        return {"scanned": 0, "interesse": 0, "respostas_enviadas": 0, "error": str(exc)}
+
+
+# ---------------------------------------------------------------------------
 # Step 1 — Outreach (prospects no banco de dados)
 # ---------------------------------------------------------------------------
 
@@ -126,6 +146,7 @@ def main() -> None:
     if not _check_env():
         sys.exit(1)
 
+    inbox_result    = step_inbox()
     outreach_result = step_outreach()
     anvisa_result   = step_anvisa_scan()
     print_report(outreach_result, anvisa_result)
