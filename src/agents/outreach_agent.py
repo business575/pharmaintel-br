@@ -15,7 +15,7 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 RESEND_FROM  = "PharmaIntel BR <business@globalhealthcareaccess.com>"
-DEMO_URL     = "https://pharmaintel-br.onrender.com"
+DEMO_URL     = "https://business575.github.io/pharmaintel-br/tour.html"
 CALENDLY_URL = "https://calendly.com/vinicius-hospitalar/30min"
 DAILY_LIMIT  = 20
 
