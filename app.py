@@ -5256,6 +5256,52 @@ def page_trials(year: int) -> None:
         c1.metric("Clinical Trials encontrados", f"{total:,}".replace(",", "."))
         c2.metric("Trials com afiliação Brasil", f"{total_br:,}".replace(",", "."))
 
+        # ── Preços CMED + Comparativo de Importação ──────────────────────────
+        try:
+            from src.integrations.bps import get_price_summary
+            cmed = get_price_summary(run_query)
+            if cmed and cmed.get("preco_medio", 0) > 0:
+                st.markdown("---")
+                st.markdown(f"""
+                <div style="background:#111827;border:1px solid rgba(0,212,161,0.25);
+                            border-radius:12px;padding:1.2rem 1.4rem;margin-bottom:1rem;">
+                    <div style="font-size:0.72rem;color:#00D4A1;font-weight:600;letter-spacing:0.1em;
+                                text-transform:uppercase;margin-bottom:0.75rem;">
+                        💊 Preços Regulados CMED/ANVISA — {run_query.title()}
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:0.75rem;">
+                        <div>
+                            <div style="font-size:0.65rem;color:#8892A4;text-transform:uppercase;letter-spacing:0.08em;">PF/PMVG Médio</div>
+                            <div style="font-size:1.3rem;font-weight:700;color:#00D4A1;">
+                                R$ {cmed['pf_medio']:,.2f}
+                            </div>
+                            <div style="font-size:0.65rem;color:#8892A4;">Preço de Fábrica / Máx. Governo</div>
+                        </div>
+                        <div>
+                            <div style="font-size:0.65rem;color:#8892A4;text-transform:uppercase;letter-spacing:0.08em;">PMC Médio</div>
+                            <div style="font-size:1.3rem;font-weight:700;color:#42A5F5;">
+                                R$ {cmed['pmc_medio']:,.2f}
+                            </div>
+                            <div style="font-size:0.65rem;color:#8892A4;">Preço Máx. ao Consumidor</div>
+                        </div>
+                        <div>
+                            <div style="font-size:0.65rem;color:#8892A4;text-transform:uppercase;letter-spacing:0.08em;">Apresentações</div>
+                            <div style="font-size:1.3rem;font-weight:700;color:#FFB74D;">
+                                {cmed.get('total_apresentacoes', cmed.get('total_compras', 0))}
+                            </div>
+                            <div style="font-size:0.65rem;color:#8892A4;">registros CMED ativos</div>
+                        </div>
+                    </div>
+                    <div style="font-size:0.72rem;color:#8892A4;">
+                        <strong style="color:#F0F4FF;">Apresentação referência:</strong> {cmed.get('unidade', '—')}
+                        &nbsp;·&nbsp; <strong style="color:#F0F4FF;">Publicação:</strong> {cmed.get('arquivo', 'CMED/ANVISA')}
+                    </div>
+                    {"<div style='margin-top:0.5rem;font-size:0.72rem;color:#8892A4;'><strong style='color:#F0F4FF;'>Laboratórios:</strong> " + " · ".join(cmed.get('laboratorios', [])[:4]) + "</div>" if cmed.get('laboratorios') else ""}
+                </div>
+                """, unsafe_allow_html=True)
+        except Exception:
+            pass
+
         st.markdown("---")
 
         for i, art in enumerate(results):
