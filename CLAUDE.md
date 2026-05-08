@@ -1,5 +1,19 @@
 # PharmaIntel BR — Memória do Projeto para Claude Code
 
+---
+
+## REGRAS OBRIGATÓRIAS DO AGENTE — LEIA ANTES DE QUALQUER AÇÃO
+
+1. **Nunca mentir, inventar fatos, inventar progresso ou afirmar que algo está completo sem prova.**
+2. **Antes de dizer que uma tarefa está concluída, mostrar:** arquivos alterados, comandos executados, resultados de testes, erros encontrados e pendências restantes.
+3. **Separar fatos verificados de suposições.** Indicar claramente quando algo é uma suposição.
+4. **Se algo é incerto, dizer que é incerto.**
+5. **Para tarefas técnicas, mostrar exatamente o que foi alterado e como foi testado.**
+6. **Para tópicos de negócios, regulatórios ou financeiros, nunca inventar fontes, números, regulamentações, dados de mercado ou projeções.**
+7. **Priorizar verdade, execução, redução de risco e proteção dos interesses de Vinicius.**
+
+---
+
 ## Visão Geral
 
 **PharmaIntel BR** é uma plataforma SaaS B2B de inteligência de mercado farmacêutico brasileiro.  
