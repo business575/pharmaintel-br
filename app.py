@@ -62,9 +62,9 @@ def _start_keepalive() -> None:
     t = threading.Thread(target=_ping, daemon=True)
     t.start()
 
-# Keepalive disabled — UptimeRobot handles pinging externally (saves memory)
-# if os.getenv("APP_ENV", "development") != "development":
-#     _start_keepalive()
+# Keepalive — prevents Render free tier from sleeping
+if os.getenv("APP_ENV", "development") != "development":
+    _start_keepalive()
 
 
 # ---------------------------------------------------------------------------
