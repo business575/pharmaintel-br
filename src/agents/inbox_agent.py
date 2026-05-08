@@ -39,13 +39,20 @@ PLATFORM_URL = "https://pharmaintel-br.onrender.com"
 SKIP_SENDERS = [
     "mailer-daemon", "postmaster", "noreply", "no-reply",
     "newsletter", "unsubscribe", "bounce", "notification",
+    "marketing", "promo", "campaign", "digest", "weekly", "daily",
     "alerts@", "updates@", "news@", "info@stripe", "hello@render",
     "wix.com", "uptimerobot", "github.com", "railway.app",
     "empiricus", "cyberman", "cafecomceo", "fiercepharma",
     "govdelivery", "senseonics", "websummit", "airtable",
     "formspree", "n8n.io", "sbpc", "jota.info", "alibaba",
     "bradesco", "vivo.com", "accor.com", "amazon.com",
+    "biopharmguy", "singularity-group", "textbroker", "mailchi",
+    "beehiiv", "substack", "hubspot", "mailchimp", "klaviyo",
+    "vinicius.hospitalar@gmail.com",
 ]
+
+# So responde emails de dominios de prospects conhecidos
+PROSPECT_DOMAINS_ONLY = True  # Se True, ignora emails fora do pipeline
 
 # Palavras que indicam interesse genuino
 INTEREST_KEYWORDS = [
@@ -102,9 +109,31 @@ def _get_body(msg) -> str:
     return body[:2000]
 
 
+def _get_prospect_emails() -> set:
+    """Retorna set de emails de prospects no banco."""
+    try:
+        from src.db.database import get_prospects, init_db
+        init_db()
+        return {p["email"].lower() for p in get_prospects(limit=500) if p["email"]}
+    except Exception:
+        return set()
+
+
 def _is_skip(sender: str, subject: str) -> bool:
     s = (sender + subject).lower()
-    return any(kw in s for kw in SKIP_SENDERS)
+    if any(kw in s for kw in SKIP_SENDERS):
+        return True
+    return False
+
+
+def _is_known_prospect(sender_email: str, prospect_emails: set) -> bool:
+    """Verifica se o remetente e um prospect conhecido."""
+    if not PROSPECT_DOMAINS_ONLY:
+        return True
+    # Verifica email exato ou dominio
+    domain = sender_email.split("@")[-1] if "@" in sender_email else ""
+    return (sender_email in prospect_emails or
+            any(domain in pe for pe in prospect_emails))
 
 
 def _is_auto_reply(body: str, subject: str) -> bool:
@@ -314,6 +343,9 @@ def run_inbox_scan(auto_reply: bool = True, dry_run: bool = False) -> dict:
     if not mail:
         return report
 
+    prospect_emails = _get_prospect_emails()
+    logger.info("Prospects no banco: %d", len(prospect_emails))
+
     try:
         mail.select("INBOX")
         _, msgs = mail.search(None, "UNSEEN")
@@ -336,6 +368,10 @@ def run_inbox_scan(auto_reply: bool = True, dry_run: bool = False) -> dict:
                 sender_name  = sender.split("<")[0].strip().strip('"') if "<" in sender else sender_email
 
                 if _is_skip(sender, subject):
+                    continue
+
+                if not _is_known_prospect(sender_email, prospect_emails):
+                    logger.debug("Ignorando email de nao-prospect: %s", sender_email)
                     continue
 
                 body = _get_body(msg)
