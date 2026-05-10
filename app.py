@@ -5256,20 +5256,45 @@ def page_trials(year: int) -> None:
         c1.metric("Clinical Trials encontrados", f"{total:,}".replace(",", "."))
         c2.metric("Trials com afiliação Brasil", f"{total_br:,}".replace(",", "."))
 
-        # ── Preços CMED + Comparativo de Importação ──────────────────────────
+        # ── Business Score de Economicidade + CMED ───────────────────────────
         try:
             from src.integrations.bps import get_price_summary
+            import pandas as _pd_bsc
+            from pathlib import Path as _Path_bsc
             cmed = get_price_summary(run_query)
             if cmed and cmed.get("preco_medio", 0) > 0:
+                pf = cmed.get("pf_medio", 0)
+                # Calcula score de economicidade via FOB/kg
+                try:
+                    _df_bsc = _pd_bsc.read_parquet(_Path_bsc(PROCESSED_DIR) / f"pharma_imports_{year}.parquet")
+                    _ncm_bsc = _df_bsc[_df_bsc["kg_liquido"] > 0].copy()
+                    _ncm_bsc["fob_kg"] = _ncm_bsc["vl_fob"] / _ncm_bsc["kg_liquido"]
+                    fob_kg = float(_ncm_bsc["fob_kg"].median())
+                    fob_frasco = fob_kg * 0.005 * 5.20  # ~5g/frasco, R$5.20/USD
+                    score = max(0, min(100, int((1 - fob_frasco / pf) * 100))) if pf > 0 else 0
+                    score_color = "#00D4A1" if score >= 70 else "#FFB74D" if score >= 40 else "#FF5252"
+                    score_label = "ALTA ECONOMICIDADE" if score >= 70 else "MÉDIA ECONOMICIDADE" if score >= 40 else "BAIXA ECONOMICIDADE"
+                except Exception:
+                    score, score_color, score_label, fob_frasco = 0, "#8892A4", "N/D", 0
+
                 st.markdown("---")
                 st.markdown(f"""
                 <div style="background:#111827;border:1px solid rgba(0,212,161,0.25);
                             border-radius:12px;padding:1.2rem 1.4rem;margin-bottom:1rem;">
-                    <div style="font-size:0.72rem;color:#00D4A1;font-weight:600;letter-spacing:0.1em;
-                                text-transform:uppercase;margin-bottom:0.75rem;">
-                        💊 Preços Regulados CMED/ANVISA — {run_query.title()}
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+                        <div style="font-size:0.72rem;color:#00D4A1;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;">
+                            📊 Business Score de Economicidade — {run_query.title()}
+                        </div>
+                        <div style="background:{score_color}20;border:1px solid {score_color}50;border-radius:8px;padding:0.3rem 0.8rem;text-align:center;">
+                            <div style="font-size:1.4rem;font-weight:700;color:{score_color};">{score}<span style="font-size:0.8rem;">/100</span></div>
+                            <div style="font-size:0.6rem;color:{score_color};font-weight:600;">{score_label}</div>
+                        </div>
                     </div>
-                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:0.75rem;">
+                    <div style="font-size:0.78rem;color:#8892A4;margin-bottom:1rem;">
+                        Compara o custo real de importação (FOB Comex Stat) com o teto regulado CMED/ANVISA.
+                        Score 100 = máxima economia. Score 0 = preço próximo ao teto regulado.
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:0.75rem;">
                         <div>
                             <div style="font-size:0.65rem;color:#8892A4;text-transform:uppercase;letter-spacing:0.08em;">PF/PMVG Médio</div>
                             <div style="font-size:1.3rem;font-weight:700;color:#00D4A1;">
@@ -5295,6 +5320,7 @@ def page_trials(year: int) -> None:
                     <div style="font-size:0.72rem;color:#8892A4;">
                         <strong style="color:#F0F4FF;">Apresentação referência:</strong> {cmed.get('unidade', '—')}
                         &nbsp;·&nbsp; <strong style="color:#F0F4FF;">Publicação:</strong> {cmed.get('arquivo', 'CMED/ANVISA')}
+                        {f"&nbsp;·&nbsp; <strong style='color:#F0F4FF;'>FOB estimado/frasco:</strong> R$ {fob_frasco:,.2f}" if fob_frasco > 0 else ""}
                     </div>
                     {"<div style='margin-top:0.5rem;font-size:0.72rem;color:#8892A4;'><strong style='color:#F0F4FF;'>Laboratórios:</strong> " + " · ".join(cmed.get('laboratorios', [])[:4]) + "</div>" if cmed.get('laboratorios') else ""}
                 </div>
