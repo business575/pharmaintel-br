@@ -5367,7 +5367,51 @@ def page_suppliers(year: int) -> None:
         else:
             st.info("Nenhum fornecedor com registro ANVISA ativo encontrado para este NCM.")
 
-    st.caption(f"Fonte: ANVISA Dados Abertos · Comex Stat (MDIC) · CMED — Dados de {year}")
+    # ── Calculadora de Preço de Aterrissagem ─────────────────────────────────
+    st.markdown("---")
+    st.markdown("### 🧮 Calculadora de Preço de Aterrissagem")
+    st.markdown("<p style='color:#8892A4;font-size:0.85rem;margin-bottom:1rem;'>Simule o custo real do produto no Brasil a partir do FOB de importação.</p>", unsafe_allow_html=True)
+
+    with st.expander("Configurar parâmetros", expanded=True):
+        ca1, ca2, ca3 = st.columns(3)
+        with ca1:
+            fob_usd_kg = st.number_input("FOB (USD/kg)", value=float(paises_agg["fob_kg_medio"].min()) if len(paises_agg) > 0 else 2665.0, step=100.0, format="%.0f")
+            usd_brl_rate = st.number_input("Taxa USD/BRL", value=5.20, step=0.05, format="%.2f")
+        with ca2:
+            g_frasco = st.number_input("Peso por frasco (g)", value=5.0, step=0.5, format="%.1f")
+            icms_pct_input = st.slider("ICMS (%)", 0, 20, 12)
+        with ca3:
+            margem_dist_input = st.slider("Margem Distribuidor (%)", 0, 50, 20)
+            margem_hosp_input = st.slider("Margem Hospital (%)", 0, 30, 15)
+
+        # Calcula
+        kg_fr       = g_frasco / 1000
+        fob_brl     = fob_usd_kg * kg_fr * usd_brl_rate
+        cif_calc    = fob_brl * 1.065
+        icms_calc   = cif_calc / (1 - icms_pct_input/100) * (icms_pct_input/100)
+        custo_desemp_calc = cif_calc + icms_calc
+        preco_hosp_calc   = custo_desemp_calc * (1 + margem_dist_input/100)
+        preco_final_calc  = preco_hosp_calc * (1 + margem_hosp_input/100)
+        espaco_neg        = max(0, pf - preco_hosp_calc) if pf > 0 else 0
+
+        cc1, cc2, cc3, cc4 = st.columns(4)
+        cc1.metric("FOB por frasco", f"R$ {fob_brl:.2f}")
+        cc2.metric("Custo Desembaraçado", f"R$ {custo_desemp_calc:.2f}")
+        cc3.metric("Preço ao Hospital", f"R$ {preco_hosp_calc:.2f}", delta=f"CMED: R$ {pf:,.0f}" if pf > 0 else None, delta_color="off")
+        cc4.metric("Espaço de Negociação", f"R$ {espaco_neg:,.0f}/frasco", help="Diferença entre preço ao hospital e teto CMED PF/PMVG")
+
+        if pf > 0 and preco_hosp_calc > 0:
+            ratio = preco_hosp_calc / pf * 100
+            st.markdown(f"""
+            <div style="background:rgba(0,212,161,0.07);border:1px solid rgba(0,212,161,0.3);border-radius:8px;padding:0.75rem 1rem;margin-top:0.5rem;">
+            <strong style="color:#00D4A1;">💡 Posição de mercado:</strong>
+            <span style="color:#8892A4;"> O preço de custo ao hospital ({ratio:.1f}% do teto CMED)
+            {"indica <strong style='color:#00D4A1;'>alta margem para negociação</strong> — produto pode ser adquirido muito abaixo do teto regulado." if ratio < 30 else "está próximo do teto regulado — margem de negociação limitada."}
+            </span>
+            </div>
+            """, unsafe_allow_html=True)
+
+    st.caption(f"Fonte: ANVISA Dados Abertos · Comex Stat (MDIC) · CMED · Cálculo estimado para referência comercial — Dados de {year}")
 
 
 def page_trials(year: int) -> None:
