@@ -157,6 +157,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "nav_comtrade":   "UN Comtrade",
         "nav_etl":        "Pipeline ETL",
         "nav_tour":       "🚀 Tour Guiado",
+        "nav_suppliers":  "🏭 Mapa de Fornecedores",
         "nav_agent":      "Agente IA",
         "nav_trials":     "🔬 Estudos Clínicos",
         "nav_report":     "📄 Relatório Estratégico",
@@ -260,6 +261,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "nav_anvisa":     "ANVISA",
         "nav_companies":  "Companies",
         "nav_tour":       "🚀 Guided Tour",
+        "nav_suppliers":  "🏭 Supplier Map",
         "nav_comtrade":   "UN Comtrade",
         "nav_etl":        "ETL Pipeline",
         "nav_agent":      "AI Agent",
@@ -361,9 +363,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 }
 
 # Internal navigation keys (language-independent)
-_NAV_KEYS = ["tour", "overview", "imports", "anvisa", "companies", "comtrade", "etl", "agent", "trials", "report"]
+_NAV_KEYS = ["tour", "overview", "imports", "anvisa", "suppliers", "companies", "comtrade", "etl", "agent", "trials", "report"]
 _NAV_T_KEYS = [
-    "nav_tour", "nav_overview", "nav_imports", "nav_anvisa", "nav_companies",
+    "nav_tour", "nav_overview", "nav_imports", "nav_anvisa", "nav_suppliers", "nav_companies",
     "nav_comtrade", "nav_etl", "nav_agent", "nav_trials", "nav_report",
 ]
 
@@ -4916,6 +4918,7 @@ def main() -> None:
     pages = {
         "overview":   page_overview,
         "tour":       page_tour,
+        "suppliers":  page_suppliers,
         "imports":    page_importacoes,
         "anvisa":     page_anvisa,
         "companies":  page_empresas,
@@ -5186,6 +5189,185 @@ def page_tour(year: int) -> None:
         if st.button(f"🚀 {cta_trial}", use_container_width=True):
             st.session_state.page_key = "overview"
             st.rerun()
+
+
+def page_suppliers(year: int) -> None:
+    """Mapa de Fornecedores — quem fornece cada medicamento, a que preço e de onde."""
+    lang = st.session_state.get("lang", "PT")
+    render_header(_t("nav_suppliers"))
+
+    st.markdown("""
+    <p style="color:#8899AA;font-size:0.9rem;margin-bottom:1rem;">
+    Identifique fornecedores autorizados (ANVISA), preços por país de origem e
+    <strong style="color:#00D4A1;">Business Score de Economicidade</strong> para qualquer medicamento.
+    </p>
+    """, unsafe_allow_html=True)
+
+    col_q, col_btn = st.columns([4, 1])
+    with col_q:
+        ncm_input = st.text_input(
+            "NCM ou Princípio Ativo",
+            placeholder="Ex: 30021590  ou  trastuzumabe  ou  pembrolizumab",
+            key="supplier_query",
+        )
+    with col_btn:
+        st.markdown("<div style='margin-top:1.75rem'>", unsafe_allow_html=True)
+        buscar = st.button("🔍 Buscar", type="primary", use_container_width=True, key="supplier_search")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # Chips de NCMs oncologia de alto custo
+    st.markdown("**NCMs de alto custo (oncologia):**")
+    ncm_chips = {
+        "30021590 — Imunológicos": "30021590",
+        "30049069 — Antineoplásicos": "30049069",
+        "30043929 — Hormônios polipeptídicos": "30043929",
+        "30049079 — Outros antineoplásicos": "30049079",
+        "30049099 — Outros oncológicos": "30049099",
+    }
+    cols = st.columns(len(ncm_chips))
+    for i, (label, ncm_val) in enumerate(ncm_chips.items()):
+        with cols[i]:
+            if st.button(label, key=f"ncm_chip_{ncm_val}", use_container_width=True):
+                st.session_state["supplier_query"] = ncm_val
+                st.session_state["supplier_run"] = ncm_val
+                st.rerun()
+
+    run_query = ncm_input if buscar and ncm_input else st.session_state.pop("supplier_run", None)
+
+    if not run_query:
+        return
+
+    with st.spinner(f"Mapeando fornecedores para '{run_query}'..."):
+        try:
+            import re as _re
+            is_ncm = bool(_re.match(r'^\d{8}$', run_query.strip()))
+
+            ncm_link = pd.read_parquet(PROCESSED_DIR / "ncm_empresa_link.parquet")
+            imp_df   = pd.read_parquet(PROCESSED_DIR / f"pharma_imports_{year}.parquet")
+
+            if is_ncm:
+                ncm_code = run_query.strip()
+                ncm_desc = imp_df[imp_df["co_ncm"].astype(str) == ncm_code]["ds_ncm"].iloc[0] if len(imp_df[imp_df["co_ncm"].astype(str) == ncm_code]) > 0 else ncm_code
+            else:
+                # Busca NCM pelo nome
+                ncm_code = None
+                for ncm_val in ncm_chips.values():
+                    ncm_desc = imp_df[imp_df["co_ncm"].astype(str) == ncm_val]["ds_ncm"].values
+                    if len(ncm_desc) > 0 and run_query.lower()[:6] in ncm_desc[0].lower():
+                        ncm_code = ncm_val
+                        break
+                if not ncm_code:
+                    ncm_code = "30021590"
+                    ncm_desc = "Imunológicos (trastuzumabe, rituximabe, bevacizumabe)"
+
+            # Fornecedores autorizados ANVISA
+            fornecedores = ncm_link[ncm_link["co_ncm"].astype(str) == ncm_code].sort_values("registros_ativos", ascending=False)
+
+            # Importações por país
+            ncm_imp = imp_df[imp_df["co_ncm"].astype(str) == ncm_code].copy()
+            ncm_imp_kg = ncm_imp[ncm_imp["kg_liquido"] > 0].copy()
+            ncm_imp_kg["fob_per_kg"] = ncm_imp_kg["vl_fob"] / ncm_imp_kg["kg_liquido"]
+
+            paises_agg = ncm_imp_kg.groupby("ds_pais").agg(
+                total_fob=("vl_fob", "sum"),
+                operacoes=("vl_fob", "count"),
+                fob_kg_medio=("fob_per_kg", "median"),
+            ).sort_values("total_fob", ascending=False)
+
+            total_fob = ncm_imp["vl_fob"].sum()
+            n_fornec  = len(fornecedores)
+            n_paises  = len(paises_agg)
+
+            # Business Score de Economicidade
+            from src.integrations.bps import get_price_summary
+            drug_name = run_query if not is_ncm else ncm_desc.split("(")[0].strip().lower()
+            cmed = get_price_summary(drug_name)
+            pf   = cmed.get("pf_medio", 0) if cmed else 0
+
+            fob_kg_median = float(ncm_imp_kg["fob_per_kg"].median()) if len(ncm_imp_kg) > 0 else 0
+            fob_frasco    = fob_kg_median * 0.005 * 5.20
+            score = max(0, min(100, int((1 - fob_frasco / pf) * 100))) if pf > 0 and fob_frasco > 0 else 0
+            score_color = "#00D4A1" if score >= 70 else "#FFB74D" if score >= 40 else "#FF5252"
+
+        except Exception as e:
+            st.error(f"Erro: {e}")
+            return
+
+    # ── KPIs ─────────────────────────────────────────────────────────────────
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Fornecedores autorizados", n_fornec, help="Empresas com registro ANVISA ativo para este NCM")
+    c2.metric("Total importado", f"USD {total_fob/1e6:.0f}M", help="Valor FOB total 2025")
+    c3.metric("Países de origem", n_paises)
+    c4.metric("Score Economicidade", f"{score}/100", help="100 = máxima economia vs teto CMED")
+
+    st.markdown("---")
+
+    tab_paises, tab_fornec = st.tabs(["🌍 Preços por País de Origem", "🏭 Fornecedores Autorizados (ANVISA)"])
+
+    with tab_paises:
+        st.markdown(f"""
+        <div style="background:#111827;border:1px solid rgba(0,212,161,0.2);border-radius:10px;padding:1rem;margin-bottom:1rem;">
+        <p style="color:#8892A4;font-size:0.82rem;margin:0;">
+        <strong style="color:#F0F4FF;">Como usar:</strong> Preços mais baixos por kg indicam possibilidade de negociação.
+        Diferenças grandes entre países podem indicar originador vs biosimilar no mesmo NCM.
+        </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        paises_display = paises_agg.reset_index().copy()
+        paises_display["FOB Total (USD)"] = paises_display["total_fob"].apply(lambda x: f"${x/1e6:.1f}M")
+        paises_display["FOB Mediano/kg (USD)"] = paises_display["fob_kg_medio"].apply(lambda x: f"${x:,.0f}")
+        paises_display["Operações"] = paises_display["operacoes"].astype(int)
+        paises_display["Economicidade"] = paises_display["fob_kg_medio"].apply(
+            lambda x: "🟢 Baixo custo" if x < 5000 else ("🟡 Médio" if x < 30000 else "🔴 Alto custo")
+        )
+        st.dataframe(
+            paises_display[["ds_pais", "FOB Total (USD)", "FOB Mediano/kg (USD)", "Operações", "Economicidade"]].rename(columns={"ds_pais": "País"}),
+            use_container_width=True, hide_index=True,
+        )
+
+        if pf > 0:
+            fob_min_kg = float(paises_agg["fob_kg_medio"].min())
+            fob_min_frasco = fob_min_kg * 0.005 * 5.20
+            st.markdown(f"""
+            <div style="background:rgba(0,212,161,0.07);border:1px solid rgba(0,212,161,0.25);border-radius:8px;padding:0.75rem 1rem;margin-top:0.5rem;">
+            <span style="color:#00D4A1;font-weight:600;">💡 Insight de Economicidade:</span>
+            <span style="color:#8892A4;font-size:0.85rem;">
+            Menor preço por kg disponível no mercado: <strong style="color:#F0F4FF;">USD {fob_min_kg:,.0f}/kg
+            (≈ R$ {fob_min_frasco:,.0f}/frasco estimado)</strong> vs teto CMED de
+            <strong style="color:#F0F4FF;">R$ {pf:,.2f}</strong>.
+            Score: <strong style="color:{score_color};">{score}/100</strong>
+            </span>
+            </div>
+            """, unsafe_allow_html=True)
+
+    with tab_fornec:
+        st.markdown(f"""
+        <div style="background:#111827;border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:1rem;margin-bottom:1rem;">
+        <p style="color:#8892A4;font-size:0.82rem;margin:0;">
+        <strong style="color:#F0F4FF;">Empresas com registro ANVISA ativo</strong> para este NCM.
+        Alta conformidade (%) = maior confiabilidade regulatória. Estas são as empresas autorizadas a fornecer no Brasil.
+        </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        if len(fornecedores) > 0:
+            forn_display = fornecedores[["razao_social", "cnpj_fmt", "registros_ativos", "pct_conformidade"]].copy()
+            forn_display["pct_conformidade"] = forn_display["pct_conformidade"].apply(lambda x: f"{x:.0f}%")
+            forn_display["Conformidade"] = fornecedores["pct_conformidade"].apply(
+                lambda x: "🟢 Alta" if x >= 80 else ("🟡 Média" if x >= 50 else "🔴 Baixa")
+            ).values
+            st.dataframe(
+                forn_display.rename(columns={
+                    "razao_social": "Empresa", "cnpj_fmt": "CNPJ",
+                    "registros_ativos": "Registros Ativos", "pct_conformidade": "Conformidade %"
+                }),
+                use_container_width=True, hide_index=True, height=400,
+            )
+        else:
+            st.info("Nenhum fornecedor com registro ANVISA ativo encontrado para este NCM.")
+
+    st.caption(f"Fonte: ANVISA Dados Abertos · Comex Stat (MDIC) · CMED — Dados de {year}")
 
 
 def page_trials(year: int) -> None:
