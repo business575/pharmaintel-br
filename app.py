@@ -3149,7 +3149,12 @@ def page_agent(year: int) -> None:
     if user_input:
         st.session_state.chat_history.append({"role": "user", "content": user_input})
         with st.spinner(_t("agent_spinner")):
+            # Auto-detect language from message if not explicitly set
             lang = st.session_state.get("lang", "PT")
+            _en_words = ["report", "show", "give", "what", "how", "which", "list", "find",
+                         "analyze", "analysis", "market", "price", "import", "english"]
+            if any(w in user_input.lower() for w in _en_words):
+                lang = "EN"
             response = agent.chat(user_input, user_email=user_email, user_plan=user_plan, lang=lang)
         st.session_state.chat_history.append({"role": "assistant", "content": response.text})
         if response.tool_calls_made:
