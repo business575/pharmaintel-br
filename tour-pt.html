@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8"><!-- v3 PT -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PharmaIntel BR — Demonstração Interativa</title>
 <style>
@@ -135,9 +135,9 @@
         </div>
         <div style="background:#111827;border-radius:8px;padding:12px;border:1px solid rgba(255,82,82,0.2);">
           <div style="font-size:0.7rem;color:#FF5252;font-weight:600;margin-bottom:8px;">⚠️ COMPLIANCE ALERTS</div>
-          <div style="font-size:0.78rem;color:#F0F4FF;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);">1234.5678.001 · PEMBROLIZUMAB 25mg/ml · Expiring 2026-08-15</div>
-          <div style="font-size:0.78rem;color:#F0F4FF;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);">1234.5678.002 · TRASTUZUMAB 150mg · Expiring 2026-09-22</div>
-          <div style="font-size:0.78rem;color:#F0F4FF;padding:6px 0;">1234.5678.003 · SEMAGLUTIDE 1mg · Expiring 2026-10-01</div>
+          <div style="font-size:0.78rem;color:#F0F4FF;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);">1234.5678.001 · PEMBROLIZUMAB 25mg/ml · Vencendo 2026-08-15</div>
+          <div style="font-size:0.78rem;color:#F0F4FF;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);">1234.5678.002 · TRASTUZUMAB 150mg · Vencendo 2026-09-22</div>
+          <div style="font-size:0.78rem;color:#F0F4FF;padding:6px 0;">1234.5678.003 · SEMAGLUTIDE 1mg · Vencendo 2026-10-01</div>
         </div>
       </div>
 
@@ -147,7 +147,7 @@
         <div style="background:#111827;border-radius:8px;padding:16px;border:1px solid rgba(255,255,255,0.06);min-height:280px;">
           <div style="display:flex;gap:10px;margin-bottom:16px;">
             <div style="width:28px;height:28px;border-radius:50%;background:#1E3A5F;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.7rem;">👤</div>
-            <div style="background:rgba(255,255,255,0.06);border-radius:8px;padding:10px 14px;font-size:0.82rem;max-width:80%;">Which antineoplastic drugs had the highest import growth in Brazil in 2025?</div>
+            <div style="background:rgba(255,255,255,0.06);border-radius:8px;padding:10px 14px;font-size:0.82rem;max-width:80%;">Quais antineoplásicos tiveram maior crescimento de importação no Brasil em 2025?</div>
           </div>
           <div style="display:flex;gap:10px;">
             <div style="width:28px;height:28px;border-radius:50%;background:#00D4A120;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.8rem;">💊</div>
@@ -164,7 +164,7 @@
         <div style="background:#111827;border-radius:8px;padding:12px;border:1px solid rgba(255,255,255,0.06);margin-bottom:12px;">
           <div style="display:flex;gap:8px;">
             <div style="background:rgba(255,255,255,0.06);border-radius:6px;padding:8px 14px;font-size:0.82rem;flex:1;color:#8892A4;">pembrolizumab</div>
-            <div style="background:#00D4A1;color:#0B0F1A;border-radius:6px;padding:8px 14px;font-size:0.82rem;font-weight:700;cursor:pointer;">Search</div>
+            <div style="background:#00D4A1;color:#0B0F1A;border-radius:6px;padding:8px 14px;font-size:0.82rem;font-weight:700;cursor:pointer;">Buscar</div>
           </div>
         </div>
         <div style="font-size:0.72rem;color:#8892A4;margin-bottom:8px;">981 artigos científicos found</div>
@@ -191,7 +191,7 @@
       <div id="dot3" onclick="goToScreen(2)" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.2);cursor:pointer;transition:all 0.3s;"></div>
       <div id="dot4" onclick="goToScreen(3)" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.2);cursor:pointer;transition:all 0.3s;"></div>
       <div style="flex:1;text-align:right;">
-        <span id="screenLabel" style="font-size:0.72rem;color:#8892A4;">Import Intelligence</span>
+        <span id="screenLabel" style="font-size:0.72rem;color:#8892A4;">Importações</span>
       </div>
     </div>
   </div>
@@ -205,7 +205,7 @@
 
 <script>
 var screens = ['screen1','screen2','screen3','screen4'];
-var labels = ['Import Intelligence','Monitoramento ANVISA','Agente IA','Trials Clínicos'];
+var labels = ['Importações Comex Stat','Monitoramento ANVISA','Agente IA','Trials Clínicos'];
 var dots = ['dot1','dot2','dot3','dot4'];
 var current = 0;
 var timer;
@@ -232,7 +232,7 @@ function initBars() {
   });
 }
 
-var aiText = '📊 Based on Comex Stat 2025 data:\n\n1. Pembrolizumab (NCM 30049069) — +34% YoY — US$1.65B\n2. Nivolumab — +28% YoY — US$890M\n3. Trastuzumab biosimilars — +22% YoY — US$445M\n\nKey driver: ANVISA fast-track approvals for oncology products accelerated market access in Q1-Q2 2025.';
+var aiText = '📊 Com base nos dados do Comex Stat 2025:\n\n1. Pembrolizumab (NCM 30049069) — +34% YoY — US$1.65B\n2. Nivolumab — +28% YoY — US$890M\n3. Trastuzumab biosimilars — +22% YoY — US$445M\n\nPrincipal fator: aprovações aceleradas da ANVISA para oncologia aceleraram o acesso ao mercado no 1º-2º trim. 2025.';
 var aiIdx = 0;
 function startTyping() {
   document.getElementById('aiTyping').textContent = '';
