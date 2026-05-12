@@ -123,6 +123,25 @@ try:
 except Exception as e:
     check(False, '', f'Gmail SMTP: {e}', critical=False)
 
+# ── 7. Verifica dominios invalidos no banco ──────────────────
+print('\n[7] Verificando dominios de email no banco...')
+import socket as _socket
+from src.db.database import get_prospects as _gp
+_prospects = _gp(limit=500)
+_fake = []
+for _p in _prospects:
+    if not _p['email'] or _p['status'] == 'bounced':
+        continue
+    try:
+        _domain = _p['email'].split('@')[1]
+        _socket.getaddrinfo(_domain, None)
+    except:
+        _fake.append(_p['email'])
+check(len(_fake) == 0,
+      f'Todos os dominios ativos sao validos ({len(_prospects)} prospects)',
+      f'{len(_fake)} emails com dominio invalido: {_fake[:3]}',
+      critical=False)
+
 # ── RESULTADO FINAL ──────────────────────────────────────────
 print('\n' + '='*60)
 if ERRORS:

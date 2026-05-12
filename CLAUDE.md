@@ -72,6 +72,21 @@ MANDATORY: Run scripts/validar_dados.py before generating ANY material (PDF, ema
 - CMED prices: always verify trastuzumabe < pembrolizumabe (price order check).
 - Any number shown to a client must be traceable to a verified source.
 
+### REGRA DE OURO — PIPELINE E CAMPANHAS
+Nunca incluir empresa, domínio ou e-mail sem fonte verificável.
+
+Todo lead precisa ter:
+1. Empresa real e verificável publicamente
+2. Domínio ativo (confirmado via DNS)
+3. Fonte documentada (site oficial, LinkedIn, bolsa de valores, inbound)
+4. Email validado ou padrão corporativo confirmado
+5. Status de validação antes de qualquer envio
+
+Lead sem fonte não é lead. É risco.
+
+Antes de qualquer campanha: rodar auditoria_base.py e validar_dados.py.
+Só enviar para leads com status_validacao = VERIFICADO.
+
 ### End Every Important Response With
 **Single next action: [one specific action].**
 
