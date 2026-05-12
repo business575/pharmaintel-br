@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PharmaIntel BR — Guided Tour</title>
+<title>PharmaIntel BR — Demonstração Interativa</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #0B0F1A; color: #F0F4FF; font-family: 'Segoe UI', Arial, sans-serif; }
@@ -63,8 +63,8 @@
 </div>
 
 <div class="hero">
-  <h1>Brazil's <span>$24 Billion</span> Pharma Market.<br>Fully Transparent.</h1>
-  <p>Real-time import data, ANVISA monitoring, clinical trials intelligence and AI — in one platform built for the Brazilian pharmaceutical market.</p>
+  <h1>Mercado Farmacêutico Brasileiro de <span>USD 24 Bilhões</span>.<br>Totalmente Transparente.</h1>
+  <p>Dados de importação em tempo real, monitoramento ANVISA, inteligência de trials clínicos e IA — em uma plataforma construída para o mercado farmacêutico brasileiro.</p>
 </div>
 
 <!-- ANIMATED DEMO VIDEO -->
@@ -84,7 +84,7 @@
 
       <!-- Screen 1: Import Data -->
       <div class="demo-screen active" id="screen1">
-        <div style="font-size:0.7rem;color:#00D4A1;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:12px;">📊 Import Intelligence — Comex Stat</div>
+        <div style="font-size:0.7rem;color:#00D4A1;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:12px;">📊 Importações — Comex Stat</div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;">
           <div style="background:#111827;border-radius:8px;padding:12px;border:1px solid rgba(0,212,161,0.2);">
             <div style="font-size:0.65rem;color:#8892A4;margin-bottom:4px;">TOTAL FOB (USD)</div>
@@ -141,9 +141,9 @@
         </div>
       </div>
 
-      <!-- Screen 3: AI Agent -->
+      <!-- Screen 3: Agente IA -->
       <div class="demo-screen" id="screen3" style="display:none;">
-        <div style="font-size:0.7rem;color:#00D4A1;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:12px;">🤖 AI Agent — Ask Anything</div>
+        <div style="font-size:0.7rem;color:#00D4A1;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:12px;">🤖 Agente IA — Ask Anything</div>
         <div style="background:#111827;border-radius:8px;padding:16px;border:1px solid rgba(255,255,255,0.06);min-height:280px;">
           <div style="display:flex;gap:10px;margin-bottom:16px;">
             <div style="width:28px;height:28px;border-radius:50%;background:#1E3A5F;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.7rem;">👤</div>
@@ -158,16 +158,16 @@
         </div>
       </div>
 
-      <!-- Screen 4: Clinical Trials -->
+      <!-- Screen 4: Trials Clínicos -->
       <div class="demo-screen" id="screen4" style="display:none;">
-        <div style="font-size:0.7rem;color:#00D4A1;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:12px;">🔬 Clinical Trials — PubMed Live</div>
+        <div style="font-size:0.7rem;color:#00D4A1;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:12px;">🔬 Trials Clínicos — PubMed Live</div>
         <div style="background:#111827;border-radius:8px;padding:12px;border:1px solid rgba(255,255,255,0.06);margin-bottom:12px;">
           <div style="display:flex;gap:8px;">
             <div style="background:rgba(255,255,255,0.06);border-radius:6px;padding:8px 14px;font-size:0.82rem;flex:1;color:#8892A4;">pembrolizumab</div>
             <div style="background:#00D4A1;color:#0B0F1A;border-radius:6px;padding:8px 14px;font-size:0.82rem;font-weight:700;cursor:pointer;">Search</div>
           </div>
         </div>
-        <div style="font-size:0.72rem;color:#8892A4;margin-bottom:8px;">981 clinical trials found</div>
+        <div style="font-size:0.72rem;color:#8892A4;margin-bottom:8px;">981 artigos científicos found</div>
         <div style="background:#111827;border-radius:8px;padding:10px;border:1px solid rgba(255,255,255,0.06);margin-bottom:6px;">
           <div style="font-size:0.8rem;font-weight:600;color:#F0F4FF;margin-bottom:3px;">Pembrolizumab in combination with gemcitabine and cisplatin...</div>
           <div style="font-size:0.72rem;color:#00D4A1;">The Lancet · 2023 · <span style="color:#42A5F5;">pubmed.ncbi.nlm.nih.gov/37075781</span></div>
@@ -205,7 +205,7 @@
 
 <script>
 var screens = ['screen1','screen2','screen3','screen4'];
-var labels = ['Import Intelligence','ANVISA Monitoring','AI Agent','Clinical Trials'];
+var labels = ['Import Intelligence','Monitoramento ANVISA','Agente IA','Trials Clínicos'];
 var dots = ['dot1','dot2','dot3','dot4'];
 var current = 0;
 var timer;
@@ -298,7 +298,7 @@ window.addEventListener('load', function(){
     <div class="step-icon">🔬</div>
     <div>
       <div class="step-num">Funcionalidade 3</div>
-      <h2>Clinical Trials — NEJM, Lancet, JAMA ao Vivo</h2>
+      <h2>Trials Clínicos — NEJM, Lancet, JAMA ao Vivo</h2>
       <p>Busque 35M+ artigos do PubMed por princípio ativo. Veja quais trials estão rodando no Brasil para sua área terapêutica, com links diretos para artigos completos e DOIs.</p>
       <div class="metrics">
         <div class="metric"><div class="metric-val" style="color:#00D4A1;">35M+</div><div class="metric-lbl">artigos científicos</div></div>
@@ -345,33 +345,33 @@ window.addEventListener('load', function(){
       <div class="plan-name" style="color:#00D4A1;">Starter</div>
       <div class="plan-price">US$299<span style="font-size:0.9rem;font-weight:400;color:#8892A4;">/mo</span></div>
       <ul>
-        <li>Full import dashboard</li>
-        <li>ANVISA monitoring</li>
-        <li>Clinical trials search</li>
-        <li>AI Agent (Groq/Llama)</li>
-        <li>PDF reports</li>
+        <li>Dashboard completo de importações</li>
+        <li>Monitoramento ANVISA</li>
+        <li>Busca de trials clínicos</li>
+        <li>Agente IA (Groq/Llama)</li>
+        <li>Relatórios PDF</li>
       </ul>
     </div>
     <div class="plan" style="border:1px solid #42A5F540;">
       <div class="plan-name" style="color:#42A5F5;">Pro</div>
       <div class="plan-price">US$499<span style="font-size:0.9rem;font-weight:400;color:#8892A4;">/mo</span></div>
       <ul>
-        <li>Everything in Starter</li>
-        <li>AI Agent (GPT-4o)</li>
-        <li>ComprasNet alerts</li>
-        <li>Priority support</li>
-        <li>API access</li>
+        <li>Tudo do Starter</li>
+        <li>Agente IA (GPT-4o)</li>
+        <li>Alertas ComprasNet</li>
+        <li>Suporte prioritário</li>
+        <li>Acesso à API</li>
       </ul>
     </div>
     <div class="plan" style="border:1px solid #FFB74D40;">
       <div class="plan-name" style="color:#FFB74D;">Enterprise</div>
       <div class="plan-price">US$1,499<span style="font-size:0.9rem;font-weight:400;color:#8892A4;">/mo</span></div>
       <ul>
-        <li>Everything in Pro</li>
-        <li>AI Agent (Claude Opus)</li>
-        <li>White-label option</li>
-        <li>Dedicated analyst</li>
-        <li>Custom reports</li>
+        <li>Tudo do Pro</li>
+        <li>Agente IA (Claude Opus)</li>
+        <li>Opção white-label</li>
+        <li>Analista dedicado</li>
+        <li>Relatórios personalizados</li>
       </ul>
     </div>
   </div>
