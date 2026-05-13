@@ -571,6 +571,41 @@ Vinicius Figueiredo
 
 **Nenhuma mensagem enviada. Nenhuma automação ativa.**
 
+## TEMPLATE OFICIAL APROVADO — Mensagem de Aceite Prévio
+**Aprovado pelo acionista em 13/05/2026**
+**Usar para todos os 7 leads. Substituir [Name] e [Company] antes de enviar.**
+**Nenhum envio sem aprovação manual.**
+
+---
+
+```
+Hi [Name],
+
+I saw that [Company] will be at Hospitalar 2026.
+
+I work with PharmaIntel.ai and Global Healthcare Access, combining
+healthcare market intelligence, Brazil regulatory strategy, ANVISA support,
+local partnership mapping and commercial opportunity assessment.
+
+Would it be appropriate to schedule a brief 10-minute conversation
+during Hospitalar to explore whether Brazil could be a relevant
+market opportunity for [Company]?
+
+If yes, I can adapt to your best available time.
+```
+
+---
+
+**Notas de uso:**
+- Substituir [Name] pelo nome da pessoa se identificado no LinkedIn
+- Substituir [Company] pelo nome exato da empresa
+- Tom: profissional, consultivo, curto, sem parecer disparo em massa
+- Canal preferencial: LinkedIn (mensagem direta)
+- Não enviar por email em massa — um a um, com aprovação
+
+---
+
+
 ---
 
 *GlobalAccess.AI | PharmaIntelBR — CEO AI*
