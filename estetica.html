@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PharmaIntel BR — Inteligência para Estética Médica</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0B0F1A; color: #F0F4FF; font-family: 'Segoe UI', Arial, sans-serif; }
+
+  .header { background: #0D1117; padding: 18px 24px; border-bottom: 1px solid rgba(0,212,161,0.2); display: flex; align-items: center; justify-content: space-between; }
+  .logo { font-size: 1.3rem; font-weight: 700; } .logo span { color: #00D4A1; }
+  .badge { background: rgba(0,212,161,0.12); border: 1px solid rgba(0,212,161,0.3); color: #00D4A1; font-size: 0.7rem; padding: 4px 10px; border-radius: 20px; font-weight: 600; }
+
+  .hero { text-align: center; padding: 50px 20px 30px; }
+  .hero-label { color: #00D4A1; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 14px; }
+  .hero h1 { font-size: 2rem; font-weight: 800; line-height: 1.2; margin-bottom: 14px; }
+  .hero h1 span { color: #00D4A1; }
+  .hero p { color: #8892A4; font-size: 0.95rem; max-width: 540px; margin: 0 auto 30px; line-height: 1.65; }
+
+  .stats { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-bottom: 32px; padding: 0 20px; }
+  .stat { background: #111827; border: 1px solid rgba(0,212,161,0.2); border-radius: 12px; padding: 18px 24px; text-align: center; min-width: 140px; }
+  .stat-val { font-size: 1.8rem; font-weight: 800; color: #00D4A1; }
+  .stat-lbl { font-size: 0.72rem; color: #8892A4; margin-top: 4px; line-height: 1.4; }
+
+  .section { max-width: 860px; margin: 0 auto; padding: 0 20px 16px; }
+  .section-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 14px; text-align: center; }
+  .section-title span { color: #00D4A1; }
+
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 30px; }
+  .card { background: #111827; border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; padding: 22px; transition: border-color 0.2s; }
+  .card:hover { border-color: rgba(0,212,161,0.3); }
+  .card-icon { font-size: 2rem; margin-bottom: 10px; }
+  .card-title { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+  .card-sub { color: #00D4A1; font-size: 0.75rem; font-weight: 600; margin-bottom: 10px; }
+  .card p { color: #8892A4; font-size: 0.83rem; line-height: 1.6; }
+  .card ul { list-style: none; margin-top: 10px; }
+  .card ul li { color: #8892A4; font-size: 0.82rem; margin-bottom: 5px; }
+  .card ul li::before { content: "→ "; color: #00D4A1; }
+
+  .insight-box { background: linear-gradient(135deg, rgba(0,212,161,0.08), rgba(0,212,161,0.03)); border: 1px solid rgba(0,212,161,0.25); border-radius: 14px; padding: 22px 24px; margin-bottom: 30px; }
+  .insight-box h3 { font-size: 1rem; font-weight: 700; margin-bottom: 10px; color: #00D4A1; }
+  .insight-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .insight-row:last-child { border-bottom: none; }
+  .insight-label { color: #8892A4; font-size: 0.83rem; }
+  .insight-value { font-weight: 700; font-size: 0.9rem; }
+  .insight-value.green { color: #00D4A1; }
+  .insight-value.yellow { color: #FFB74D; }
+
+  .question-box { background: #111827; border-left: 3px solid #00D4A1; border-radius: 0 12px 12px 0; padding: 18px 20px; margin-bottom: 14px; }
+  .question-box p { color: #8892A4; font-size: 0.88rem; line-height: 1.6; font-style: italic; }
+  .question-box strong { color: #F0F4FF; font-style: normal; }
+
+  .cta { text-align: center; background: #0D1117; border-top: 1px solid rgba(255,255,255,0.07); padding: 40px 20px 50px; margin-top: 20px; }
+  .cta h2 { font-size: 1.4rem; font-weight: 800; margin-bottom: 8px; }
+  .cta p { color: #8892A4; font-size: 0.9rem; margin-bottom: 24px; }
+  .btn-group { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .btn { display: inline-block; padding: 15px 32px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 0.95rem; width: 100%; max-width: 320px; text-align: center; transition: opacity 0.2s; }
+  .btn:hover { opacity: 0.85; }
+  .btn-primary { background: #00D4A1; color: #0B0F1A; }
+  .btn-whatsapp { background: #25D366; color: #fff; }
+  .btn-secondary { background: rgba(255,255,255,0.07); color: #F0F4FF; border: 1px solid rgba(255,255,255,0.12); }
+
+  .trial-badge { display: inline-block; background: rgba(0,212,161,0.12); border: 1px solid rgba(0,212,161,0.3); color: #00D4A1; font-size: 0.78rem; padding: 5px 14px; border-radius: 20px; margin-bottom: 20px; font-weight: 600; }
+
+  .footer { text-align: center; padding: 20px; color: #4A5568; font-size: 0.75rem; }
+
+  @media (max-width: 560px) {
+    .cards { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 1.55rem; }
+    .stats { gap: 10px; }
+    .stat { min-width: 120px; }
+    .stat-val { font-size: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="logo">PharmaIntel<span>BR</span></div>
+  </div>
+  <div class="badge">Feira da Beleza 2026</div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-label">Inteligência de Mercado para Estética Médica</div>
+  <h1>Você sabe quanto seu<br><span>fornecedor pagou</span><br>para importar?</h1>
+  <p>Dados reais de importação de toxina botulínica e equipamentos estéticos — direto do governo brasileiro. Negocie com informação.</p>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-val">USD 6,5B</div>
+      <div class="stat-lbl">importado em<br>biológicos/toxina (2025)</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val">USD 2,5B</div>
+      <div class="stat-lbl">importado em<br>medical devices (2025)</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val">17.247</div>
+      <div class="stat-lbl">registros ANVISA<br>monitorados</div>
+    </div>
+  </div>
+</div>
+
+<!-- FOCOS -->
+<div class="section">
+  <div class="section-title">Dois focos. <span>Dados reais.</span></div>
+
+  <div class="cards">
+
+    <div class="card">
+      <div class="card-icon">💉</div>
+      <div class="card-title">Toxina Botulínica</div>
+      <div class="card-sub">Botox · Dysport · Xeomin</div>
+      <p>Veja o preço FOB real de importação por país de origem e negocie com o distribuidor sabendo o custo real.</p>
+      <ul>
+        <li>Preço FOB por frasco (dado oficial)</li>
+        <li>Fornecedores com ANVISA ativo</li>
+        <li>Países de origem e volumes</li>
+        <li>Alerta de vencimento de registro</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-icon">🔬</div>
+      <div class="card-title">Medical Devices</div>
+      <div class="card-sub">Lasers · RF · Ultrassom · HIFU</div>
+      <p>Identifique quem importa os equipamentos que você usa, de onde vêm e quanto custam no dado oficial.</p>
+      <ul>
+        <li>Mapa de importadores por equipamento</li>
+        <li>Preço de importação vs. preço de revenda</li>
+        <li>Registro ANVISA ativo/vencido</li>
+        <li>Alertas de desabastecimento</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <!-- INSIGHT BOX -->
+  <div class="insight-box">
+    <h3>Exemplo real — Toxina Botulínica (2025)</h3>
+    <div class="insight-row">
+      <span class="insight-label">Importações registradas no MDIC</span>
+      <span class="insight-value green">1.987 operações</span>
+    </div>
+    <div class="insight-row">
+      <span class="insight-label">Volume total importado</span>
+      <span class="insight-value green">USD 6,5 bilhões</span>
+    </div>
+    <div class="insight-row">
+      <span class="insight-label">Registros ANVISA ativos monitorados</span>
+      <span class="insight-value green">17.247 produtos</span>
+    </div>
+    <div class="insight-row">
+      <span class="insight-label">Espaço de negociação estimado</span>
+      <span class="insight-value yellow">Significativo</span>
+    </div>
+  </div>
+
+  <!-- PERGUNTAS -->
+  <div class="section-title" style="margin-bottom:16px;">Perguntas que a plataforma responde</div>
+
+  <div class="question-box">
+    <p><strong>"Quanto a toxina botulínica que uso custa para o meu distribuidor importar?"</strong><br>
+    A plataforma mostra o preço FOB declarado no Comex Stat — o sistema oficial do Ministério do Comércio.</p>
+  </div>
+
+  <div class="question-box">
+    <p><strong>"O registro ANVISA do equipamento que estou comprando está ativo?"</strong><br>
+    Monitoramos 17.247 registros em tempo real — com alertas de vencimento automáticos.</p>
+  </div>
+
+  <div class="question-box">
+    <p><strong>"Quais fornecedores de laser estético importam para o Brasil e de onde?"</strong><br>
+    Mapa completo de importadores por NCM, com país de origem e volume de importação.</p>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="cta">
+  <div class="trial-badge">7 dias grátis — sem cartão</div>
+  <h2>Acesse agora e veja os dados do seu produto</h2>
+  <p>Toxina botulínica, ácido hialurônico, equipamentos — tudo em uma plataforma.</p>
+  <div class="btn-group">
+    <a href="https://pharmaintel-br.onrender.com" class="btn btn-primary" target="_blank">Acessar Plataforma Grátis</a>
+    <a href="https://wa.me/5521972829820?text=Olá%20Vinicius%2C%20vi%20sua%20plataforma%20na%20feira%20e%20quero%20saber%20mais%20sobre%20os%20dados%20de%20toxina%20e%20equipamentos%20estéticos." class="btn btn-whatsapp" target="_blank">Falar no WhatsApp</a>
+    <a href="https://pharmaintel-br.onrender.com" class="btn btn-secondary" target="_blank">Ver demo completo</a>
+  </div>
+</div>
+
+<div class="footer">
+  PharmaIntel BR · GlobalAccess.AI · business@globalhealthcareaccess.com · +55 21 97282-9820<br>
+  Dados: Comex Stat MDIC · ANVISA Dados Abertos · 2025
+</div>
+
+</body>
+</html>
