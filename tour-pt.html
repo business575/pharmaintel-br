@@ -246,7 +246,7 @@ function goToScreen(idx) {
   if (current === 0) initBars();
   if (current === 2) startTyping();
   clearInterval(timer);
-  timer = setInterval(function(){ goToScreen((current+1)%4); }, 5000);
+  timer = setInterval(function(){ goToScreen((current+1)%5); }, 5000);
 }
 
 function initBars() {
@@ -286,7 +286,7 @@ window.addEventListener('load', function(){
     animateCounter(el,t,t<100);
   });
   initBars();
-  timer = setInterval(function(){ goToScreen((current+1)%4); }, 5000);
+  timer = setInterval(function(){ goToScreen((current+1)%5); }, 5000);
 });
 </script>
 
