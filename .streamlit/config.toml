@@ -4,6 +4,7 @@ enableCORS = false
 enableXsrfProtection = false
 maxUploadSize = 10
 maxMessageSize = 50
+enableStaticServing = true
 
 [runner]
 fastReruns = true
