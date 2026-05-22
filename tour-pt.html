@@ -182,6 +182,31 @@
         </div>
       </div>
 
+      <!-- Screen 5: Relatorio PDF -->
+      <div class="demo-screen" id="screen5" style="display:none;">
+        <div style="font-size:0.7rem;color:#00D4A1;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:12px;">📄 Relatório Executivo PDF — 1 Clique</div>
+        <div style="background:#111827;border-radius:8px;padding:14px;border:1px solid rgba(255,255,255,0.06);margin-bottom:10px;">
+          <div style="font-size:0.75rem;color:#8892A4;margin-bottom:8px;">Relatório gerado em: 22/05/2026 — Dados verificados</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+            <div style="background:#0D1117;border-radius:6px;padding:10px;border:1px solid rgba(0,212,161,0.15);">
+              <div style="font-size:1.3rem;font-weight:700;color:#00D4A1;">USD 24.1B</div>
+              <div style="font-size:0.68rem;color:#8892A4;">Total Importado 2025</div>
+            </div>
+            <div style="background:#0D1117;border-radius:6px;padding:10px;border:1px solid rgba(66,165,245,0.15);">
+              <div style="font-size:1.3rem;font-weight:700;color:#42A5F5;">17.247</div>
+              <div style="font-size:0.68rem;color:#8892A4;">Registros ANVISA Ativos</div>
+            </div>
+          </div>
+          <div style="font-size:0.75rem;font-weight:600;color:#F0F4FF;margin-bottom:6px;">Top NCMs por Valor FOB:</div>
+          <div style="font-size:0.72rem;color:#8892A4;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);">30021590 — Anticorpos monoclonais · USD 3.6B</div>
+          <div style="font-size:0.72rem;color:#8892A4;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);">30049069 — Antineoplásicos · USD 1.6B</div>
+          <div style="font-size:0.72rem;color:#8892A4;padding:4px 0;">30043929 — Outros medicamentos · USD 1.2B</div>
+        </div>
+        <div style="text-align:center;">
+          <a href="https://pharmaintel-br.onrender.com" target="_blank" style="display:inline-block;background:#00D4A1;color:#0B0F1A;padding:10px 24px;border-radius:8px;font-weight:700;font-size:0.85rem;text-decoration:none;">Gerar meu relatório completo →</a>
+        </div>
+      </div>
+
     </div>
 
     <!-- Progress indicators -->
@@ -190,6 +215,7 @@
       <div id="dot2" onclick="goToScreen(1)" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.2);cursor:pointer;transition:all 0.3s;"></div>
       <div id="dot3" onclick="goToScreen(2)" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.2);cursor:pointer;transition:all 0.3s;"></div>
       <div id="dot4" onclick="goToScreen(3)" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.2);cursor:pointer;transition:all 0.3s;"></div>
+      <div id="dot5" onclick="goToScreen(4)" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.2);cursor:pointer;transition:all 0.3s;"></div>
       <div style="flex:1;text-align:right;">
         <span id="screenLabel" style="font-size:0.72rem;color:#8892A4;">Importações</span>
       </div>
@@ -204,9 +230,9 @@
 </style>
 
 <script>
-var screens = ['screen1','screen2','screen3','screen4'];
-var labels = ['Importações Comex Stat','Monitoramento ANVISA','Agente IA','Trials Clínicos'];
-var dots = ['dot1','dot2','dot3','dot4'];
+var screens = ['screen1','screen2','screen3','screen4','screen5'];
+var labels = ['Importações Comex Stat','Monitoramento ANVISA','Agente IA','Trials Clínicos','Relatório PDF'];
+var dots = ['dot1','dot2','dot3','dot4','dot5'];
 var current = 0;
 var timer;
 
