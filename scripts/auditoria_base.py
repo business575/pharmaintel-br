@@ -4,8 +4,9 @@ Classifica cada lead em: VERIFICADO / PENDENTE / REJEITADO
 """
 import sys, os, warnings, socket
 warnings.filterwarnings('ignore')
-sys.path.insert(0, 'C:/Users/vinic/OneDrive/Desktop/PharmaIntelBR')
-os.chdir('C:/Users/vinic/OneDrive/Desktop/PharmaIntelBR')
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _PROJECT_ROOT)
+os.chdir(_PROJECT_ROOT)
 from dotenv import load_dotenv
 load_dotenv()
 from src.db.database import get_prospects, init_db

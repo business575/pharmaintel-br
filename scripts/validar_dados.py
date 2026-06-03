@@ -5,8 +5,9 @@ Valida dados criticos e bloqueia geracao se encontrar erro.
 """
 import sys, os, warnings
 warnings.filterwarnings('ignore')
-sys.path.insert(0, 'C:/Users/vinic/OneDrive/Desktop/PharmaIntelBR')
-os.chdir('C:/Users/vinic/OneDrive/Desktop/PharmaIntelBR')
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _PROJECT_ROOT)
+os.chdir(_PROJECT_ROOT)
 from dotenv import load_dotenv
 load_dotenv()
 
