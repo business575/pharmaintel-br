@@ -3,9 +3,11 @@ auditoria_base.py — Auditoria completa da base de prospects
 Classifica cada lead em: VERIFICADO / PENDENTE / REJEITADO
 """
 import sys, os, warnings, socket
+from pathlib import Path
 warnings.filterwarnings('ignore')
-sys.path.insert(0, 'C:/Users/vinic/OneDrive/Desktop/PharmaIntelBR')
-os.chdir('C:/Users/vinic/OneDrive/Desktop/PharmaIntelBR')
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+os.chdir(ROOT)
 from dotenv import load_dotenv
 load_dotenv()
 from src.db.database import get_prospects, init_db
