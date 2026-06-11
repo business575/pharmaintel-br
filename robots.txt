@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://business575.github.io/pharmaintel-br/sitemap.xml
