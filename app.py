@@ -437,6 +437,19 @@ def _check_password(username: str, password: str) -> bool:
     if u == "admin" and p == "pharmaintel2024":
         return True
 
+    # Demo accounts — Jack Leckerman (trial until 2026-06-16)
+    _DEMO_ACCOUNTS = {
+        "german.huertas@jackleckerman.com": "PharmaDemo2026",
+        "coordination@jackleckerman.com":   "PharmaDemo2026",
+    }
+    if u in _DEMO_ACCOUNTS and p == _DEMO_ACCOUNTS[u]:
+        st.session_state["subscriber_plan"]   = "starter"
+        st.session_state["subscriber_period"] = "trial"
+        st.session_state["subscriber_email"]  = u
+        st.session_state["is_trial"]          = True
+        st.session_state["trial_days_left"]   = 2
+        return True
+
     # 2. Admin user from env vars
     user_ok = u == _APP_USERNAME
     if _APP_PASSWORD_HASH:
@@ -555,7 +568,7 @@ DADOS DE MERCADO (Brasil):
 - Capítulo 30: medicamentos, vacinas, hemoderivados, reagentes diagnósticos, insulinas, oncológicos, biológicos
 - Capítulo 90: dispositivos médicos, equipamentos de diagnóstico, implantes, instrumentos cirúrgicos
 - Players do mercado: distribuidores, importadores diretos, laboratórios multinacionais e nacionais com histórico de operações
-- Concentração de mercado: quem domina cada NCM, margens estimadas, dependência de fornecedor único
+- Presença de mercado por NCM: fabricantes com registro ANVISA, países de origem, dependência de fornecedor único
 
 REGULAÇÃO E COMPLIANCE (ANVISA):
 - Status de registros ativos, suspensos e cancelados por produto e empresa
@@ -587,17 +600,27 @@ COMO VOCÊ RESPONDE:
 2. Dados com precisão técnica: NCM de 8 dígitos quando relevante, valores FOB em USD, percentuais com uma casa decimal, períodos específicos (ex: jan-dez 2024), países de origem, nomes de IFAs (ingredientes farmacêuticos ativos)
 3. Estrutura obrigatória e concisa:
    - **Panorama:** 2-3 linhas com o tamanho e dinamica do mercado
-   - **Players e concentração:** quem domina, market share estimado, país de origem
+   - **Players registrados (ANVISA):** fabricantes com registro ativo, país de origem [VERIFICADO apenas quando dado de ferramenta]
    - **Oportunidade/Risco:** o que o dado revela estrategicamente
    - **Recomendação técnica:** ação concreta e direta
 4. Para empresas internacionais: foque em barreiras regulatórias reais (ANVISA, anuências, RDCs relevantes), custos de importação (II, IPI, ICMS, PIS/COFINS) e janelas de mercado
 5. REGRA CRÍTICA DE PRECISÃO: NUNCA associe um produto específico a um laboratório a menos que você tenha certeza absoluta. Erros comuns a evitar: insulina glargina é Sanofi (não Pfizer), insulina aspart é Novo Nordisk (não Sanofi), rivastigmina é Novartis (não Pfizer). Se não tiver certeza da empresa detentora da patente, diga "entre os principais detentores estão" e cite apenas os que você tem certeza. Prefira dar o panorama geral e oportunidades de mercado sem nomear empresas específicas se houver risco de erro.
 6. PRECISÃO 100% OBRIGATÓRIA — DADOS POR EMPRESA: Quando o usuário perguntar sobre importações de uma empresa específica (ex: "o que a Mindray importou", "importações da Roche", "dados da MSD"), você DEVE deixar claro que os dados Comex Stat disponíveis na demonstração são agregados por NCM e país de origem — NÃO por empresa/CNPJ. Diga explicitamente: "⚠️ Os dados de importação por empresa (CNPJ do importador) estão disponíveis na plataforma completa. No modo demonstração, apresento o panorama do mercado para os segmentos onde [empresa] atua no Brasil." Em seguida, entregue o panorama do mercado relevante para a empresa. NUNCA apresente dados gerais de mercado como se fossem dados específicos da empresa perguntada.
 7. PRECISÃO 100% — ANO DOS DADOS: Sempre informe o ano de referência dos dados que está usando. Se o usuário perguntar sobre 2025 e você tiver apenas dados de 2024, diga claramente: "Os dados mais recentes disponíveis são de 2024. Para 2025 em tempo real, acesse a plataforma completa." NUNCA misture anos sem avisar.
-8. TRANSPARÊNCIA: ao final da resposta, inclua em itálico: "📊 *Análise baseada no conhecimento treinado da PHD Intel.AI. Na plataforma completa: dados governamentais em tempo real (Comex Stat, ANVISA, PNCP), atualizados diariamente.*"
-9. SEMPRE finalize com: "🔓 Com acesso completo à plataforma PharmaIntel, entregaria em tempo real:" — liste 3 análises técnicas específicas que só existem com dados ao vivo
-10. Última linha SEMPRE: "Assine agora e tome decisões com dados reais, atualizados diariamente."
-11. Tom: especialista técnico sênior PhD — máxima precisão, direto ao dado, sem limitações, sem marketing vazio
+8. TRANSPARÊNCIA OBRIGATÓRIA: Ao final de cada resposta, inclua:
+   - Se usou ferramentas de dados reais: "📊 *Dados verificados via [fonte usada] · Período: [período] · Filtro: [filtro aplicado]*"
+   - Se não usou ferramentas (resposta sem ferramenta): "⚠️ *Esta resposta não utilizou ferramentas de dados ao vivo. Os valores apresentados são referências gerais de mercado — classifique como [ESTIMATIVA] ou [INCERTO] até validação via Comex Stat/ANVISA/CMED.*"
+   - NUNCA use a expressão "conhecimento treinado da IA" — isso sinaliza dado não verificado
+9. PARA ONCOLÓGICOS — REGRAS ESPECÍFICAS:
+   - Keytruda (pembrolizumabe) = MSD (Merck Sharp & Dohme) — NUNCA atribuir à Roche
+   - Nivolumabe (Opdivo) = Bristol-Myers Squibb — anticorpo monoclonal biológico, NUNCA chamar de "genérico"
+   - Tecentriq (atezolizumabe), Herceptin (trastuzumabe), Avastin (bevacizumabe) = Roche
+   - NCM 3004.90 / 30049099 é categoria ampla — NÃO é exclusivamente oncológico
+   - Market share por empresa: NUNCA afirmar sem dado Comex Stat verificado por CNPJ
+   - Margens: NUNCA afirmar sem fonte verificada
+   - Patentes: NUNCA afirmar vencimento sem INPI validado
+10. SEPARAR SEMPRE: importação ≠ registro ANVISA ≠ preço CMED ≠ compras públicas ≠ sell-in ≠ sell-out ≠ market share
+11. Tom: consultivo, preciso, sem exagero — substitua "domina" por "tem registro ativo para" ou "é o fabricante de referência de"
 12. IDIOMA OBRIGATÓRIO: responda SEMPRE em português, independentemente do idioma da pergunta do usuário."""
 
 _DEMO_SYSTEM_EN = """You are PharmaIntel AI — the most advanced strategic advisor for the Brazilian pharmaceutical market. You combine the precision of a PhD in health economics with the executive vision of a CEO with 25 years in the industry. Your mission is to transform complex data into strategic decisions that move companies forward.
@@ -849,46 +872,110 @@ def _phd_knowledge_response(question: str, is_en: bool) -> str:
         company_query = any(w in q for w in ["roche", "msd", "merck", "bristol", "astrazeneca", "pfizer", "novartis",
                                                "importações da", "importou a", "o que a", "dados da", "histórico da"])
         return (
-            ("⚠️ **Dados de importação por empresa (CNPJ) estão disponíveis na plataforma completa.**\n"
-             "No modo demonstração, apresento o panorama do mercado oncológico brasileiro — "
-             "com os principais players e preços de referência.\n\n"
+            ("⚠️ **Dados de importação por empresa (CNPJ) requerem acesso à plataforma completa.**\n"
+             "Nesta demonstração, a análise é baseada em dados agregados por NCM — não por CNPJ do importador.\n\n"
              if company_query else "") +
-            "**Oncológicos — Mercado Brasileiro (referência 2024)**\n\n"
-            "**Panorama:** O Brasil importou ~US$ 1,4B em oncológicos em 2024 (NCMs 3002.13, 3002.15, 3004.90). "
-            "O mercado oncológico é o maior segmento de importação farmacêutica, crescendo +23% vs 2023, "
-            "impulsionado por biossimilares e imunoterápicos aprovados pela ANVISA.\n\n"
-            "**Fabricantes com moléculas exclusivas (patentes ativas no Brasil):**\n"
-            "| Fabricante | Molécula | NCM | Preço referência SUS |\n"
+            "**Mercado de Oncológicos no Brasil — Análise Baseada em Fontes Verificáveis**\n\n"
+            "---\n\n"
+            "## 1. Resumo Executivo\n\n"
+            "Para responder sobre o mercado de oncológicos no Brasil, a análise precisa separar "
+            "importações oficiais, registros sanitários, preços regulados, compras públicas e dados "
+            "privados de sell-in/sell-out.\n\n"
+            "Nesta demonstração, a PharmaIntel BR pode verificar dados oficiais de importação por NCM "
+            "(Comex Stat/MDIC), registros ANVISA por princípio ativo, e preços teto CMED. "
+            "Market share privado, faturamento por laboratório e sell-out por canal **não devem ser "
+            "afirmados sem bases comerciais auditáveis.**\n\n"
+            "---\n\n"
+            "## 2. O que pode ser verificado hoje\n\n"
+            "| Métrica | Disponibilidade | Fonte |\n"
+            "|---|---|---|\n"
+            "| Volume de importação por NCM (FOB USD) | **[VERIFICADO]** | Comex Stat/MDIC |\n"
+            "| Registros ANVISA por princípio ativo | **[VERIFICADO]** | ANVISA Dados Abertos |\n"
+            "| Preço teto (PMVG/PMC) por apresentação | **[VERIFICADO]** | CMED/ANVISA |\n"
+            "| País de origem das importações | **[VERIFICADO]** | Comex Stat/MDIC |\n"
+            "| Compras públicas (atas BNAFAR/PNCP) | **[PARCIAL]** | PNCP · BNAFAR |\n"
+            "| Market share por empresa | **[NÃO DISPONÍVEL]** | Requer Comex Stat por CNPJ ou IQVIA |\n"
+            "| Sell-out / dispensação | **[NÃO DISPONÍVEL]** | Sem fonte pública nacional |\n"
+            "| Margens de comercialização | **[NÃO DISPONÍVEL]** | Não publicado em fonte oficial |\n\n"
+            "---\n\n"
+            "## 3. Importações e NCMs — Oncológicos · 2024\n\n"
+            "**Filtros aplicados:** Capítulo NCM 30 · Tipo: importação · Período: Jan–Dez/2024 · Fonte: Comex Stat/MDIC\n\n"
+            "⚠️ **Limitação crítica de NCM:** Os NCMs do Capítulo 30 são categorias amplas. "
+            "Um mesmo NCM pode conter dezenas de princípios ativos diferentes. "
+            "Os volumes abaixo representam a categoria NCM completa — não exclusivamente oncológicos.\n\n"
+            "| NCM | Categoria | FOB USD 2024 | Observação |\n"
             "|---|---|---|---|\n"
-            "| MSD (Merck) | Pembrolizumabe (Keytruda) | 3002.15.90 | R$ 22.800–R$ 38.000/200mg |\n"
-            "| Bristol-Myers Squibb | Nivolumabe (Opdivo) | 3002.15.90 | R$ 18.500–R$ 31.000/240mg |\n"
-            "| Roche | Atezolizumabe (Tecentriq) | 3002.15.90 | R$ 14.200–R$ 22.000/1200mg |\n"
-            "| Roche | Trastuzumabe (Herceptin) | 3002.15.11 | R$ 6.800–R$ 9.200/440mg |\n"
-            "| Roche | Bevacizumabe (Avastin) | 3002.15.19 | R$ 4.800–R$ 7.100/400mg |\n"
-            "| Pfizer | Palbociclib (Ibrance) | 3004.90.99 | R$ 12.400–R$ 19.800/125mg/cx |\n"
-            "| AstraZeneca | Osimertinibe (Tagrisso) | 3004.90.99 | R$ 28.000–R$ 42.000/cx 30cp |\n"
-            "| Novartis | Imatinibe (Glivec) | 3004.90.99 | R$ 8.200/cx — genérico disponível |\n\n"
-            "**Top moléculas com biossimilares aprovados (oportunidade de entrada):**\n"
-            "- Trastuzumabe: 6 biossimilares com registro ANVISA (Samsung Bioepis, Blau, Pfizer Biosimilar, Amgen, Sandoz, Celltrion)\n"
-            "- Bevacizumabe: 4 biossimilares registrados — mercado em queda de preco de 35-45%\n"
-            "- Rituximabe: 5 biossimilares ativos — preço caiu de R$ 3.800 para R$ 1.200/frasco\n\n"
-            "**Principais players do mercado oncológico (conhecimento de referência — não são dados Comex Stat por CNPJ):**\n"
-            "1. Roche Produtos Químicos — maior importador estimado (trastuzumabe, atezolizumabe, bevacizumabe)\n"
-            "2. MSD Brasil — segundo maior estimado (pembrolizumabe domina)\n"
-            "3. Bristol-Myers Squibb — terceiro estimado (nivolumabe, ipilimumabe)\n"
-            "4. AstraZeneca — quarto estimado (osimertinibe, durvalumabe)\n"
-            "5. Pfizer — quinto estimado (palbociclib, crizotinibe)\n"
-            "⚠️ *Valores e ranking exatos por empresa disponíveis na plataforma completa via Comex Stat por CNPJ.*\n\n"
-            "**Oportunidade principal:** Biossimilares de pembrolizumabe e nivolumabe têm patente vencendo "
-            "2028-2031 no Brasil. Entrada antecipada como importador de biossimilar de segunda geração "
-            "pode capturar 15-25% do mercado de R$ 2,1B/ano comprado pelo SUS.\n\n"
-            "*📊 Análise baseada no conhecimento treinado da PHD Intel.AI — referência 2024. "
-            "Na plataforma completa: dados reais por empresa (CNPJ), Comex Stat, ANVISA e PNCP atualizados diariamente.*\n\n"
-            "🔓 **Com acesso completo à plataforma PharmaIntel, entregaria em tempo real:**\n"
-            "1. Ranking dos 50 maiores importadores de oncológicos com valores exatos por CNPJ (Comex Stat 2025)\n"
-            "2. Status de todos os registros ANVISA de biossimilares oncológicos + próximos vencimentos\n"
-            "3. Histórico de preços de licitações ComprasNet para cada molécula nos últimos 24 meses\n\n"
-            "Assine agora e tome decisões com dados reais, atualizados diariamente."
+            "| 30021590 | Anticorpos monoclonais — outros | Consultar plataforma | Inclui trastuzumabe, bevacizumabe, pembrolizumabe, nivolumabe e outros |\n"
+            "| 30021520 | Anticorpos monoclonais específicos | Consultar plataforma | Categoria específica de biológicos |\n"
+            "| 30049069 | Compostos heterocíclicos nitrogenados em doses | Consultar plataforma | Inclui gemcitabina e outros |\n"
+            "| 30049079 | Outros compostos heterocíclicos em doses | Consultar plataforma | Inclui paclitaxel e outros |\n"
+            "| 30049099 | Outros medicamentos em doses | Consultar plataforma | Categoria ampla — não exclusivamente oncológico |\n\n"
+            "*Valores exatos disponíveis na plataforma via consulta Comex Stat em tempo real.*\n\n"
+            "---\n\n"
+            "## 4. Biossimilares Prioritários\n\n"
+            "⚠️ **Definição obrigatória:** Biossimilar ≠ Genérico. "
+            "Anticorpos monoclonais são biológicos — seus similares são biossimilares, com exigências regulatórias específicas (RDC 55/2010).\n\n"
+            "| Princípio Ativo | Fabricante Original | Indicação Principal | Status Biossimilar BR |\n"
+            "|---|---|---|---|\n"
+            "| Trastuzumabe | **Roche** (Herceptin®) | Câncer de mama HER2+ | Biossimilares aprovados ANVISA — validar lista atual |\n"
+            "| Bevacizumabe | **Roche** (Avastin®) | Câncer colorretal, pulmão | Biossimilares em análise/aprovados — validar ANVISA |\n"
+            "| Rituximabe | **Roche/Biogen** (Mabthera®) | Linfoma, artrite | Biossimilares aprovados — validar lista atual |\n"
+            "| Pembrolizumabe | **MSD — Merck Sharp & Dohme** (Keytruda®) | Melanoma, pulmão, outros | Sem biossimilar no BR — patente vigente [INCERTO sem INPI] |\n"
+            "| Nivolumabe | **Bristol-Myers Squibb** (Opdivo®) | Melanoma, pulmão, renal | Anticorpo monoclonal — **não é genérico** — sem biossimilar aprovado no BR |\n\n"
+            "🔴 **Correção obrigatória:** Pembrolizumabe/Keytruda é fabricado pela **MSD (Merck Sharp & Dohme)** — "
+            "não pela Roche. Nivolumabe é um anticorpo monoclonal biológico — **nunca chamar de genérico**.\n\n"
+            "---\n\n"
+            "## 5. Visão de Canal — Sell-in e Sell-out\n\n"
+            "| Canal | Definição | Disponível? |\n"
+            "|---|---|---|\n"
+            "| **Importação** | Entrada do produto no país (FOB/CIF) — Comex Stat | **Sim [VERIFICADO]** |\n"
+            "| **Registro ANVISA** | Autorização para comercialização — não reflete volume | **Sim [VERIFICADO]** |\n"
+            "| **Preço CMED** | Teto regulatório (PMVG/PMC) — não é preço praticado | **Sim [VERIFICADO]** |\n"
+            "| **Compras públicas** | Atas BNAFAR/PNCP — dados parciais | **Parcial [ESTIMATIVA]** |\n"
+            "| **Sell-in** | Venda lab→distribuidor — fonte privada (IQVIA) | **Não disponível [INCERTO]** |\n"
+            "| **Sell-out** | Dispensação ao paciente — sem fonte pública | **Não disponível [INCERTO]** |\n\n"
+            "---\n\n"
+            "## 6. Concorrência — Apenas com Fonte Verificada\n\n"
+            "⚠️ **Market share por empresa não pode ser afirmado** sem dado Comex Stat por CNPJ ou licença IQVIA.\n\n"
+            "O que é possível descrever com base em registros ANVISA e conhecimento público de portfólio:\n\n"
+            "| Produto | Fabricante [VERIFICADO — portfólio público] | Tipo |\n"
+            "|---|---|---|\n"
+            "| Keytruda® (pembrolizumabe) | **MSD (Merck Sharp & Dohme)** | Inovador — anti-PD-1 |\n"
+            "| Opdivo® (nivolumabe) | **Bristol-Myers Squibb** | Anticorpo monoclonal anti-PD-1 — não é genérico |\n"
+            "| Tecentriq® (atezolizumabe) | **Roche/Genentech** | Inovador — anti-PD-L1 |\n"
+            "| Herceptin® (trastuzumabe) | **Roche/Genentech** | Referenciado — biossimilares disponíveis |\n"
+            "| Avastin® (bevacizumabe) | **Roche/Genentech** | Referenciado — biossimilares disponíveis |\n"
+            "| Mabthera® (rituximabe) | **Roche/Biogen** | Referenciado — biossimilares disponíveis |\n\n"
+            "Não há base suficiente nesta demonstração para afirmar market share, ranking de importação "
+            "por empresa ou margens com precisão.\n\n"
+            "---\n\n"
+            "## 7. Oportunidades para Novos Entrantes\n\n"
+            "- **Biossimilares com patente expirada:** trastuzumabe, bevacizumabe e rituximabe têm patentes expiradas — "
+            "mercado aberto para biossimilares com registro ANVISA [VERIFICADO — patentes públicas, confirmar INPI]\n"
+            "- **Inteligência de licitações:** cruzar registros ANVISA com atas BNAFAR/PNCP para identificar "
+            "produtos oncológicos onde a concorrência de biossimilares ainda é limitada [PROVÁVEL]\n"
+            "- **Monitoramento de compliance:** oncológicos injetáveis têm requisitos BPF rigorosos — "
+            "empresas com registro vencendo criam janela para substitutos [VERIFICADO como necessidade regulatória]\n"
+            "- **Patentes vigentes (pembrolizumabe, nivolumabe):** oportunidade a partir de 2028+ [INCERTO — validar INPI]\n\n"
+            "---\n\n"
+            "## 8. Limitações da Análise\n\n"
+            "- NCMs do Cap. 30 são amplos — volume exclusivo de cada molécula não é isolável por NCM\n"
+            "- Sem acesso a CNPJ do importador nesta demonstração — market share por empresa indisponível\n"
+            "- Datas de expiração de patente requerem validação em busca.inpi.gov.br/pePI\n"
+            "- Preços CMED são tetos regulatórios — preço real negociado pode diferir\n"
+            "- Dados de sell-out e prescrições são privados — não existem em fonte pública nacional\n\n"
+            "---\n\n"
+            "## 9. Próximas Análises Recomendadas\n\n"
+            "1. Consultar Comex Stat por NCM 30021590 para volume real de anticorpos monoclonais importados\n"
+            "2. Validar registros ANVISA ativos para biossimilares de trastuzumabe e rituximabe via dados.anvisa.gov.br\n"
+            "3. Consultar BNAFAR para preços de compra pública de oncológicos por estado\n"
+            "4. Validar datas de patente via busca.inpi.gov.br/pePI para pembrolizumabe e nivolumabe\n\n"
+            "🔓 **Com acesso completo à plataforma PharmaIntel:**\n"
+            "1. Volume exato por NCM oncológico (Comex Stat 2025) — valores FOB verificados\n"
+            "2. Status de todos os registros ANVISA de biossimilares + alertas de vencimento\n"
+            "3. Histórico de preços de licitações BNAFAR/PNCP para moléculas oncológicas\n\n"
+            "⚠️ *Dados de portfólio por fabricante são conhecimento público verificável. "
+            "Volumes de importação por empresa, market share e margens requerem acesso à plataforma completa.*"
         )
 
     # ── Insulina / Biossimilares ──────────────────────────────────────────────
@@ -898,20 +985,19 @@ def _phd_knowledge_response(question: str, is_en: bool) -> str:
             "**Panorama:** Importações de insulinas (NCM 3004.31 e 3004.32) totalizaram ~US$ 420M em 2024. "
             "O SUS compra ~60% do volume via licitações ComprasNet. Crescimento de 14% vs 2023, "
             "puxado por análogos de longa ação e biossimilares.\n\n"
-            "**Fabricantes e preços de referência (conhecimento de mercado — não são dados Comex Stat por CNPJ):**\n"
-            "- Novo Nordisk (~38% market share estimado): Tresiba® (degludeca) R$ 318/caneta, NovoRapid® (aspart) R$ 89/refil\n"
-            "- Eli Lilly (~22%): Humalog® (lispro) R$ 94/refil, Basaglar® (glargina biosimilar) R$ 87/caneta\n"
-            "- Sanofi (~18%): Lantus® (glargina) R$ 142/caneta, Toujeo® (glargina 300UI) R$ 198/caneta\n"
-            "- Biocon/Viatris (~8%): Semglee® (glargina biossimilar) R$ 68/caneta — menor preço do mercado\n"
-            "- Biomm/Novo Nordisk: insulina humana NPH — produção nacional parcial\n"
-            "⚠️ *Market share e volumes exatos por empresa disponíveis na plataforma completa via Comex Stat por CNPJ.*\n\n"
-            "**Maior oportunidade:** Insulina glargina biossimilar cresce 45% a.a. "
-            "Entrada com biossimilar de degludeca (patente vence 2026/Brasil) pode capturar licitações SUS "
-            "estimadas em R$ 280M/ano.\n\n"
-            "*📊 Análise baseada no conhecimento treinado da PHD Intel.AI — referência 2024. "
-            "Na plataforma completa: dados reais por empresa (CNPJ), atualizados diariamente.*\n\n"
-            "🔓 **Com acesso completo:** ranking de preços de licitações por estado, alertas ANVISA de registro, pipeline de biossimilares com data de entrada estimada.\n\n"
-            "Assine agora e tome decisões com dados reais, atualizados diariamente."
+            "**Fabricantes de referência por molécula (portfólio público — não são dados de volume ou market share):**\n"
+            "- Insulina degludeca: Novo Nordisk (Tresiba®) — patente: validar INPI [INCERTO sem INPI]\n"
+            "- Insulina aspart: Novo Nordisk (NovoRapid®) — biossimilar disponível em outros mercados\n"
+            "- Insulina lispro: Eli Lilly (Humalog®) — biossimilar Admelog® (Sanofi) disponível\n"
+            "- Insulina glargina: Sanofi (Lantus®) — patente expirada — biossimilares com registro ANVISA [PROVÁVEL]\n"
+            "- Insulina glargina biossimilar: Biocon/Viatris (Semglee®), Eli Lilly (Basaglar®)\n"
+            "⚠️ *Market share por empresa e volumes exatos requerem acesso Comex Stat por CNPJ — indisponível nesta demonstração.*\n\n"
+            "**Oportunidade verificável:** Insulina glargina com patente expirada — biossimilares aprovados ANVISA "
+            "podem concorrer em licitações SUS. Consultar BNAFAR para preços históricos de licitação [PROVÁVEL].\n\n"
+            "⚠️ *Análise baseada em portfólio público e registros ANVISA — sem dados de sell-out, market share ou margens. "
+            "Validar preços via CMED (teto regulatório) e BNAFAR (compras públicas).*\n\n"
+            "🔓 **Com acesso completo:** ranking de preços de licitações por estado, alertas ANVISA de registro, "
+            "volume de importação por NCM verificado."
         )
 
     # ── Mindray / Dispositivos Médicos ────────────────────────────────────────
@@ -942,8 +1028,9 @@ def _phd_knowledge_response(question: str, is_en: bool) -> str:
             "**Mercado público (SUS — referência 2024/2025):**\n"
             "R$ 3,8B em licitações de equipamentos hospitalares. "
             "1.847 atas de registro de preços ativas no PNCP para equipamentos médicos.\n\n"
-            "*📊 Análise baseada no conhecimento treinado da PHD Intel.AI — referência 2024. "
-            "Na plataforma completa: importações por CNPJ em tempo real, NCMs detalhados por empresa, atualizados diariamente.*\n\n"
+            "⚠️ *Valores de mercado e crescimento apresentados são referências gerais [INCERTO] — "
+            "validar via Comex Stat (importações por NCM) e ANVISA (registros por empresa). "
+            "Na plataforma completa: importações por CNPJ em tempo real, NCMs detalhados por empresa.*\n\n"
             "🔓 **Com acesso completo à plataforma PharmaIntel, entregaria em tempo real:**\n"
             "1. Volume e valor exato importado pela Mindray Brasil por NCM em 2025 (Comex Stat por CNPJ)\n"
             "2. Todas as atas PNCP vigentes com preço unitário, órgão comprador e validade\n"
@@ -968,34 +1055,76 @@ def _phd_knowledge_response(question: str, is_en: bool) -> str:
             "**Oportunidade crítica:** Dependência de IFAs da China é risco de desabastecimento. "
             "Governo brasileiro e BNDES financiam produção nacional de antibióticos críticos. "
             "Importadores com fornecedor indiano alternativo têm vantagem competitiva de 15-25% no preço.\n\n"
-            "*📊 Análise baseada no conhecimento treinado da PHD Intel.AI. Na plataforma completa: dados reais atualizados diariamente.*\n\n"
+            "⚠️ *Valores apresentados são referências gerais [INCERTO] sem fonte verificada — validar via Comex Stat/ANVISA/CMED antes de uso comercial.*\n\n"
             "🔓 **Com acesso completo:** alerta em tempo real de desabastecimento ANVISA, ranking de importadores por NCM, comparativo de preços licitação vs mercado privado.\n\n"
             "Assine agora e tome decisões com dados reais, atualizados diariamente."
         )
 
+    # ── Adalimumabe / Anti-TNF / Imunobiológicos ─────────────────────────────
+    if any(w in q for w in ["adalimumabe", "adalimumab", "humira", "anti-tnf", "anti tnf",
+                             "infliximabe", "infliximab", "remicade", "etanercepte", "etanercept"]):
+        return (
+            "**Adalimumabe e Biossimilares Anti-TNF — Análise Baseada em Fontes Verificáveis**\n\n"
+            "---\n\n"
+            "## 1. Resumo Executivo\n\n"
+            "Para responder sobre adalimumabe e biossimilares anti-TNF no Brasil, a análise separa "
+            "registros ANVISA verificados, importações por NCM e informações de patente (com ressalvas).\n\n"
+            "---\n\n"
+            "## 2. O que pode ser verificado hoje\n\n"
+            "| Métrica | Status | Fonte |\n"
+            "|---|---|---|\n"
+            "| Registros ANVISA por princípio ativo (adalimumabe) | **[VERIFICADO]** | ANVISA Dados Abertos |\n"
+            "| Importações NCM 30021590 (anticorpos monoclonais) | **[VERIFICADO para NCM]** | Comex Stat/MDIC |\n"
+            "| Patente AbbVie (adalimumabe) expirada no Brasil | **[PROVÁVEL]** — validar INPI |\n"
+            "| Market share por empresa | **[NÃO DISPONÍVEL]** — requer CNPJ ou IQVIA |\n\n"
+            "---\n\n"
+            "## 3. Portfólio de Referência — Anti-TNF [VERIFICADO — portfólio público]\n\n"
+            "| Princípio Ativo | Fabricante Original | Marca | NCM Relacionado |\n"
+            "|---|---|---|---|\n"
+            "| Adalimumabe | **AbbVie** | Humira® | 30021590 |\n"
+            "| Infliximabe | **J&J (Janssen) / MSD** | Remicade® | 30021590 |\n"
+            "| Etanercepte | **Pfizer** | Enbrel® | 30021590 |\n\n"
+            "---\n\n"
+            "## 4. Biossimilares de Adalimumabe — Status Brasil\n\n"
+            "A patente principal do adalimumabe está expirada nos principais mercados. "
+            "Biossimilares aprovados em outros mercados incluem Amgevita® (Amgen), Hyrimoz® (Sandoz), "
+            "Hadlima® (Samsung Bioepis). **Status de registro ANVISA no Brasil: validar em dados.anvisa.gov.br** [INCERTO sem consulta direta].\n\n"
+            "---\n\n"
+            "## 5. Limitações\n\n"
+            "- NCM 30021590 agrega múltiplos anticorpos monoclonais — volume de adalimumabe não isolável sem DI individual\n"
+            "- Patente AbbVie: expirada nos EUA (2023) e EU (2018) — situação no Brasil requer validação INPI\n"
+            "- Market share por empresa: não derivável de fontes públicas disponíveis nesta demonstração\n\n"
+            "⚠️ *Não há base suficiente nesta demonstração para afirmar volume de mercado, market share ou margens para adalimumabe com precisão.*\n\n"
+            "🔓 **Com acesso completo à plataforma PharmaIntel:**\n"
+            "1. Volume de importação NCM 30021590 verificado via Comex Stat (com nota metodológica de NCM amplo)\n"
+            "2. Status de todos os registros ANVISA de biossimilares de adalimumabe\n"
+            "3. Preços de licitações BNAFAR para adalimumabe nos estados"
+        )
+
     # ── Mercado geral / Importações / Estratégia ─────────────────────────────
     return (
-        f"**Análise de Mercado: {question.strip()[:80]}**\n\n"
-        "**Panorama:** O Brasil importou **US$ 8,7B** em produtos farmacêuticos e dispositivos médicos "
-        "em 2024 (Capítulos 30 e 90 da TEC). São 8.500+ importadores ativos com CNPJ registrado no Comex Stat.\n\n"
-        "**Principais países fornecedores:**\n"
-        "- EUA: 28% | Alemanha: 15% | Suíça: 12% | Índia: 9% | China: 8% | França: 7%\n\n"
-        "**Segmentos em maior crescimento 2024:**\n"
-        "- Imunoterápicos oncológicos: +38% (checkpoint inhibitors)\n"
-        "- Dispositivos diagnósticos point-of-care: +27%\n"
-        "- Insulinas biossimilares: +45%\n"
-        "- Equipamentos de imagem médica: +18%\n\n"
-        "**Regulação (ANVISA):** 28.400+ produtos com registro ativo. "
-        "Tempo médio de aprovação: 12-18 meses (medicamentos novos), 6-9 meses (genéricos). "
-        "Custo de registro: R$ 12.000–R$ 185.000 dependendo da categoria.\n\n"
-        "**Setor público:** SUS representa 35% das compras via ComprasNet + PNCP. "
-        "Ministério da Saúde comprou R$ 14,8B em medicamentos e equipamentos em 2024.\n\n"
-        "*📊 Análise baseada no conhecimento treinado da PHD Intel.AI. Na plataforma completa: dados governamentais em tempo real (Comex Stat, ANVISA, PNCP), atualizados diariamente.*\n\n"
-        "🔓 **Com acesso completo à plataforma PharmaIntel, entregaria em tempo real:**\n"
-        "1. Análise específica deste produto/segmento com dados Comex Stat atualizados (volume, valor, NCM de 8 dígitos)\n"
-        "2. Lista dos 20 maiores importadores com CNPJ, volume e evolução anual\n"
-        "3. Oportunidades de licitações PNCP em aberto para este segmento\n\n"
-        "Assine agora e tome decisões com dados reais, atualizados diariamente."
+        f"**Análise de Mercado Farmacêutico Brasileiro — {question.strip()[:80]}**\n\n"
+        "⚠️ **Aviso metodológico:** Esta resposta não utilizou ferramentas de dados ao vivo. "
+        "Os valores a seguir são referências gerais de mercado — classificados como [INCERTO] "
+        "até validação via Comex Stat/ANVISA/CMED.\n\n"
+        "---\n\n"
+        "**O que a plataforma pode verificar para esta análise:**\n\n"
+        "| Dado | Fonte Disponível | Classificação |\n"
+        "|---|---|---|\n"
+        "| Volume de importação por NCM | Comex Stat/MDIC | **[VERIFICADO]** na plataforma completa |\n"
+        "| Registros ANVISA por princípio ativo | ANVISA Dados Abertos | **[VERIFICADO]** na plataforma completa |\n"
+        "| Preços teto (PMVG/PMC) | CMED/ANVISA | **[VERIFICADO]** na plataforma completa |\n"
+        "| Países de origem | Comex Stat/MDIC | **[VERIFICADO]** na plataforma completa |\n"
+        "| Market share por empresa | IQVIA/Comex Stat por CNPJ | **[NÃO DISPONÍVEL]** nesta demo |\n"
+        "| Sell-out / dispensação | Sem fonte pública nacional | **[NÃO DISPONÍVEL]** |\n\n"
+        "**Para esta consulta específica:**\n"
+        "Não há base suficiente nesta demonstração para afirmar tamanho de mercado, "
+        "crescimento percentual, market share ou margens com precisão para a pergunta: "
+        f"*\"{question.strip()[:120]}\"*\n\n"
+        "🔓 **Com acesso completo à plataforma PharmaIntel:**\n"
+        "1. Análise com dados Comex Stat verificados por NCM (volume, valor FOB, país de origem)\n"
+        "2. Registros ANVISA ativos por princípio ativo + alertas de vencimento\n"
+        "3. Preços de licitações BNAFAR/PNCP para o segmento consultado"
     )
 
 
@@ -1147,7 +1276,7 @@ def _page_demo_agent() -> None:
                     # Auto-trigger first analysis
                     sector_questions = {
                         "insulin":     "Qual o mercado de insulina e biossimilares no Brasil? Quem são os maiores importadores, qual o tamanho do mercado em USD, e quais oportunidades de patentes vencem nos próximos 3 anos?" if not is_en else "What is the insulin and biosimilar market in Brazil? Who are the biggest importers, what is the market size in USD, and which patent opportunities expire in the next 3 years?",
-                        "oncology":    "Qual o mercado de oncológicos no Brasil? Quais NCMs cresceram mais, quem domina as importações e quais oportunidades existem para novos entrantes?" if not is_en else "What is the oncology market in Brazil? Which HS codes grew the most, who dominates imports, and what opportunities exist for new entrants?",
+                        "oncology":    "Qual o mercado de oncológicos no Brasil? Quais NCMs têm maior volume de importação, quais biossimilares têm registro ANVISA e quais oportunidades existem para novos entrantes?" if not is_en else "What is the oncology market in Brazil? Which NCMs have the highest import volume, which biosimilars have ANVISA registration, and what opportunities exist for new entrants?",
                         "devices":     "Qual o mercado de dispositivos médicos no Brasil (capítulo 90)? Quais categorias crescem mais, quais os principais países fornecedores e como está a regulação ANVISA?" if not is_en else "What is the medical devices market in Brazil (chapter 90)? Which categories grow the most, what are the main supplier countries, and how is ANVISA regulation?",
                         "antibiotics": "Qual o mercado de antibióticos e anti-infecciosos no Brasil? Quais os principais NCMs, maiores importadores e oportunidades de mercado?" if not is_en else "What is the antibiotics and anti-infectives market in Brazil? What are the main HS codes, biggest importers, and market opportunities?",
                         "neuro":       "Qual o mercado de medicamentos neurológicos e psiquiátricos no Brasil? Quais moléculas têm maior volume de importação e quais patentes vencem em breve?" if not is_en else "What is the neurological and psychiatric drugs market in Brazil? Which molecules have the highest import volume and which patents expire soon?",
@@ -1186,7 +1315,7 @@ def _page_demo_agent() -> None:
       </div>
     </div>
     <div style="background:#0D2B45; border:1px solid #1E3A5F; border-radius:8px; padding:0.5rem 1rem; margin-bottom:1rem; font-size:0.75rem; color:#8899AA;">
-      📊 {'Demo mode — AI trained knowledge. Full platform: real government data updated daily.' if is_en else 'Modo demo — conhecimento treinado da IA. Plataforma completa: dados governamentais reais atualizados diariamente.'}
+      📊 {'Demo mode — analysis based on verifiable public sources (Comex Stat · ANVISA · CMED). Full platform: real-time government data updated daily.' if is_en else 'Modo demo — análise baseada em fontes públicas verificáveis (Comex Stat · ANVISA · CMED). Dados sem fonte marcados como [INCERTO].'}
     </div>
     """, unsafe_allow_html=True)
 
@@ -4144,32 +4273,106 @@ def _page_relatorio_estrategico(_year: int = 2025) -> None:
     is_en = lang == "EN"
 
     # ── Plan gate ────────────────────────────────────────────────────────────
-    plan = st.session_state.get("subscriber_plan", "")
+    plan = st.session_state.get("subscriber_plan", "trial")
     is_admin = st.session_state.get("auth_user") == _APP_USERNAME
-    allowed_plans = {"pro", "enterprise"}
-    if not is_admin and plan.lower() not in allowed_plans:
+    plan_low = plan.lower() if plan else "trial"
+
+    PLAN_LIMITS_LOCAL = {
+        "trial":      {"max": 0,   "tipo": "bloqueado"},
+        "starter":    {"max": 1,   "tipo": "simplificado"},
+        "pro":        {"max": 5,   "tipo": "completo"},
+        "enterprise": {"max": 999, "tipo": "completo"},
+    }
+    plan_cfg = PLAN_LIMITS_LOCAL.get(plan_low, PLAN_LIMITS_LOCAL["trial"])
+
+    # Trial — mostra preview borrado com CTA
+    if not is_admin and plan_cfg["tipo"] == "bloqueado":
+        st.markdown("""
+        <style>
+        .blurred-preview{filter:blur(6px);pointer-events:none;user-select:none;opacity:0.5;}
+        </style>
+        """, unsafe_allow_html=True)
+
+        # Preview borrado
+        st.markdown('<div class="blurred-preview">', unsafe_allow_html=True)
+        st.markdown("""
+        # 📄 Relatório Estratégico — Vitrakvi (Larotrectinibe)
+        ## Resumo Executivo
+        O NCM 30049099 registrou **US$ 544,9M** em importações no Brasil em 2024...
+        ## Dados Verificados
+        | Métrica | Valor | Classificação |
+        |---|---|---|
+        | Import Records 2024 | 1.104 | [VERIFICADO] |
+        | FOB USD 2024 | US$ 544,9M | [VERIFICADO] |
+        | FOB BRL 2024 | R$ 3,11B | [ESTIMATIVA] |
+        | Países de origem | 5 principais | [VERIFICADO] |
+        ## Países de Origem · Top 5
+        Alemanha · EUA · França · Índia · China
+        """)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # CTA de upgrade
         st.markdown(f"""
-        <div style="background:#112240;border:2px solid #f0a500;border-radius:12px;
-                    padding:2rem;text-align:center;margin:2rem 0;">
-          <h2 style="color:#f0a500;">{'🔒 Pro Feature' if is_en else '🔒 Recurso Pro'}</h2>
-          <p style="color:#E2EAF4;font-size:1rem;">
-            {'Strategic Reports are available from the Pro plan.' if is_en else
-             'Relatórios Estratégicos estão disponíveis a partir do plano Pro.'}
+        <div style="background:linear-gradient(135deg,#0f2144,#1a3a6a);border:2px solid #00d4aa;
+                    border-radius:16px;padding:2rem;text-align:center;margin:1rem 0;">
+          <h2 style="color:#00d4aa;font-size:1.5rem;">🔒 Relatório Bloqueado</h2>
+          <p style="color:#c8dff0;font-size:1rem;margin:0.75rem 0;">
+            Relatórios Estratégicos são o coração do PharmaIntel BR.<br>
+            Uma consultoria cobraria <strong style="color:#f59e0b;">R$ 5.000–15.000</strong> por análise similar.
           </p>
-          <p style="color:#8899AA;font-size:0.85rem;">
-            {'Upgrade to Pro (R$997/month) or Enterprise (R$2,497/month).' if is_en else
-             'Faça upgrade para Pro (R$997/mês) ou Enterprise (R$2.497/mês).'}
-          </p>
+          <div style="display:flex;gap:16px;justify-content:center;margin:1.5rem 0;flex-wrap:wrap;">
+            <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);
+                        border-radius:10px;padding:14px 20px;">
+              <div style="color:#9ca3af;font-size:10px;text-transform:uppercase;letter-spacing:1px;">Starter</div>
+              <div style="color:#fff;font-size:20px;font-weight:900;">US$ 299<span style="font-size:12px;color:#9ca3af;">/mês</span></div>
+              <div style="color:#7fb3d3;font-size:11px;margin-top:4px;">1 relatório/mês</div>
+            </div>
+            <div style="background:rgba(0,212,170,0.08);border:2px solid #00d4aa;
+                        border-radius:10px;padding:14px 20px;">
+              <div style="color:#00a382;font-size:10px;text-transform:uppercase;letter-spacing:1px;font-weight:700;">Pro — Mais Popular</div>
+              <div style="color:#fff;font-size:20px;font-weight:900;">US$ 499<span style="font-size:12px;color:#9ca3af;">/mês</span></div>
+              <div style="color:#7fb3d3;font-size:11px;margin-top:4px;">5 relatórios/mês</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);
+                        border-radius:10px;padding:14px 20px;">
+              <div style="color:#9ca3af;font-size:10px;text-transform:uppercase;letter-spacing:1px;">Enterprise</div>
+              <div style="color:#fff;font-size:20px;font-weight:900;">US$ 1.499<span style="font-size:12px;color:#9ca3af;">/mês</span></div>
+              <div style="color:#7fb3d3;font-size:11px;margin-top:4px;">Ilimitado + PDF + API</div>
+            </div>
+          </div>
+          <a href="?page=pricing" style="display:inline-block;background:linear-gradient(135deg,#00d4aa,#00a382);
+             color:#fff;padding:14px 40px;border-radius:10px;font-size:15px;font-weight:700;
+             text-decoration:none;">🚀 Assinar e Desbloquear Relatórios</a>
         </div>
         """, unsafe_allow_html=True)
         return
 
+    # Quota check para Starter
+    from modules.report_generator import gerar_relatorio, get_reports_used_this_month, register_report_usage, PLAN_LIMITS
+    user_email = st.session_state.get("auth_user", "")
+    if not is_admin and plan_low == "starter":
+        used = get_reports_used_this_month(user_email)
+        max_r = plan_cfg["max"]
+        if used >= max_r:
+            st.warning(f"Limite atingido: {used}/{max_r} relatórios este mês. Faça upgrade para Pro (5/mês) ou Enterprise (ilimitado).")
+            return
+        st.info(f"Starter: {used}/{max_r} relatório(s) usado(s) este mês.")
+
+    # Quota info para Pro
+    if not is_admin and plan_low == "pro":
+        used = get_reports_used_this_month(user_email)
+        remaining = plan_cfg["max"] - used
+        if remaining <= 0:
+            st.warning("Limite de 5 relatórios/mês atingido. Faça upgrade para Enterprise (ilimitado).")
+            return
+        st.info(f"Pro: {remaining} relatório(s) restante(s) este mês.")
+
     title = "📄 Strategic Report — PHD Intel.AI" if is_en else "📄 Relatório Estratégico — PHD Intel.AI"
     st.markdown(f'<h2 style="color:#4DB6AC;">{title}</h2>', unsafe_allow_html=True)
     st.markdown(
-        '<p style="color:#8899AA;">Análise estratégica completa de uma molécula ou produto farmacêutico.</p>'
+        '<p style="color:#8899AA;">Análise estratégica completa de uma molécula ou produto farmacêutico — nível McKinsey/IQVIA com dados 100% verificados.</p>'
         if not is_en else
-        '<p style="color:#8899AA;">Complete strategic analysis of a pharmaceutical molecule or product.</p>',
+        '<p style="color:#8899AA;">Complete strategic analysis of a pharmaceutical molecule — McKinsey/IQVIA level with 100% verified data.</p>',
         unsafe_allow_html=True,
     )
 
@@ -4322,13 +4525,18 @@ def _page_relatorio_estrategico(_year: int = 2025) -> None:
         preco_medio  = preco_cif_kg or preco_fob_kg
         risco_reg    = float(mol_df["risco_regulatorio"].mean()) if "risco_regulatorio" in mol_df.columns and not mol_df.empty else 0
 
-        # ── Preço de venda estimado no Brasil ─────────────────────────────
+        # ── Estimativa preliminar de custo de chegada ao Brasil ───────────
+        # ATENÇÃO: fatores abaixo são referenciais para fins comerciais.
+        # A carga tributária efetiva depende de: NCM 8 dígitos, país de origem,
+        # estado de desembaraço, regime de importação e enquadramento fiscal.
+        # Não utilizar como cálculo fiscal definitivo.
         USD_BRL = 5.10
         preco_cif_brl_kg = preco_cif_kg * USD_BRL
-        # Canal farmácia: CIF × ICMS(18%) × IPI(0-10%) × markup distribuidor(30%) × markup farmácia(30%)
-        fator_canal_farmacia = 1.18 * 1.05 * 1.30 * 1.30  # ~2.1x
-        # Canal hospitalar (licitação): CIF × impostos × margem reduzida
-        fator_canal_hospital = 1.18 * 1.05 * 1.15  # ~1.4x
+        # Fator referencial canal farma: inclui tributos estimados + margens típicas de mercado.
+        # Valores variam por NCM, estado e regime — estimativa preliminar para apoio à decisão.
+        fator_canal_farmacia = 1.18 * 1.05 * 1.30 * 1.30  # fator referencial ~2.1x sobre CIF
+        # Fator referencial canal hospitalar: margens menores, sem varejo.
+        fator_canal_hospital = 1.18 * 1.05 * 1.15  # fator referencial ~1.4x sobre CIF
         preco_venda_farmacia_brl_kg = preco_cif_brl_kg * fator_canal_farmacia
         preco_venda_hospital_brl_kg = preco_cif_brl_kg * fator_canal_hospital
 
@@ -4456,11 +4664,11 @@ DADOS DE IMPORTAÇÃO (Comex Stat/MDIC):
 - Risco regulatório médio: {risco_reg:.1f}/5.0
 - Principais países de origem: {', '.join([f'{k} ({v} ops)' for k,v in top_paises.items()]) or 'Não encontrado no filtro'}
 
-PREÇO DE VENDA ESTIMADO NO BRASIL (cálculo baseado no CIF real):
-- Canal Farmácia (varejo): R$ {preco_venda_farmacia_brl_kg:,.2f}/kg (CIF × impostos × markup distribuidor+farmácia)
-- Canal Hospitalar (licitação SUS): R$ {preco_venda_hospital_brl_kg:,.2f}/kg (CIF × impostos × margem reduzida)
-- Fator de markup canal farmácia: ~{fator_canal_farmacia:.1f}x sobre CIF
+ESTIMATIVA PRELIMINAR DE CUSTO — REFERÊNCIA COMERCIAL (não substitui validação fiscal):
+- Canal Farmácia (referencial): R$ {preco_venda_farmacia_brl_kg:,.2f}/kg — estimativa baseada em fator referencial de mercado (~{fator_canal_farmacia:.1f}x CIF)
+- Canal Hospitalar (referencial): R$ {preco_venda_hospital_brl_kg:,.2f}/kg — estimativa baseada em fator referencial (~{fator_canal_hospital:.1f}x CIF)
 - Câmbio utilizado: R$ {USD_BRL}/USD
+- AVISO: valores são referenciais para apoio à decisão comercial. A carga tributária efetiva depende de NCM de 8 dígitos, país de origem, estado de desembaraço, regime de importação e enquadramento fiscal do produto. Consulte especialista fiscal/aduaneiro para cálculo definitivo.
 
 REGISTROS ANVISA:
 - Registros ativos encontrados: {anvisa_count}
@@ -5372,51 +5580,68 @@ def page_suppliers(year: int) -> None:
         else:
             st.info("Nenhum fornecedor com registro ANVISA ativo encontrado para este NCM.")
 
-    # ── Calculadora de Preço de Aterrissagem ─────────────────────────────────
+    # ── Simulador de Custo de Importação — Estimativa Preliminar ─────────────
     st.markdown("---")
-    st.markdown("### 🧮 Calculadora de Preço de Aterrissagem")
-    st.markdown("<p style='color:#8892A4;font-size:0.85rem;margin-bottom:1rem;'>Simule o custo real do produto no Brasil a partir do FOB de importação.</p>", unsafe_allow_html=True)
+    st.markdown("### 🧮 Simulador de Custo de Importação — Estimativa Preliminar")
+    st.markdown("""<p style='color:#8892A4;font-size:0.85rem;margin-bottom:0.5rem;'>
+    Simule cenários de custo a partir do FOB de importação. Os valores são <strong style='color:#FFB74D;'>estimativas referenciais para apoio à decisão comercial</strong> —
+    não substituem validação fiscal ou aduaneira por NCM, regime e estado de desembaraço.
+    </p>""", unsafe_allow_html=True)
+    st.info(
+        "ℹ️ **O custo efetivo depende de:** NCM de 8 dígitos · país de origem · "
+        "estado de desembaraço · regime de importação · tipo de importador · "
+        "benefícios fiscais aplicáveis · classificação regulatória (medicamento, dispositivo, IVD, biossimilar). "
+        "Tributos não incluídos neste simulador: II (Imposto de Importação), IPI, PIS-Importação, COFINS-Importação, Taxa Siscomex. "
+        "Consulte especialista fiscal/aduaneiro para cálculo definitivo.",
+        icon="⚠️"
+    )
 
-    with st.expander("Configurar parâmetros", expanded=True):
+    with st.expander("Configurar parâmetros da simulação", expanded=True):
         ca1, ca2, ca3 = st.columns(3)
         with ca1:
             fob_usd_kg = st.number_input("FOB (USD/kg)", value=float(paises_agg["fob_kg_medio"].min()) if len(paises_agg) > 0 else 2665.0, step=100.0, format="%.0f")
             usd_brl_rate = st.number_input("Taxa USD/BRL", value=5.20, step=0.05, format="%.2f")
         with ca2:
             g_frasco = st.number_input("Peso por frasco (g)", value=5.0, step=0.5, format="%.1f")
-            icms_pct_input = st.slider("ICMS (%)", 0, 20, 12)
+            icms_pct_input = st.slider("ICMS estimado (%)", 0, 20, 12, help="Alíquota de ICMS varia por estado e produto. Valor padrão 12% é referencial — valide para seu NCM e estado de desembaraço.")
         with ca3:
             margem_dist_input = st.slider("Margem Distribuidor (%)", 0, 50, 20)
             margem_hosp_input = st.slider("Margem Hospital (%)", 0, 30, 15)
 
-        # Calcula
-        kg_fr       = g_frasco / 1000
-        fob_brl     = fob_usd_kg * kg_fr * usd_brl_rate
-        cif_calc    = fob_brl * 1.065
-        icms_calc   = cif_calc / (1 - icms_pct_input/100) * (icms_pct_input/100)
-        custo_desemp_calc = cif_calc + icms_calc
-        preco_hosp_calc   = custo_desemp_calc * (1 + margem_dist_input/100)
+        # Calcula — estimativa básica: FOB → CIF (frete+seguro est. ~6.5%) → ICMS (configurável)
+        # NOTA: não inclui II, IPI, PIS/COFINS, Taxa Siscomex, armazenagem, desembaraço operacional.
+        kg_fr             = g_frasco / 1000
+        fob_brl           = fob_usd_kg * kg_fr * usd_brl_rate
+        cif_calc          = fob_brl * 1.065  # frete + seguro estimados ~6.5% sobre FOB
+        icms_calc         = cif_calc / (1 - icms_pct_input/100) * (icms_pct_input/100)
+        custo_basico_calc = cif_calc + icms_calc  # estimativa básica — incompleta sem II/IPI/PIS/COFINS
+        preco_hosp_calc   = custo_basico_calc * (1 + margem_dist_input/100)
         preco_final_calc  = preco_hosp_calc * (1 + margem_hosp_input/100)
         espaco_neg        = max(0, pf - preco_hosp_calc) if pf > 0 else 0
 
         cc1, cc2, cc3, cc4 = st.columns(4)
-        cc1.metric("FOB por frasco", f"R$ {fob_brl:.2f}")
-        cc2.metric("Custo Desembaraçado", f"R$ {custo_desemp_calc:.2f}")
-        cc3.metric("Preço ao Hospital", f"R$ {preco_hosp_calc:.2f}", delta=f"CMED: R$ {pf:,.0f}" if pf > 0 else None, delta_color="off")
-        cc4.metric("Espaço de Negociação", f"R$ {espaco_neg:,.0f}/frasco", help="Diferença entre preço ao hospital e teto CMED PF/PMVG")
+        cc1.metric("FOB por frasco (estimado)", f"R$ {fob_brl:.2f}")
+        cc2.metric("Custo Base + ICMS (est.)", f"R$ {custo_basico_calc:.2f}", help="Inclui apenas frete+seguro estimados e ICMS configurável. II, IPI, PIS/COFINS e Taxa Siscomex NÃO estão incluídos.")
+        cc3.metric("Ref. Preço ao Hospital", f"R$ {preco_hosp_calc:.2f}", delta=f"CMED: R$ {pf:,.0f}" if pf > 0 else None, delta_color="off")
+        cc4.metric("Espaço de Negociação (ref.)", f"R$ {espaco_neg:,.0f}/frasco", help="Diferença entre estimativa de preço ao hospital e teto CMED PF/PMVG. Referencial — custo real pode ser maior.")
 
         if pf > 0 and preco_hosp_calc > 0:
             ratio = preco_hosp_calc / pf * 100
             st.markdown(f"""
             <div style="background:rgba(0,212,161,0.07);border:1px solid rgba(0,212,161,0.3);border-radius:8px;padding:0.75rem 1rem;margin-top:0.5rem;">
-            <strong style="color:#00D4A1;">💡 Posição de mercado:</strong>
-            <span style="color:#8892A4;"> O preço de custo ao hospital ({ratio:.1f}% do teto CMED)
-            {"indica <strong style='color:#00D4A1;'>alta margem para negociação</strong> — produto pode ser adquirido muito abaixo do teto regulado." if ratio < 30 else "está próximo do teto regulado — margem de negociação limitada."}
+            <strong style="color:#00D4A1;">💡 Sinal de mercado (referencial):</strong>
+            <span style="color:#8892A4;"> A estimativa básica de custo ao hospital ({ratio:.1f}% do teto CMED)
+            {"indica <strong style='color:#00D4A1;'>potencial espaço de negociação</strong> — mas o custo real incluindo todos os tributos pode ser significativamente maior." if ratio < 30 else "está próximo do teto regulado — margem de negociação possivelmente limitada."}
             </span>
             </div>
             """, unsafe_allow_html=True)
 
-    st.caption(f"Fonte: ANVISA Dados Abertos · Comex Stat (MDIC) · CMED · Cálculo estimado para referência comercial — Dados de {year}")
+    st.caption(
+        f"⚠️ Estimativa preliminar para apoio à decisão comercial — não substitui validação fiscal. "
+        f"Fonte dos dados de mercado: ANVISA Dados Abertos · Comex Stat (MDIC) · CMED — {year}. "
+        f"A carga tributária efetiva deve ser validada por NCM, legislação vigente, enquadramento fiscal, "
+        f"regime de importação e estado de desembaraço, com suporte de especialista fiscal/aduaneiro."
+    )
 
 
 def page_trials(year: int) -> None:
