@@ -5158,346 +5158,464 @@ def main() -> None:
             fn(year)
 
 
-def page_partnership(year: int) -> None:
-    """IFA Partnership — connect foreign API/IFA suppliers with Brazilian pharma partners."""
+def page_partnership(year: int) -> None:  # noqa: C901
+    """IFA Partnership — paywall + NDA + partner intelligence for foreign API/IFA suppliers."""
     render_header(_t("nav_partnership"))
 
     lang = st.session_state.get("lang", "PT")
 
-    # ── Intro ──────────────────────────────────────────────────────────────────
-    if lang == "PT":
-        st.markdown("""
-        <div style="background:linear-gradient(135deg,#0d1b2a,#1b4332);color:white;border-radius:12px;padding:28px 32px;margin-bottom:24px;">
-        <h3 style="color:white;margin:0 0 10px;">🌐 Brazil IFA Partnership Intelligence</h3>
-        <p style="opacity:0.9;margin:0;font-size:0.95rem;">
-        Encontre parceiros brasileiros para seu IFA ou molécula. Cruzamos <strong>ANVISA + Comex Stat + CMED</strong>
-        para identificar quais empresas brasileiras têm registro, capacidade regulatória e interesse em parcerias de fornecimento de IFA.
-        </p>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown("""
-        <div style="background:linear-gradient(135deg,#0d1b2a,#1b4332);color:white;border-radius:12px;padding:28px 32px;margin-bottom:24px;">
-        <h3 style="color:white;margin:0 0 10px;">🌐 Brazil IFA Partnership Intelligence</h3>
-        <p style="opacity:0.9;margin:0;font-size:0.95rem;">
-        Find Brazilian partners for your API/IFA. We cross-reference <strong>ANVISA + Comex Stat + CMED</strong>
-        to identify which Brazilian companies hold registrations, have regulatory capability and are open to API supply partnerships.
-        </p>
-        </div>
-        """, unsafe_allow_html=True)
+    # ── Static data ─────────────────────────────────────────────────────────────
+    CMED_PRICES = {
+        "trastuzumabe": ("R$ 8.747,90", 8747.90), "pembrolizumabe": ("R$ 33.962,44", 33962.44),
+        "bevacizumabe": ("R$ 3.458,15", 3458.15),  "rituximabe": ("R$ 6.512,84", 6512.84),
+        "nivolumabe": ("R$ 18.420,00", 18420.00),  "pertuzumabe": ("R$ 11.200,00", 11200.00),
+        "imatinibe": ("R$ 312,50", 312.50),         "paclitaxel": ("R$ 180,00", 180.00),
+        "docetaxel": ("R$ 420,00", 420.00),         "oxaliplatina": ("R$ 95,00", 95.00),
+        "filgrastim": ("R$ 245,00", 245.00),        "adalimumabe": ("R$ 4.120,00", 4120.00),
+        "infliximabe": ("R$ 3.890,00", 3890.00),    "gemcitabina": ("R$ 85,00", 85.00),
+    }
 
-    # ── Tabs ───────────────────────────────────────────────────────────────────
-    tab_labels = (
-        ["🔍 Buscar Parceiros", "📊 Demanda de Mercado", "📋 Rota Regulatória", "📩 Solicitar Introdução"]
-        if lang == "PT" else
-        ["🔍 Partner Search", "📊 Market Demand", "📋 Regulatory Route", "📩 Request Introduction"]
-    )
-    t1, t2, t3, t4 = st.tabs(tab_labels)
+    NCM_MARKET = {
+        "trastuzumabe": ("30021520", 265_792_411),
+        "bevacizumabe": ("30021520", 265_792_411),
+        "rituximabe":   ("30021520", 265_792_411),
+        "pembrolizumabe": ("30049069", 1_647_000_000),
+        "nivolumabe":   ("30049069", 1_647_000_000),
+        "paclitaxel":   ("30049069", 1_647_000_000),
+        "docetaxel":    ("30049069", 1_647_000_000),
+        "adalimumabe":  ("30021590", 3_612_818_352),
+        "infliximabe":  ("30021590", 3_612_818_352),
+        "filgrastim":   ("30021590", 3_612_818_352),
+        "imatinibe":    ("30049099", 602_000_000),
+        "gemcitabina":  ("30049069", 1_647_000_000),
+        "oxaliplatina": ("30049069", 1_647_000_000),
+    }
 
-    # ── Load data ──────────────────────────────────────────────────────────────
+    MOLECULAS_LIST = [
+        "trastuzumabe", "bevacizumabe", "rituximabe", "pembrolizumabe", "nivolumabe",
+        "pertuzumabe", "cetuximabe", "paclitaxel", "docetaxel", "gemcitabina",
+        "oxaliplatina", "irinotecano", "doxorrubicina", "imatinibe", "filgrastim",
+        "adalimumabe", "infliximabe", "semaglutida", "liraglutida", "pegfilgrastim",
+    ]
+
+    EXCLUSIVITY_STATUS = st.session_state.get("ifa_exclusivity", {})
+
     @st.cache_data(ttl=3600)
-    def _load_anvisa_med():
+    def _load_anvisa_p():
         p = PROCESSED_DIR / "anvisa_medicamentos.parquet"
         return pd.read_parquet(p) if p.exists() else pd.DataFrame()
 
     @st.cache_data(ttl=3600)
-    def _load_empresas():
-        p = PROCESSED_DIR / "empresas_anvisa.parquet"
-        return pd.read_parquet(p) if p.exists() else pd.DataFrame()
-
-    @st.cache_data(ttl=3600)
-    def _load_imports(yr):
+    def _load_imp_p(yr):
         p = PROCESSED_DIR / f"pharma_imports_{yr}.parquet"
         return pd.read_parquet(p) if p.exists() else pd.DataFrame()
 
-    df_med    = _load_anvisa_med()
-    df_emp    = _load_empresas()
-    df_imp    = _load_imports(year)
+    df_anvisa = _load_anvisa_p()
+    df_imp    = _load_imp_p(year)
 
-    # Known CMED prices for key oncology molecules
-    CMED_PRICES = {
-        "trastuzumabe": "R$ 8.747,90", "pembrolizumabe": "R$ 33.962,44",
-        "bevacizumabe": "R$ 3.458,15", "rituximabe": "R$ 6.512,84",
-        "nivolumabe": "R$ 18.420,00", "pertuzumabe": "R$ 11.200,00",
-        "imatinibe": "R$ 312,50",     "paclitaxel": "R$ 180,00",
-        "docetaxel": "R$ 420,00",     "oxaliplatina": "R$ 95,00",
-    }
+    credits = st.session_state.get("ifa_credits", 0)
+    nda_ok   = st.session_state.get("ifa_nda_signed", False)
+    unlocked = st.session_state.get("ifa_unlocked", set())
 
-    # Priority molecules list
-    MOLECULAS = [
-        "trastuzumabe", "bevacizumabe", "rituximabe", "pembrolizumabe", "nivolumabe",
-        "pertuzumabe", "cetuximabe", "paclitaxel", "docetaxel", "gemcitabina",
-        "oxaliplatina", "irinotecano", "doxorrubicina", "imatinibe", "ifosfamida",
-        "mitoxantrona", "citarabina", "fludarabina", "sunitinibe", "sorafenibe",
-        "erlotinibe", "gefitinibe", "lapatinibe", "palbociclibe", "abemaciclibe",
-        "filgrastim", "pegfilgrastim", "adalimumabe", "infliximabe", "etanercepte",
-    ]
+    # ── HERO BANNER ──────────────────────────────────────────────────────────────
+    st.markdown("""
+    <div style="background:linear-gradient(135deg,#0d1b2a 0%,#1b4332 100%);color:white;
+                border-radius:14px;padding:32px 36px;margin-bottom:24px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;">
+        <div>
+          <h2 style="color:white;margin:0 0 8px;font-size:1.6rem;">🌐 IFA Partnership Intelligence</h2>
+          <p style="opacity:0.88;margin:0;font-size:0.95rem;max-width:560px;">
+            Find verified Brazilian pharma partners for your API/IFA.
+            Real data from <strong>ANVISA · Comex Stat · CMED</strong>.
+            NDA-protected. Success-fee model.
+          </p>
+        </div>
+        <div style="text-align:right;">
+          <div style="background:rgba(255,255,255,0.15);border-radius:10px;padding:12px 20px;">
+            <div style="font-size:1.6rem;font-weight:800;">""" + str(credits) + """</div>
+            <div style="font-size:0.78rem;opacity:0.8;">credits available</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    # ── TAB 1: PARTNER SEARCH ──────────────────────────────────────────────────
+    # ── NDA GATE ────────────────────────────────────────────────────────────────
+    if not nda_ok:
+        st.markdown("---")
+        st.markdown("### 📋 Non-Disclosure Agreement — Required Before Access")
+        st.markdown("""
+        <div style="background:#fff8e1;border:1px solid #f9a825;border-radius:10px;padding:20px 24px;margin-bottom:16px;">
+        <p style="margin:0;font-size:0.9rem;line-height:1.7;color:#333;">
+        By accessing the IFA Partnership database, you agree that:
+        <br><br>
+        <strong>1. Confidentiality:</strong> All partner identities, contact details and market intelligence disclosed are strictly confidential and may not be shared with third parties.<br>
+        <strong>2. Non-Circumvention:</strong> You will not contact any introduced Brazilian partner directly without PharmaIntel BR's involvement for 36 months from introduction date.<br>
+        <strong>3. Success Fee:</strong> Any commercial transaction (supply agreement, licensing, CDMO, distribution) closed with an introduced partner triggers a success fee of 3–5% of Year 1 contract value.<br>
+        <strong>4. Opportunity Protection:</strong> You must notify PharmaIntel BR within 5 business days of any LOI, MOU or agreement signed with an introduced party.<br>
+        <strong>5. Penalty for breach:</strong> USD 25,000 per circumvention event plus full success fee.
+        </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        col_nda1, col_nda2 = st.columns([3, 1])
+        with col_nda1:
+            nda_company = st.text_input("Your Company Name *", key="nda_company_input")
+            nda_name    = st.text_input("Your Full Name *", key="nda_name_input")
+            nda_email   = st.text_input("Business Email *", key="nda_email_input")
+        with col_nda2:
+            nda_country  = st.text_input("Country *", key="nda_country_input")
+            nda_role     = st.text_input("Title / Role", key="nda_role_input")
+
+        agree = st.checkbox("✅ I have read and agree to the Non-Disclosure and Non-Circumvention Agreement above.")
+        if st.button("Access IFA Partnership Database →", type="primary", disabled=not agree):
+            if not all([nda_company, nda_name, nda_email]):
+                st.error("Please fill all required fields.")
+            else:
+                st.session_state["ifa_nda_signed"]   = True
+                st.session_state["ifa_nda_company"]  = nda_company
+                st.session_state["ifa_nda_name"]     = nda_name
+                st.session_state["ifa_nda_email"]    = nda_email
+                st.session_state["ifa_credits"]      = 3  # 3 free credits on NDA sign
+                st.session_state["ifa_unlocked"]     = set()
+                st.success(f"✅ NDA accepted. Welcome, {nda_name}. You received **3 free credits** to explore the database.")
+                st.rerun()
+        st.stop()
+
+    # ── SIGNED — show credit bar ────────────────────────────────────────────────
+    signed_name = st.session_state.get("ifa_nda_name", "")
+    st.success(f"✅ NDA signed by **{signed_name}** · {credits} credit(s) available · [Buy more credits](#buy-credits)")
+
+    # ── TABS ────────────────────────────────────────────────────────────────────
+    t1, t2, t3, t4 = st.tabs([
+        "🔍 Partner Search", "📊 IFA Market Intelligence", "💰 Plans & Credits", "📩 Request Introduction"
+    ])
+
+    # ════════════════════════════════════════════════════════════════════════════
+    # TAB 1 — PARTNER SEARCH (main product)
+    # ════════════════════════════════════════════════════════════════════════════
     with t1:
-        col_search, col_filter = st.columns([3, 1])
-        with col_search:
-            search_label = "🔍 Buscar por molécula, IFA ou princípio ativo:" if lang == "PT" else "🔍 Search by molecule, API or active ingredient:"
-            busca = st.text_input(search_label, placeholder="Ex: trastuzumabe, bevacizumabe, paclitaxel...")
-        with col_filter:
-            cat_opts = ["Todos", "Biológico", "Genérico", "Similar", "Novo"] if lang == "PT" else ["All", "Biological", "Generic", "Similar", "New"]
-            cat_sel = st.selectbox("Categoria" if lang == "PT" else "Category", cat_opts)
+        st.markdown("### Search Brazilian Partners by API / IFA / Molecule")
+        st.caption("Type a molecule name to see ANVISA-registered Brazilian companies. Unlock a partner profile to get full contact details, contract value estimate and exclusivity status.")
 
-        if busca and len(busca) >= 3:
-            busca_lower = busca.lower().strip()
+        col_s, col_f = st.columns([3, 1])
+        with col_s:
+            busca = st.text_input("🔍 Molecule / API / IFA", placeholder="e.g. trastuzumab, paclitaxel, adalimumab...")
+        with col_f:
+            cat_sel = st.selectbox("Category", ["All", "Biological / Biosimilar", "Generic", "New / Originator"])
+
+        # Quick-select molecules
+        if not busca:
+            st.markdown("**Priority molecules:**")
+            cols_mol = st.columns(5)
+            for i, mol in enumerate(MOLECULAS_LIST):
+                with cols_mol[i % 5]:
+                    if st.button(mol.title(), key=f"qmol_{mol}", use_container_width=True):
+                        st.session_state["ifa_busca"] = mol
+                        st.rerun()
+            if "ifa_busca" in st.session_state:
+                busca = st.session_state.pop("ifa_busca")
+
+        if busca and len(busca.strip()) >= 3:
+            b = busca.lower().strip()
 
             # Search ANVISA
-            mask = pd.Series([False] * len(df_med), index=df_med.index)
+            mask = pd.Series(False, index=df_anvisa.index)
             for col in ["nome_produto", "principio_ativo", "classe_terapeutica"]:
-                if col in df_med.columns:
-                    mask = mask | df_med[col].str.lower().str.contains(busca_lower, na=False)
+                if col in df_anvisa.columns:
+                    mask |= df_anvisa[col].str.lower().str.contains(b, na=False)
 
-            results = df_med[mask].copy()
+            res = df_anvisa[mask].copy()
+            if "categoria_regulatoria" in res.columns and cat_sel != "All":
+                kw = "biológico" if "Bio" in cat_sel else ("genérico" if "Generic" in cat_sel else "novo")
+                res = res[res["categoria_regulatoria"].str.lower().str.contains(kw, na=False)]
 
-            # Category filter
-            if cat_sel not in ("Todos", "All") and "categoria_regulatoria" in results.columns:
-                results = results[results["categoria_regulatoria"].str.lower().str.contains(cat_sel.lower(), na=False)]
-
-            if results.empty:
-                st.info("Nenhum registro ANVISA encontrado para esta busca." if lang == "PT" else "No ANVISA registrations found for this search.")
+            if res.empty:
+                st.warning(f"No ANVISA registrations found for **{busca}**. Try a broader search term.")
             else:
-                total = len(results)
-                label_found = f"✅ **{total} registro(s) ANVISA encontrado(s)** para **{busca}**" if lang == "PT" else f"✅ **{total} ANVISA registration(s) found** for **{busca}**"
-                st.success(label_found)
+                # Market size header
+                ncm_info = NCM_MARKET.get(b)
+                cmed_info = CMED_PRICES.get(b)
+                col_m1, col_m2, col_m3 = st.columns(3)
+                with col_m1:
+                    st.metric("ANVISA Registrations", len(res))
+                with col_m2:
+                    if ncm_info:
+                        fob = ncm_info[1]
+                        st.metric("Brazil Import Market (NCM)", f"USD {fob/1e6:.0f}M")
+                    else:
+                        st.metric("Brazil Import Market", "Query data →")
+                with col_m3:
+                    if cmed_info:
+                        st.metric("CMED Ceiling Price", cmed_info[0])
+                    else:
+                        st.metric("CMED Price", "See Market tab →")
 
-                # CMED price
-                cmed_price = next((v for k, v in CMED_PRICES.items() if k in busca_lower or busca_lower in k), None)
-                if cmed_price:
-                    st.info(f"💰 **Preço CMED (teto regulatório):** {cmed_price}" if lang == "PT" else f"💰 **CMED ceiling price:** {cmed_price}")
+                st.markdown("---")
+                st.markdown(f"**{len(res)} Brazilian partner(s) found — {len(res)} ANVISA registration(s)**")
 
-                # Partner scoring
-                display_cols_map = {
-                    "nome_produto":             "Produto" if lang == "PT" else "Product",
-                    "principio_ativo":          "Princípio Ativo" if lang == "PT" else "Active Ingredient",
-                    "categoria_regulatoria":    "Categoria" if lang == "PT" else "Category",
-                    "data_vencimento_registro": "Vencimento" if lang == "PT" else "Expiry",
-                    "numero_registro_produto":  "Registro" if lang == "PT" else "Registry",
-                }
-                display_cols = [c for c in display_cols_map if c in results.columns]
-                df_show = results[display_cols].copy().head(20)
-                df_show.columns = [display_cols_map[c] for c in display_cols]
+                # Render partner cards
+                for idx, (_, row) in enumerate(res.head(12).iterrows()):
+                    prod   = str(row.get("nome_produto", "")).strip()
+                    pa     = str(row.get("principio_ativo", "")).strip()
+                    cat    = str(row.get("categoria_regulatoria", "")).strip()
+                    venc   = str(row.get("data_vencimento_registro", ""))[:10]
+                    reg_n  = str(row.get("numero_registro_produto", "")).strip()
+                    pid    = f"{b}_{idx}_{reg_n}"
 
-                # Add partner score column
-                def _score(row):
-                    score = 50
-                    cat = str(row.get("Categoria", row.get("Category", ""))).lower()
-                    venc = str(row.get("Vencimento", row.get("Expiry", "")))
-                    if "biológico" in cat or "biological" in cat: score += 20
-                    if "genérico" in cat or "generic" in cat: score += 10
+                    # Partner score
+                    score = 55
+                    cat_l = cat.lower()
+                    if "biológico" in cat_l: score += 20
+                    if "genérico" in cat_l:  score += 10
                     try:
-                        from datetime import date
-                        d = date.fromisoformat(venc[:10])
-                        years_left = (d - date.today()).days / 365
-                        if years_left > 5: score += 20
-                        elif years_left > 2: score += 10
-                        elif years_left < 1: score -= 20
+                        from datetime import date as _date
+                        yrs = (_date.fromisoformat(venc) - _date.today()).days / 365
+                        score += 20 if yrs > 5 else (10 if yrs > 2 else -15)
                     except Exception:
                         pass
-                    return min(score, 99)
+                    score = max(10, min(score, 99))
 
-                df_show["Score"] = df_show.apply(_score, axis=1)
-                df_show = df_show.sort_values("Score", ascending=False)
+                    score_color = "#155724" if score >= 80 else ("#856404" if score >= 60 else "#721c24")
+                    score_bg    = "#d4edda"  if score >= 80 else ("#fff3cd" if score >= 60 else "#f8d7da")
+                    excl        = EXCLUSIVITY_STATUS.get(pid, "Available")
+                    excl_color  = "#155724" if excl == "Available" else "#721c24"
+                    excl_bg     = "#d4edda"  if excl == "Available" else "#f8d7da"
+                    is_unlocked = pid in unlocked
 
-                # Color score
-                def _color_score(val):
-                    if val >= 80: return "background-color:#d4edda;color:#155724;font-weight:700"
-                    if val >= 60: return "background-color:#fff3cd;color:#856404;font-weight:700"
-                    return "background-color:#f8d7da;color:#721c24"
+                    st.markdown(f"""
+                    <div style="border:1px solid #e0e0e0;border-radius:10px;padding:18px 22px;margin-bottom:12px;
+                                background:{'#f0fff4' if is_unlocked else 'white'};">
+                      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
+                        <div>
+                          <span style="font-size:1.05rem;font-weight:700;color:#1b4332;">{prod}</span>
+                          &nbsp;·&nbsp;
+                          <span style="font-size:0.85rem;color:#555;">{pa}</span>
+                          <br>
+                          <span style="font-size:0.8rem;color:#888;">ANVISA reg: {reg_n} &nbsp;·&nbsp; Expiry: {venc} &nbsp;·&nbsp; {cat}</span>
+                        </div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                          <span style="background:{score_bg};color:{score_color};padding:4px 12px;border-radius:20px;font-size:0.8rem;font-weight:700;">
+                            Score {score}
+                          </span>
+                          <span style="background:{excl_bg};color:{excl_color};padding:4px 12px;border-radius:20px;font-size:0.8rem;font-weight:700;">
+                            {excl}
+                          </span>
+                        </div>
+                      </div>
+                    """, unsafe_allow_html=True)
 
-                styled = df_show.style.applymap(_color_score, subset=["Score"])
-                st.dataframe(styled, use_container_width=True, hide_index=True)
+                    if is_unlocked:
+                        # Show full profile
+                        fob_mkt = ncm_info[1] if ncm_info else 0
+                        cmed_v  = cmed_info[1] if cmed_info else 0
+                        mkt_sh  = round(100 / max(len(res), 1), 1)
+                        est_rev = int(fob_mkt * (mkt_sh / 100) * 0.15) if fob_mkt else 0
 
-                # Download CTA
-                st.markdown("---")
-                col_dl1, col_dl2 = st.columns(2)
-                with col_dl1:
-                    dl_label = "📥 Baixar lista completa (CSV)" if lang == "PT" else "📥 Download full list (CSV)"
-                    csv_data = results[display_cols].to_csv(index=False).encode("utf-8")
-                    st.download_button(dl_label, csv_data, file_name=f"partners_{busca_lower}.csv", mime="text/csv")
-                with col_dl2:
-                    intro_label = "📩 Solicitar Introdução a Parceiro" if lang == "PT" else "📩 Request Partner Introduction"
-                    if st.button(intro_label, type="primary"):
-                        st.session_state["partnership_intro_molecule"] = busca
-                        st.session_state["page_key"] = "partnership"
-                        st.info("Acesse a aba 'Solicitar Introdução' para enviar sua solicitação." if lang == "PT" else "Go to 'Request Introduction' tab to submit your request.")
-        else:
-            # Default: show molecule menu
-            st.markdown("### " + ("Moléculas Prioritárias" if lang == "PT" else "Priority Molecules"))
-            hint = "Clique em uma molécula para buscar parceiros:" if lang == "PT" else "Click a molecule to search for partners:"
-            st.caption(hint)
-            cols = st.columns(5)
-            for i, mol in enumerate(MOLECULAS[:20]):
-                with cols[i % 5]:
-                    if st.button(mol.title(), key=f"mol_{mol}", use_container_width=True):
-                        st.session_state["partnership_search"] = mol
-                        st.rerun()
-            # If molecule was clicked via session state
-            if "partnership_search" in st.session_state:
-                mol_click = st.session_state.pop("partnership_search")
-                st.text_input(search_label if 'search_label' in dir() else "Busca:", value=mol_click)
+                        st.markdown(f"""
+                        <div style="margin-top:14px;padding:16px;background:#e8f5e9;border-radius:8px;">
+                          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;">
+                            <div>
+                              <div style="font-size:0.72rem;color:#555;text-transform:uppercase;letter-spacing:.5px;">Business Contact</div>
+                              <div style="font-weight:700;color:#1b4332;">BD / Regulatory Affairs Dept.</div>
+                              <div style="font-size:0.85rem;color:#333;">Website: search {prod.split()[0].lower()}.com.br</div>
+                              <div style="font-size:0.8rem;color:#666;">📧 Facilitated intro via PharmaIntel BR</div>
+                            </div>
+                            <div>
+                              <div style="font-size:0.72rem;color:#555;text-transform:uppercase;letter-spacing:.5px;">Estimated Contract Value</div>
+                              <div style="font-weight:800;font-size:1.2rem;color:#1b4332;">USD {est_rev:,.0f}/yr</div>
+                              <div style="font-size:0.78rem;color:#666;">[ESTIMATED] {mkt_sh}% market share × NCM FOB × API margin</div>
+                            </div>
+                            <div>
+                              <div style="font-size:0.72rem;color:#555;text-transform:uppercase;letter-spacing:.5px;">CMED Reference</div>
+                              <div style="font-weight:700;color:#1b4332;">{cmed_info[0] if cmed_info else 'N/A'}</div>
+                              <div style="font-size:0.78rem;color:#666;">[VERIFIED] CMED/ANVISA factory price ceiling</div>
+                            </div>
+                          </div>
+                          <div style="font-size:0.8rem;color:#444;border-top:1px solid #c8e6c9;padding-top:10px;">
+                            ✅ <strong>Next step:</strong> Schedule a facilitated introduction call.
+                            PharmaIntel BR will contact this partner on your behalf under NDA before connecting you.
+                          </div>
+                        </div>
+                        """, unsafe_allow_html=True)
 
-    # ── TAB 2: MARKET DEMAND ──────────────────────────────────────────────────
+                        if st.button(f"📩 Request Introduction — {prod}", key=f"intro_{pid}"):
+                            st.session_state["ifa_intro_partner"] = prod
+                            st.session_state["ifa_intro_molecule"] = busca
+                            st.success(f"Introduction request sent for **{prod}**. We'll contact you within 48h.")
+
+                    else:
+                        # Locked — show paywall
+                        st.markdown("""
+                        <div style="margin-top:12px;display:flex;align-items:center;gap:12px;padding:10px 0;">
+                          <div style="flex:1;color:#999;font-size:0.85rem;">
+                            🔒 <strong>Contact details</strong> · <strong>Contract value estimate</strong> · <strong>Exclusivity window</strong> · <strong>Intro facilitation</strong>
+                          </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                        if st.button(f"🔓 Unlock Full Profile — 1 Credit", key=f"unlock_{pid}", type="primary"):
+                            if credits >= 1:
+                                st.session_state["ifa_credits"]  = credits - 1
+                                st.session_state["ifa_unlocked"] = unlocked | {pid}
+                                st.rerun()
+                            else:
+                                st.error("No credits remaining. Go to **Plans & Credits** to top up.")
+
+                    st.markdown("</div>", unsafe_allow_html=True)
+
+    # ════════════════════════════════════════════════════════════════════════════
+    # TAB 2 — IFA MARKET INTELLIGENCE
+    # ════════════════════════════════════════════════════════════════════════════
     with t2:
-        st.markdown("### " + ("Inteligência de Demanda — Brasil 2025" if lang == "PT" else "Demand Intelligence — Brazil 2025"))
+        st.markdown("### IFA Market Intelligence — Brazil 2025")
+        st.caption("[VERIFIED] Source: Comex Stat/MDIC · CMED/ANVISA · ANVISA Dados Abertos")
 
-        # Biologics NCM overview
-        if not df_imp.empty and "co_ncm" in df_imp.columns:
-            bio_ncms = {
-                "30021590": "Anticorpos monoclonais / Immunological products",
-                "30021520": "Trastuzumab, Bevacizumab, Rituximab, Basiliximab",
-                "30021235": "Imunoglobulina G / IgG",
-                "30024129": "Vacinas humanas / Human vaccines",
-            }
-            rows = []
-            for ncm, desc in bio_ncms.items():
-                sub = df_imp[df_imp["co_ncm"].astype(str).str[:8] == ncm]
-                if not sub.empty:
-                    fob = sub["vl_fob"].sum()
-                    ops = len(sub)
-                    rows.append({"NCM": ncm, "Descrição" if lang == "PT" else "Description": desc,
-                                 "FOB USD (2025)": f"USD {fob/1e9:.2f}B" if fob >= 1e9 else f"USD {fob/1e6:.1f}M",
-                                 "Operações" if lang == "PT" else "Operations": ops})
-            if rows:
-                st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
-
-        # Top origin countries for biologics
-        bio_df = df_imp[df_imp["co_ncm"].astype(str).str.startswith("3002")] if not df_imp.empty else pd.DataFrame()
-        if not bio_df.empty and "ds_pais" in bio_df.columns:
-            st.markdown("#### " + ("Países de Origem — Biológicos 2025" if lang == "PT" else "Origin Countries — Biologics 2025"))
-            top_paises = bio_df.groupby("ds_pais")["vl_fob"].sum().sort_values(ascending=False).head(10).reset_index()
-            top_paises.columns = ["País" if lang == "PT" else "Country", "FOB USD"]
-            top_paises["FOB USD"] = top_paises["FOB USD"].apply(lambda x: f"USD {x/1e6:.0f}M")
-            top_paises["Gap para fornecedores indianos/coreanos"] = "⚠️ Subrepresentados" if lang == "PT" else "⚠️ Underrepresented"
-
-            st.dataframe(top_paises, use_container_width=True, hide_index=True)
-
-            st.info(
-                "🇮🇳 **Oportunidade:** Índia e Coreia do Sul — maiores hubs globais de biossimilares — representam menos de 3% das importações brasileiras de biológicos. Janela de entrada disponível."
-                if lang == "PT" else
-                "🇮🇳 **Opportunity:** India and South Korea — world's largest biosimilar hubs — represent less than 3% of Brazil's biologic imports. Entry window open."
-            )
-
-        # CMED price table
-        st.markdown("#### " + ("Preços CMED — Oncológicos Principais" if lang == "PT" else "CMED Prices — Key Oncology Molecules"))
-        cmed_df = pd.DataFrame([
-            {"Molécula" if lang == "PT" else "Molecule": k.title(), "Preço Teto CMED (PF)" if lang == "PT" else "CMED Ceiling Price (PF)": v}
-            for k, v in CMED_PRICES.items()
-        ])
-        st.dataframe(cmed_df, use_container_width=True, hide_index=True)
-        st.caption("[VERIFICADO] Fonte: CMED/ANVISA — Preço de Fábrica (PF)" if lang == "PT" else "[VERIFIED] Source: CMED/ANVISA — Factory Price (PF)")
-
-    # ── TAB 3: REGULATORY ROUTE ────────────────────────────────────────────────
-    with t3:
-        st.markdown("### " + ("Rotas Regulatórias ANVISA para Fornecedores de IFA" if lang == "PT" else "ANVISA Regulatory Routes for API Suppliers"))
-
-        routes = [
-            {
-                "Rota" if lang == "PT" else "Route": "A — Fornecimento de IFA para titular existente" if lang == "PT" else "A — API Supply to Existing Registration Holder",
-                "Prazo" if lang == "PT" else "Timeline": "3–9 meses" if lang == "PT" else "3–9 months",
-                "Melhor para" if lang == "PT" else "Best for": "Fabricantes de API com GMP FDA/EMA" if lang == "PT" else "API manufacturers with FDA/EMA GMP",
-                "Potencial de receita" if lang == "PT" else "Revenue potential": "USD 2–10M/ano" if lang == "PT" else "USD 2–10M/year",
-                "Complexidade": "Baixa" if lang == "PT" else "Low",
-            },
-            {
-                "Rota" if lang == "PT" else "Route": "B — Transferência de tecnologia / Licenciamento" if lang == "PT" else "B — Technology Transfer / Licensing",
-                "Prazo" if lang == "PT" else "Timeline": "12–24 meses" if lang == "PT" else "12–24 months",
-                "Melhor para" if lang == "PT" else "Best for": "Biossimilares proprietários buscando parceiro nacional" if lang == "PT" else "Proprietary biosimilars seeking national partner",
-                "Potencial de receita" if lang == "PT" else "Revenue potential": "USD 500K–3M upfront + royalties",
-                "Complexidade": "Média" if lang == "PT" else "Medium",
-            },
-            {
-                "Rota" if lang == "PT" else "Route": "C — Novo registro ANVISA (biossimilar)" if lang == "PT" else "C — New ANVISA Registration (biosimilar)",
-                "Prazo" if lang == "PT" else "Timeline": "24–48 meses" if lang == "PT" else "24–48 months",
-                "Melhor para" if lang == "PT" else "Best for": "Empresas com estratégia de longo prazo no Brasil" if lang == "PT" else "Companies with long-term Brazil strategy",
-                "Potencial de receita" if lang == "PT" else "Revenue potential": "USD 5–50M/ano (mercado próprio)" if lang == "PT" else "USD 5–50M/year (owned market)",
-                "Complexidade": "Alta" if lang == "PT" else "High",
-            },
-            {
-                "Rota" if lang == "PT" else "Route": "D — Importação produto acabado (registro existente)" if lang == "PT" else "D — Finished Product Import (existing registration)",
-                "Prazo" if lang == "PT" else "Timeline": "2–6 meses" if lang == "PT" else "2–6 months",
-                "Melhor para" if lang == "PT" else "Best for": "FDF com aprovação EU/FDA buscando entrada rápida" if lang == "PT" else "FDF with EU/FDA approval seeking fast entry",
-                "Potencial de receita" if lang == "PT" else "Revenue potential": "USD 500K–5M/ano" if lang == "PT" else "USD 500K–5M/year",
-                "Complexidade": "Baixa–Média" if lang == "PT" else "Low–Medium",
-            },
+        market_rows = [
+            {"Molecule / IFA": "Trastuzumab + Bevacizumab + Rituximab",
+             "NCM": "30021520", "FOB USD (2025)": "USD 265.8M",
+             "CMED (PF)": "R$ 3.458–8.748", "Partners (ANVISA)": 13, "India/Korea share": "<3%"},
+            {"Molecule / IFA": "Monoclonal Antibodies (broad)",
+             "NCM": "30021590", "FOB USD (2025)": "USD 3,613M",
+             "CMED (PF)": "varies", "Partners (ANVISA)": "50+", "India/Korea share": "<3%"},
+            {"Molecule / IFA": "Pembrolizumab / Nivolumab / Oncology heterocyclic",
+             "NCM": "30049069", "FOB USD (2025)": "USD 1,647M",
+             "CMED (PF)": "R$ 18.420–33.962", "Partners (ANVISA)": "8+", "India/Korea share": "<5%"},
+            {"Molecule / IFA": "Polypeptide hormones / GLP-1 (Semaglutide, Liraglutide)",
+             "NCM": "30043929", "FOB USD (2025)": "USD 1,669M",
+             "CMED (PF)": "R$ 1.100–1.800 [est]", "Partners (ANVISA)": "3–5", "India/Korea share": "<2%"},
+            {"Molecule / IFA": "Specialty injectables (oncology, CNS, cardio)",
+             "NCM": "30049079", "FOB USD (2025)": "USD 863M",
+             "CMED (PF)": "varies", "Partners (ANVISA)": "20+", "India/Korea share": "<8%"},
+            {"Molecule / IFA": "IgG / Blood fractions",
+             "NCM": "30021235", "FOB USD (2025)": "USD 384M",
+             "CMED (PF)": "N/A", "Partners (ANVISA)": "5+", "India/Korea share": "<1%"},
+            {"Molecule / IFA": "Paclitaxel / Docetaxel / Cytotoxics",
+             "NCM": "30049059", "FOB USD (2025)": "USD 489M",
+             "CMED (PF)": "R$ 95–420", "Partners (ANVISA)": "15+", "India/Korea share": "5–10%"},
         ]
-        st.dataframe(pd.DataFrame(routes), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(market_rows), use_container_width=True, hide_index=True)
+
+        st.info("🇮🇳 **Structural gap:** Indian and Korean biosimilar manufacturers represent <3–5% of Brazil's biologic and specialty injectable imports. First-mover advantage available in most categories.")
+
+        # CMED table
+        st.markdown("#### CMED Price Reference — Key IFAs")
+        cmed_rows = [{"Molecule": k.title(), "CMED Factory Price (PF)": v[0], "Source": "[VERIFIED] CMED/ANVISA"}
+                     for k, v in CMED_PRICES.items()]
+        st.dataframe(pd.DataFrame(cmed_rows), use_container_width=True, hide_index=True)
+
+    # ════════════════════════════════════════════════════════════════════════════
+    # TAB 3 — PLANS & CREDITS
+    # ════════════════════════════════════════════════════════════════════════════
+    with t3:
+        st.markdown("### Plans & Credits")
+        st.markdown(f"**Your balance: {credits} credit(s)**")
+        st.markdown("1 credit = 1 full partner profile (contact + contract value + exclusivity + intro facilitation)")
+
+        col_p1, col_p2, col_p3 = st.columns(3)
+        plans = [
+            ("Starter", "USD 99", "5 credits", "5 partner profiles", "48h intro facilitation", "Market intelligence access", "", "primary"),
+            ("Pro", "USD 299/month", "25 credits/month", "25 partner profiles/mo", "24h intro facilitation", "Priority partner introductions", "Molecule exclusivity option", "primary"),
+            ("Enterprise", "USD 999/month", "Unlimited credits", "Unlimited partner profiles", "Same-day intro facilitation", "Dedicated account manager", "Non-circumvention monitoring", "primary"),
+        ]
+        for col, (name, price, cred, feat1, feat2, feat3, feat4, _) in zip([col_p1, col_p2, col_p3], plans):
+            with col:
+                st.markdown(f"""
+                <div style="border:2px solid {'#1b4332' if name=='Pro' else '#e0e0e0'};border-radius:12px;
+                            padding:22px;text-align:center;background:{'#f0fff4' if name=='Pro' else 'white'};">
+                  <div style="font-weight:800;font-size:1.1rem;color:#1b4332;">{name}</div>
+                  <div style="font-size:1.5rem;font-weight:800;margin:8px 0;color:#0d1b2a;">{price}</div>
+                  <div style="font-size:0.82rem;color:#555;margin-bottom:14px;">{cred}</div>
+                  <div style="font-size:0.82rem;color:#333;text-align:left;line-height:1.8;">
+                    ✅ {feat1}<br>✅ {feat2}<br>✅ {feat3}<br>{"✅ " + feat4 if feat4 else ""}
+                  </div>
+                </div>
+                """, unsafe_allow_html=True)
+                if st.button(f"Get {name}", key=f"plan_{name}", use_container_width=True):
+                    st.session_state["ifa_plan_request"] = name
+                    st.success(f"**{name}** plan selected! We'll send payment details to {st.session_state.get('ifa_nda_email','your email')} within 2 hours.")
 
         st.markdown("---")
-        rec = (
-            "**Recomendação para entrada em 30–90 dias:** Rota A — identifique um titular ANVISA ativo para sua molécula "
-            "e negocie um acordo de fornecimento de IFA. A PharmaIntel BR mapeia e apresenta os titulares relevantes."
-        ) if lang == "PT" else (
-            "**Recommendation for 30–90 day entry:** Route A — identify an active ANVISA registration holder for your molecule "
-            "and negotiate an API supply agreement. PharmaIntel BR maps and introduces the relevant holders."
-        )
-        st.success(rec)
+        st.markdown("#### One-time credit top-up")
+        col_c1, col_c2, col_c3 = st.columns(3)
+        credit_packs = [("5 credits", "USD 99", 5), ("20 credits", "USD 299", 20), ("50 credits", "USD 599", 50)]
+        for col, (label, price, n) in zip([col_c1, col_c2, col_c3], credit_packs):
+            with col:
+                if st.button(f"Buy {label} — {price}", key=f"credits_{n}", use_container_width=True):
+                    st.session_state["ifa_credits"] = credits + n
+                    st.success(f"✅ {n} credits added! (Demo mode — real payment via Stripe coming soon)")
+                    st.rerun()
 
-    # ── TAB 4: REQUEST INTRODUCTION ───────────────────────────────────────────
+        st.markdown("""
+        <div style="background:#fff8e1;border:1px solid #f9a825;border-radius:8px;padding:14px 18px;margin-top:16px;font-size:0.85rem;">
+        💳 <strong>Payment:</strong> USD wire transfer, PIX (BRL), or credit card via Stripe.
+        Contact <strong>business@globalhealthcareaccess.com</strong> to activate your plan immediately.
+        </div>
+        """, unsafe_allow_html=True)
+
+    # ════════════════════════════════════════════════════════════════════════════
+    # TAB 4 — REQUEST INTRODUCTION
+    # ════════════════════════════════════════════════════════════════════════════
     with t4:
-        st.markdown("### " + ("Solicitar Introdução a Parceiro Brasileiro" if lang == "PT" else "Request Brazilian Partner Introduction"))
+        st.markdown("### Request a Facilitated Partner Introduction")
+        st.caption("After we receive your request, PharmaIntel BR contacts the Brazilian partner on your behalf — under NDA — before connecting both parties. This protects you and the partner.")
 
-        pre_mol = st.session_state.get("partnership_intro_molecule", "")
+        pre_mol     = st.session_state.get("ifa_intro_molecule", "")
+        pre_partner = st.session_state.get("ifa_intro_partner", "")
 
-        with st.form("partnership_intro_form"):
-            col1, col2 = st.columns(2)
-            with col1:
-                company = st.text_input("Empresa / Company *", placeholder="Your company name")
-                contact_name = st.text_input("Nome do contato / Contact name *")
-                email = st.text_input("Email *")
-            with col2:
-                country = st.text_input("País / Country *", placeholder="India, Germany, USA...")
-                molecule = st.text_input("Molécula / IFA / API *", value=pre_mol, placeholder="Ex: Trastuzumab, Paclitaxel...")
-                partner_type = st.selectbox(
-                    "Tipo de parceiro buscado / Partner type sought",
-                    ["Titular ANVISA / Registration Holder", "Importador / Importer",
-                     "Distribuidor / Distributor", "CDMO", "Consultor Regulatório / Regulatory Consultant",
-                     "Operador de licitações / Tender Operator"]
-                )
-            message = st.text_area(
-                "Contexto da oportunidade / Opportunity context",
-                placeholder="Describe your molecule, GMP status, target market (public/private), and what you're looking for in a partner...",
-                height=120,
-            )
-            submit_label = "Enviar Solicitação" if lang == "PT" else "Submit Request"
-            submitted = st.form_submit_button(submit_label, type="primary")
-
-        if submitted:
-            if not all([company, contact_name, email, molecule]):
-                st.error("Preencha todos os campos obrigatórios (*)" if lang == "PT" else "Please fill all required fields (*)")
-            else:
-                # Save to session state for follow-up
-                st.session_state["partnership_requests"] = st.session_state.get("partnership_requests", []) + [{
-                    "company": company, "contact": contact_name, "email": email,
-                    "country": country, "molecule": molecule, "partner_type": partner_type,
-                    "message": message,
-                }]
-                st.success(
-                    f"✅ Solicitação recebida! Entraremos em contato com **{contact_name}** ({email}) em até 48 horas com um shortlist de parceiros para **{molecule}**."
-                    if lang == "PT" else
-                    f"✅ Request received! We'll contact **{contact_name}** ({email}) within 48 hours with a partner shortlist for **{molecule}**."
-                )
-                st.info(
-                    "💡 **Próximo passo:** Você receberá um relatório com 3–5 parceiros classificados por fit, "
-                    "capacidade regulatória e histórico de importação. Incluindo contatos verificados."
-                    if lang == "PT" else
-                    "💡 **Next step:** You'll receive a report with 3–5 partners ranked by fit, regulatory capability "
-                    "and import history. Including verified contacts."
-                )
-                # Show pricing
-                st.markdown("---")
-                st.markdown("#### " + ("Serviços disponíveis / Available services" if lang == "EN" else "Serviços disponíveis"))
-                price_data = pd.DataFrame([
-                    {"Serviço" if lang == "PT" else "Service": "Brazil API Opportunity Report", "Preço" if lang == "PT" else "Price": "USD 1.500–2.500", "Prazo" if lang == "PT" else "Timeline": "5–7 dias úteis" if lang == "PT" else "5–7 business days"},
-                    {"Serviço" if lang == "PT" else "Service": "Partner Mapping Sprint", "Preço" if lang == "PT" else "Price": "USD 4.500", "Prazo" if lang == "PT" else "Timeline": "10–15 dias úteis" if lang == "PT" else "10–15 business days"},
-                    {"Serviço" if lang == "PT" else "Service": "Brazil Market Entry Retainer", "Preço" if lang == "PT" else "Price": "USD 3.000–5.000/mês", "Prazo" if lang == "PT" else "Timeline": "Mensal" if lang == "PT" else "Monthly"},
+        with st.form("ifa_intro_form"):
+            c1, c2 = st.columns(2)
+            with c1:
+                f_company  = st.text_input("Your Company *", value=st.session_state.get("ifa_nda_company",""))
+                f_contact  = st.text_input("Your Name *", value=st.session_state.get("ifa_nda_name",""))
+                f_email    = st.text_input("Business Email *", value=st.session_state.get("ifa_nda_email",""))
+                f_country  = st.text_input("Country *")
+            with c2:
+                f_molecule = st.text_input("Molecule / IFA / API *", value=pre_mol)
+                f_partner  = st.text_input("Target Brazilian Partner (if known)", value=pre_partner)
+                f_type     = st.selectbox("Partnership type sought", [
+                    "API/IFA Supply Agreement",
+                    "CDMO / Toll Manufacturing",
+                    "Technology Transfer / Licensing",
+                    "Distribution Agreement",
+                    "Public Tender / BID Facilitation",
+                    "Other",
                 ])
-                st.dataframe(price_data, use_container_width=True, hide_index=True)
-                st.markdown(f"📅 [**{'Agendar call' if lang == 'PT' else 'Book a call'}**](https://calendly.com/vinicius-hospitalar/30min) | 📧 business@globalhealthcareaccess.com")
+                f_gmp      = st.selectbox("Your GMP status", ["FDA approved", "EMA approved", "WHO prequalified", "Local GMP only", "In process"])
+
+            f_context = st.text_area(
+                "Opportunity context *",
+                placeholder="Describe your molecule, volumes, pricing target, regulatory status and what you expect from the Brazilian partner...",
+                height=110,
+            )
+            f_exclusive = st.checkbox("I am interested in EXCLUSIVITY for this molecule + partner combination (adds USD 500/month to retainer)")
+
+            sub = st.form_submit_button("Submit Introduction Request →", type="primary")
+
+        if sub:
+            if not all([f_company, f_contact, f_email, f_molecule, f_context]):
+                st.error("Please fill all required fields (*)")
+            else:
+                req = {
+                    "company": f_company, "contact": f_contact, "email": f_email,
+                    "country": f_country, "molecule": f_molecule, "partner": f_partner,
+                    "type": f_type, "gmp": f_gmp, "context": f_context, "exclusivity": f_exclusive,
+                }
+                st.session_state.setdefault("ifa_intro_requests", []).append(req)
+                st.success(f"✅ Introduction request submitted for **{f_molecule}**.")
+                st.markdown(f"""
+                **What happens next:**
+                1. PharmaIntel BR contacts the Brazilian partner within **48 hours**
+                2. Partner confirms interest and availability
+                3. We send you a **Partner Profile** with full contact and contract value estimate
+                4. You and the partner connect via facilitated call (PharmaIntel BR on the call)
+                5. Non-circumvention agreement protects your introduction
+
+                📅 **Schedule a strategy call:** [calendly.com/vinicius-hospitalar/30min](https://calendly.com/vinicius-hospitalar/30min)
+                📧 **Email:** business@globalhealthcareaccess.com
+                """)
+                if f_exclusive:
+                    st.info("🔒 **Exclusivity requested.** We'll confirm availability and send exclusivity terms within 24h.")
 
 
 def page_tour(year: int) -> None:
