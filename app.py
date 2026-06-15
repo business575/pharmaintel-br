@@ -3149,7 +3149,7 @@ def page_etl(year: int) -> None:
 
     col1, col2, col3 = st.columns([1, 1, 2])
     with col1:
-        run_year = st.selectbox("Ano", [2026, 2025, 2024, 2023, 2022], index=0)
+        run_year = st.selectbox("Ano", [2025, 2024, 2023, 2022], index=0)
     with col2:
         force = st.checkbox("Forçar re-download", value=False)
     with col3:
@@ -3955,7 +3955,7 @@ def sidebar() -> tuple[str, int]:
         st.session_state["page_key"] = page_key
 
         st.markdown("<hr style='border-color:#1E3A5F;'>", unsafe_allow_html=True)
-        year = st.selectbox(_t("year_label"), [2026, 2025, 2024, 2023, 2022], index=0)
+        year = st.selectbox(_t("year_label"), [2025, 2024, 2023, 2022], index=0)
 
         # Data status
         st.markdown(f'<p style="color:#8899AA; font-size:0.75rem; margin:0.5rem 0 0.25rem;">{_t("data_status")}</p>', unsafe_allow_html=True)
@@ -4383,7 +4383,7 @@ def _page_relatorio_estrategico(_year: int = 2025) -> None:
         placeholder=placeholder,
     )
 
-    year_sel = st.selectbox("Ano base" if not is_en else "Base year", [2026, 2025, 2024], index=0)
+    year_sel = st.selectbox("Ano base" if not is_en else "Base year", [2025, 2024, 2023], index=0)
 
     btn_label = "🔬 Gerar Relatório Estratégico" if not is_en else "🔬 Generate Strategic Report"
     if not st.button(btn_label, type="primary", use_container_width=True) or not molecule.strip():
