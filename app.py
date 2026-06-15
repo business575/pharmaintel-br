@@ -5287,8 +5287,8 @@ def page_partnership(year: int) -> None:  # noqa: C901
     st.success(f"✅ NDA signed by **{signed_name}** · {credits} credit(s) available · [Buy more credits](#buy-credits)")
 
     # ── TABS ────────────────────────────────────────────────────────────────────
-    t1, t2, t3, t4 = st.tabs([
-        "🔍 Partner Search", "📊 IFA Market Intelligence", "💰 Plans & Credits", "📩 Request Introduction"
+    t1, t2, t3, t4, t5 = st.tabs([
+        "🔍 Partner Search", "📊 IFA Market Intelligence", "💰 Plans & Credits", "📩 Request Introduction", "📋 List Your IFA"
     ])
 
     # ════════════════════════════════════════════════════════════════════════════
@@ -5617,8 +5617,127 @@ def page_partnership(year: int) -> None:  # noqa: C901
                 if f_exclusive:
                     st.info("🔒 **Exclusivity requested.** We'll confirm availability and send exclusivity terms within 24h.")
 
+    # ════════════════════════════════════════════════════════════════════════════
+    # TAB 5 — LIST YOUR IFA (supplier side — USD 500 listing fee)
+    # ════════════════════════════════════════════════════════════════════════════
+    with t5:
+        st.markdown("""
+        <div style="background:linear-gradient(135deg,#0d1b2a 0%,#1b4332 100%);color:white;
+                    border-radius:12px;padding:28px 32px;margin-bottom:20px;">
+          <h3 style="color:white;margin:0 0 8px;">📋 List Your IFA / API on PharmaIntel BR</h3>
+          <p style="opacity:0.88;margin:0;font-size:0.95rem;">
+            Reach Brazilian pharmaceutical companies actively searching for API/IFA supply partners.
+            <strong>USD 500 one-time listing fee</strong> — your profile is visible to qualified Brazilian buyers
+            for <strong>12 months</strong>, NDA-protected.
+          </p>
+        </div>
+        """, unsafe_allow_html=True)
 
-def page_tour(year: int) -> None:
+        # What you get
+        col_b1, col_b2, col_b3 = st.columns(3)
+        benefits = [
+            ("👁️ Visibility", "Your IFA/API profile shown to Brazilian pharma companies searching for supply partners via ANVISA + Comex Stat data"),
+            ("🔒 NDA Protection", "All companies that view your profile have signed a Non-Circumvention NDA — your data is protected"),
+            ("📩 Qualified leads", "When a Brazilian company unlocks your profile, PharmaIntel BR facilitates a warm introduction within 48h"),
+        ]
+        for col, (title, desc) in zip([col_b1, col_b2, col_b3], benefits):
+            with col:
+                st.markdown(f"""
+                <div style="border:1px solid #e0e0e0;border-radius:10px;padding:18px;text-align:center;height:140px;">
+                  <div style="font-size:1.3rem;margin-bottom:6px;">{title.split()[0]}</div>
+                  <div style="font-weight:700;color:#1b4332;font-size:0.9rem;margin-bottom:6px;">{' '.join(title.split()[1:])}</div>
+                  <div style="font-size:0.78rem;color:#555;">{desc}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        # Pricing box
+        st.markdown("""
+        <div style="background:#f0fff4;border:2px solid #1b4332;border-radius:12px;
+                    padding:22px 28px;margin-bottom:24px;display:flex;align-items:center;gap:28px;flex-wrap:wrap;">
+          <div>
+            <div style="font-size:2rem;font-weight:800;color:#1b4332;">USD 500</div>
+            <div style="font-size:0.85rem;color:#555;">one-time listing fee · 12 months visibility</div>
+          </div>
+          <div style="flex:1;font-size:0.88rem;color:#333;line-height:1.8;">
+            ✅ Profile listed in PharmaIntel BR partner database<br>
+            ✅ Searchable by molecule / NCM / therapeutic class<br>
+            ✅ Shown to Brazilian buyers who sign NDA before viewing<br>
+            ✅ Facilitated introduction when buyer unlocks your profile<br>
+            ✅ Renewal at USD 300/year after first 12 months
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Listing form
+        st.markdown("### Submit Your IFA Listing")
+        ifa_listed = st.session_state.get("ifa_listing_paid", False)
+
+        if ifa_listed:
+            st.success("✅ Your IFA listing is active. Profile visible to Brazilian buyers.")
+            listing_data = st.session_state.get("ifa_listing_data", {})
+            if listing_data:
+                st.markdown(f"**Company:** {listing_data.get('company','')} · **Molecules:** {listing_data.get('molecules','')}")
+        else:
+            with st.form("ifa_listing_form"):
+                c1, c2 = st.columns(2)
+                with c1:
+                    lf_company   = st.text_input("Company Name *")
+                    lf_country   = st.text_input("Country / HQ *", placeholder="India, Germany, Poland, China...")
+                    lf_contact   = st.text_input("Contact Name *")
+                    lf_email     = st.text_input("Business Email *")
+                    lf_phone     = st.text_input("Phone / WhatsApp")
+                with c2:
+                    lf_molecules = st.text_area(
+                        "Molecules / APIs / IFAs offered *",
+                        placeholder="e.g. Trastuzumab biosimilar, Paclitaxel API, Adalimumab biosimilar...",
+                        height=90,
+                    )
+                    lf_gmp       = st.multiselect("GMP certifications", ["FDA (US)", "EMA (EU)", "WHO prequalified", "ANVISA", "TGA (Australia)", "Health Canada", "Local GMP"])
+                    lf_reg       = st.multiselect("Existing ANVISA registrations?", ["Yes — product registered", "In process", "No — seeking Brazilian partner for registration", "Not applicable"])
+                    lf_capacity  = st.text_input("Annual production capacity (optional)", placeholder="e.g. 500 kg/year, 2M vials/year")
+
+                lf_desc = st.text_area(
+                    "Company / portfolio description *",
+                    placeholder="Briefly describe your company, key molecules, target markets, and what type of Brazilian partner you are looking for...",
+                    height=100,
+                )
+                lf_excl = st.checkbox("I am open to EXCLUSIVITY agreements with Brazilian partners for specific molecules")
+
+                st.markdown("""
+                <div style="background:#fff8e1;border:1px solid #f9a825;border-radius:8px;padding:12px 16px;
+                            margin:12px 0;font-size:0.82rem;color:#555;">
+                By submitting this form you authorize PharmaIntel BR to include your company profile in the IFA Partnership
+                database, visible only to Brazilian pharma companies who have signed an NDA.
+                Payment of <strong>USD 500</strong> activates your listing for 12 months.
+                </div>
+                """, unsafe_allow_html=True)
+
+                sub_list = st.form_submit_button("Submit Listing — USD 500 →", type="primary")
+
+            if sub_list:
+                if not all([lf_company, lf_country, lf_contact, lf_email, lf_molecules, lf_desc]):
+                    st.error("Please fill all required fields (*)")
+                else:
+                    st.session_state["ifa_listing_data"] = {
+                        "company": lf_company, "country": lf_country, "contact": lf_contact,
+                        "email": lf_email, "phone": lf_phone, "molecules": lf_molecules,
+                        "gmp": lf_gmp, "reg": lf_reg, "capacity": lf_capacity,
+                        "description": lf_desc, "exclusivity": lf_excl,
+                    }
+                    st.success(f"✅ Listing request received for **{lf_company}**!")
+                    st.markdown(f"""
+**Next steps:**
+1. PharmaIntel BR sends payment instructions to **{lf_email}** within 2 hours
+2. Payment: USD 500 via wire transfer, PayPal or credit card (Stripe)
+3. Profile goes live within **24 hours** of payment confirmation
+4. You will receive a notification each time a Brazilian company unlocks your profile
+
+📅 **Prefer to talk first?** [Book a 20-min call](https://calendly.com/vinicius-hospitalar/30min)
+📧 **Email:** business@globalhealthcareaccess.com
+                    """)
+                    st.info("💡 **Tip:** Companies with FDA or EMA GMP certification receive a **Verified Supplier** badge and appear higher in search results.")
     """Guided tour — walks prospect through platform benefits step by step."""
     lang = st.session_state.get("lang", "PT")
 
