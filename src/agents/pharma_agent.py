@@ -377,6 +377,21 @@ Gerar análises do mercado farmacêutico brasileiro utilizando EXCLUSIVAMENTE da
 - Para atas de registro de preços, licitações específicas, preços BNAFAR e ComprasNet: esses dados ainda NÃO estão integrados — diga claramente: "⚠️ Dados de licitações/atas não disponíveis nesta versão. Integração PNCP/BNAFAR em desenvolvimento."
 - Nunca use frases como "X compras rastreadas" ou "preço médio de R$ X" sem ter esse número vindo de uma ferramenta real
 - Quando não tiver dados reais: explique o que a plataforma SÃO tem (Comex Stat, ANVISA, Patentes) e seja honesto sobre o que ainda não tem
+
+## REGRA OBRIGATÓRIA — PERGUNTAS SOBRE ONCOLOGIA
+
+Quando a pergunta mencionar oncologia, câncer, antineoplásicos, biossimilares oncológicos, hospitais oncológicos ou moléculas oncológicas (trastuzumabe, bevacizumabe, rituximabe, pembrolizumabe, nivolumabe, pertuzumabe, cetuximabe, paclitaxel, docetaxel, gemcitabina, oxaliplatina, irinotecano, doxorrubicina, etoposídeo, ifosfamida, mitoxantrona, citarabina, fludarabina, idarrubicina, daunorrubicina, folinato de cálcio):
+
+1. **NUNCA retorne o ranking genérico de todos os NCMs farmacêuticos.** NCM amplo não equivale a molécula oncológica.
+2. Use `get_anvisa_registros_recentes` com busca por molécula específica para cada princípio ativo relevante.
+3. Se não houver dados ComexStat por molécula específica, declare: "Os dados ComexStat por NCM são agregados e não permitem atribuição molecular direta sem validação adicional por descrição da mercadoria, importador e CMED."
+4. Separe dados verificados de inferências. Classifique cada informação com [VERIFICADO], [ESTIMATIVA] ou [INCERTO].
+5. Formato obrigatório de resposta para oncologia:
+   - **Seção 1 — Escopo:** análise restrita a moléculas oncológicas
+   - **Seção 2 — Registros ANVISA:** tabela por molécula (produto, princípio ativo, empresa, vencimento)
+   - **Seção 3 — Mercado/importação:** dados por molécula se disponíveis, ou declaração de limitação metodológica
+   - **Seção 4 — Oportunidades para hospitais oncológicos:** avaliação de fornecedores, biossimilares, risco regulatório, negociação, compras públicas, vencimento de registros
+   - **Seção 5 — Nota metodológica:** "Inferências por NCM não confirmam molécula específica. Para decisão final, validar em ANVISA, CMED, PNCP/BPS e descrição da mercadoria."
 """
 
 SYSTEM_PROMPT_EN = """You are **PharmaIntel AI** — a senior strategic advisor specialized in the Brazilian pharmaceutical market. You combine PhD-level expertise with CEO executive vision and access to real, up-to-date data.
@@ -2199,10 +2214,125 @@ class PharmaAgent:
     def reset(self) -> None:
         self._history.clear()
 
+    # Palavras-chave que indicam contexto oncológico
+    _ONCOLOGIA_KEYWORDS = [
+        "oncol", "câncer", "cancer", "antineoplas", "biossimilar oncol",
+        "hospital oncol", "quimio", "quimioterapia",
+        "trastuzumabe", "bevacizumabe", "rituximabe", "pembrolizumabe",
+        "nivolumabe", "pertuzumabe", "cetuximabe", "paclitaxel", "docetaxel",
+        "gemcitabina", "oxaliplatina", "irinotecano", "doxorrubicina",
+        "etoposídeo", "etoposideo", "ifosfamida", "mitoxantrona", "citarabina",
+        "fludarabina", "idarrubicina", "daunorrubicina", "folinato",
+    ]
+
+    _MOLECULAS_ONCOLOGICAS = [
+        "trastuzumabe", "bevacizumabe", "rituximabe", "pembrolizumabe",
+        "nivolumabe", "pertuzumabe", "cetuximabe", "paclitaxel", "docetaxel",
+        "gemcitabina", "oxaliplatina", "irinotecano", "doxorrubicina",
+        "etoposídeo", "ifosfamida", "mitoxantrona", "citarabina",
+        "fludarabina", "idarrubicina", "daunorrubicina", "folinato",
+    ]
+
+    def _fallback_oncologia(self, message: str) -> AgentResponse:
+        """Resposta estruturada para perguntas sobre oncologia — nunca retorna ranking genérico de NCMs."""
+        msg_lower = message.lower()
+
+        # Identifica moléculas mencionadas na pergunta (busca direcionada) ou usa lista completa
+        moleculas_busca = [m for m in self._MOLECULAS_ONCOLOGICAS if m in msg_lower]
+        if not moleculas_busca:
+            moleculas_busca = ["trastuzumabe", "bevacizumabe", "rituximabe", "pembrolizumabe", "nivolumabe"]
+
+        # Chama get_anvisa_registros_recentes para cada molécula
+        registros_por_molecula: dict = {}
+        for mol in moleculas_busca[:8]:  # limita a 8 para performance
+            try:
+                raw = self._executor.execute("get_anvisa_registros_recentes", {"busca": mol, "top_n": 5, "dias": 9999})
+                parsed = json.loads(raw)
+                regs = parsed.get("registros", [])
+                if regs:
+                    registros_por_molecula[mol] = regs
+            except Exception:
+                pass
+
+        # Seção 1 — Escopo
+        secao1 = (
+            "## Seção 1 — Escopo da Análise\n"
+            "Esta análise está restrita a moléculas e produtos oncológicos (antineoplásicos, "
+            "biológicos e biossimilares para tratamento oncológico). "
+            "Fonte primária: ANVISA Dados Abertos e CMED."
+        )
+
+        # Seção 2 — Registros ANVISA por molécula
+        if registros_por_molecula:
+            linhas_anvisa = ["| Molécula | Produto | Empresa | Vencimento | Status |",
+                             "|---|---|---|---|---|"]
+            for mol, regs in registros_por_molecula.items():
+                for r in regs[:3]:
+                    venc = r.get("vencimento", "")
+                    try:
+                        from datetime import date
+                        venc_date = date.fromisoformat(venc)
+                        status = "⚠️ Vence em breve" if (venc_date - date.today()).days < 365 else "✅ Ativo"
+                    except Exception:
+                        status = "✅ Ativo"
+                    linhas_anvisa.append(
+                        f"| {mol.title()} | **{r.get('produto','')}** | {r.get('empresa','')[:40]} | {venc} | {status} |"
+                    )
+            secao2 = "## Seção 2 — Registros ANVISA por Molécula\n\n" + "\n".join(linhas_anvisa)
+        else:
+            secao2 = "## Seção 2 — Registros ANVISA\n\n⚠️ Nenhum registro encontrado para as moléculas consultadas."
+
+        # Seção 3 — Mercado/importação
+        secao3 = (
+            "## Seção 3 — Mercado e Importação\n\n"
+            "⚠️ **Limitação metodológica:** Os dados Comex Stat são organizados por NCM (código de 8 dígitos). "
+            "NCMs do Capítulo 30 agrupam múltiplas moléculas — por exemplo, NCM 30021590 abrange todos os "
+            "anticorpos monoclonais. **Não é possível atribuir volumes de importação a uma molécula específica "
+            "sem validação adicional** por: descrição da mercadoria, importador declarado, CMED e registro ANVISA.\n\n"
+            "[ESTIMATIVA] Para análise por molécula com precisão, é necessário cruzar os dados Comex Stat "
+            "com CMED e declarações de importação da ANVISA."
+        )
+
+        # Seção 4 — Oportunidades para hospitais oncológicos
+        secao4 = (
+            "## Seção 4 — Oportunidades para Hospitais Oncológicos\n\n"
+            "| Uso | Benefício |\n|---|---|\n"
+            "| **Avaliação de fornecedores** | Validar ANVISA ativo + CMED antes de homologar |\n"
+            "| **Alternativas terapêuticas** | Identificar biossimilares aprovados pela ANVISA com custo menor |\n"
+            "| **Risco regulatório** | Alertas de vencimento de registro com antecedência de 12 meses |\n"
+            "| **Padronização de protocolo** | Verificar disponibilidade e regularidade antes de incluir na RENAME interna |\n"
+            "| **Negociação** | Usar preço CMED como referência e identificar múltiplos fabricantes homologados |\n"
+            "| **Compras públicas** | Monitorar PNCP/BNAFAR para preços históricos de licitações oncológicas |\n"
+            "| **Monitoramento contínuo** | Alertas automáticos de vencimento de registro por molécula |"
+        )
+
+        # Seção 5 — Nota metodológica
+        secao5 = (
+            "## Seção 5 — Nota Metodológica\n\n"
+            "> [INCERTO por NCM] Inferências baseadas em NCM não confirmam molécula específica. "
+            "Para decisão clínica ou de compras, validar em: **ANVISA** (registro ativo), "
+            "**CMED** (preço teto), **PNCP/BPS** (compras públicas) e **descrição da mercadoria** "
+            "na declaração de importação.\n\n"
+            "*[VERIFICADO] Registros ANVISA | Fonte: ANVISA Dados Abertos — dados.anvisa.gov.br*"
+        )
+
+        texto = (
+            f"# Análise de Inteligência Oncológica — Brasil {self.year}\n\n"
+            f"{secao1}\n\n---\n\n"
+            f"{secao2}\n\n---\n\n"
+            f"{secao3}\n\n---\n\n"
+            f"{secao4}\n\n---\n\n"
+            f"{secao5}"
+        )
+        return AgentResponse(text=texto)
+
     def _fallback(self, message: str) -> AgentResponse:
         """Fallback usando dados reais via ToolExecutor — responde sem precisar de API."""
         msg = message.lower()
         try:
+            # Oncologia — SEMPRE antes do bloco genérico de NCMs
+            if any(w in msg for w in self._ONCOLOGIA_KEYWORDS):
+                return self._fallback_oncologia(message)
             # Tenta responder com dados reais das ferramentas
             if any(w in msg for w in ["tendência", "tendencia", "mensal", "monthly", "trend"]):
                 data = self._executor.execute("get_monthly_trend", {})
