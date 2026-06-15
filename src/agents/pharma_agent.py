@@ -2236,10 +2236,20 @@ class PharmaAgent:
                 )
             if any(w in msg for w in ["anvisa", "registro", "regulat"]):
                 busca_term = msg.split()[0] if msg else ""
-                data = self._executor.execute("get_anvisa_registros_recentes", {"busca": busca_term, "top_n": 10, "dias": 9999})
-                return AgentResponse(
-                    text=f"📊 **Status Regulatório ANVISA**\n\n{data}\n\n*Dados: ANVISA*",
-                )
+                raw = self._executor.execute("get_anvisa_registros_recentes", {"busca": busca_term, "top_n": 10, "dias": 9999})
+                try:
+                    parsed = json.loads(raw)
+                    registros = parsed.get("registros", [])
+                    linhas = [f"| Produto | Princípio Ativo | Empresa | Vencimento |",
+                              f"|---|---|---|---|"]
+                    for r in registros:
+                        linhas.append(f"| **{r.get('produto','')}** | {r.get('principio_ativo','')} | {r.get('empresa','')} | {r.get('vencimento','')} |")
+                    tabela = "\n".join(linhas)
+                    total = parsed.get("total_encontrados", len(registros))
+                    text = f"📋 **Registros ANVISA — {busca_term.title()}** ({total} encontrados)\n\n{tabela}\n\n*[VERIFICADO] Fonte: ANVISA Dados Abertos*"
+                except Exception:
+                    text = f"📊 **Status Regulatório ANVISA**\n\n{raw}\n\n*Dados: ANVISA*"
+                return AgentResponse(text=text)
         except Exception:
             pass
 
