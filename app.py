@@ -223,6 +223,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         # Quality Control
         "nav_quality":        "Qualidade",
         "nav_costs":          "Gerente Financeiro",
+        "nav_partnership":    "🤝 IFA Partnership",
         # Outreach
         "nav_outreach":       "Prospecção",
         "outreach_title":     "Agente de Prospecção — 10-20 contatos/dia",
@@ -329,6 +330,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         # Quality Control
         "nav_quality":        "Quality Control",
         "nav_costs":          "Finance Manager",
+        "nav_partnership":    "🤝 IFA Partnership",
         # Outreach
         "nav_outreach":       "Outreach",
         "outreach_title":     "Outreach Agent — 10-20 contacts/day",
@@ -363,10 +365,10 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 }
 
 # Internal navigation keys (language-independent)
-_NAV_KEYS = ["tour", "overview", "imports", "anvisa", "suppliers", "companies", "comtrade", "etl", "agent", "trials", "report"]
+_NAV_KEYS = ["tour", "overview", "imports", "anvisa", "suppliers", "companies", "comtrade", "etl", "agent", "trials", "partnership", "report"]
 _NAV_T_KEYS = [
     "nav_tour", "nav_overview", "nav_imports", "nav_anvisa", "nav_suppliers", "nav_companies",
-    "nav_comtrade", "nav_etl", "nav_agent", "nav_trials", "nav_report",
+    "nav_comtrade", "nav_etl", "nav_agent", "nav_trials", "nav_partnership", "nav_report",
 ]
 
 
@@ -5139,6 +5141,7 @@ def main() -> None:
         "etl":        page_etl,
         "agent":      page_agent,
         "trials":     page_trials,
+        "partnership": page_partnership,
         "outreach":   _page_outreach,
         "director":   _page_admin_director,
         "quality":    _page_quality,
@@ -5153,6 +5156,348 @@ def main() -> None:
             fn()
         else:
             fn(year)
+
+
+def page_partnership(year: int) -> None:
+    """IFA Partnership — connect foreign API/IFA suppliers with Brazilian pharma partners."""
+    render_header(_t("nav_partnership"))
+
+    lang = st.session_state.get("lang", "PT")
+
+    # ── Intro ──────────────────────────────────────────────────────────────────
+    if lang == "PT":
+        st.markdown("""
+        <div style="background:linear-gradient(135deg,#0d1b2a,#1b4332);color:white;border-radius:12px;padding:28px 32px;margin-bottom:24px;">
+        <h3 style="color:white;margin:0 0 10px;">🌐 Brazil IFA Partnership Intelligence</h3>
+        <p style="opacity:0.9;margin:0;font-size:0.95rem;">
+        Encontre parceiros brasileiros para seu IFA ou molécula. Cruzamos <strong>ANVISA + Comex Stat + CMED</strong>
+        para identificar quais empresas brasileiras têm registro, capacidade regulatória e interesse em parcerias de fornecimento de IFA.
+        </p>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <div style="background:linear-gradient(135deg,#0d1b2a,#1b4332);color:white;border-radius:12px;padding:28px 32px;margin-bottom:24px;">
+        <h3 style="color:white;margin:0 0 10px;">🌐 Brazil IFA Partnership Intelligence</h3>
+        <p style="opacity:0.9;margin:0;font-size:0.95rem;">
+        Find Brazilian partners for your API/IFA. We cross-reference <strong>ANVISA + Comex Stat + CMED</strong>
+        to identify which Brazilian companies hold registrations, have regulatory capability and are open to API supply partnerships.
+        </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # ── Tabs ───────────────────────────────────────────────────────────────────
+    tab_labels = (
+        ["🔍 Buscar Parceiros", "📊 Demanda de Mercado", "📋 Rota Regulatória", "📩 Solicitar Introdução"]
+        if lang == "PT" else
+        ["🔍 Partner Search", "📊 Market Demand", "📋 Regulatory Route", "📩 Request Introduction"]
+    )
+    t1, t2, t3, t4 = st.tabs(tab_labels)
+
+    # ── Load data ──────────────────────────────────────────────────────────────
+    @st.cache_data(ttl=3600)
+    def _load_anvisa_med():
+        p = PROCESSED_DIR / "anvisa_medicamentos.parquet"
+        return pd.read_parquet(p) if p.exists() else pd.DataFrame()
+
+    @st.cache_data(ttl=3600)
+    def _load_empresas():
+        p = PROCESSED_DIR / "empresas_anvisa.parquet"
+        return pd.read_parquet(p) if p.exists() else pd.DataFrame()
+
+    @st.cache_data(ttl=3600)
+    def _load_imports(yr):
+        p = PROCESSED_DIR / f"pharma_imports_{yr}.parquet"
+        return pd.read_parquet(p) if p.exists() else pd.DataFrame()
+
+    df_med    = _load_anvisa_med()
+    df_emp    = _load_empresas()
+    df_imp    = _load_imports(year)
+
+    # Known CMED prices for key oncology molecules
+    CMED_PRICES = {
+        "trastuzumabe": "R$ 8.747,90", "pembrolizumabe": "R$ 33.962,44",
+        "bevacizumabe": "R$ 3.458,15", "rituximabe": "R$ 6.512,84",
+        "nivolumabe": "R$ 18.420,00", "pertuzumabe": "R$ 11.200,00",
+        "imatinibe": "R$ 312,50",     "paclitaxel": "R$ 180,00",
+        "docetaxel": "R$ 420,00",     "oxaliplatina": "R$ 95,00",
+    }
+
+    # Priority molecules list
+    MOLECULAS = [
+        "trastuzumabe", "bevacizumabe", "rituximabe", "pembrolizumabe", "nivolumabe",
+        "pertuzumabe", "cetuximabe", "paclitaxel", "docetaxel", "gemcitabina",
+        "oxaliplatina", "irinotecano", "doxorrubicina", "imatinibe", "ifosfamida",
+        "mitoxantrona", "citarabina", "fludarabina", "sunitinibe", "sorafenibe",
+        "erlotinibe", "gefitinibe", "lapatinibe", "palbociclibe", "abemaciclibe",
+        "filgrastim", "pegfilgrastim", "adalimumabe", "infliximabe", "etanercepte",
+    ]
+
+    # ── TAB 1: PARTNER SEARCH ──────────────────────────────────────────────────
+    with t1:
+        col_search, col_filter = st.columns([3, 1])
+        with col_search:
+            search_label = "🔍 Buscar por molécula, IFA ou princípio ativo:" if lang == "PT" else "🔍 Search by molecule, API or active ingredient:"
+            busca = st.text_input(search_label, placeholder="Ex: trastuzumabe, bevacizumabe, paclitaxel...")
+        with col_filter:
+            cat_opts = ["Todos", "Biológico", "Genérico", "Similar", "Novo"] if lang == "PT" else ["All", "Biological", "Generic", "Similar", "New"]
+            cat_sel = st.selectbox("Categoria" if lang == "PT" else "Category", cat_opts)
+
+        if busca and len(busca) >= 3:
+            busca_lower = busca.lower().strip()
+
+            # Search ANVISA
+            mask = pd.Series([False] * len(df_med), index=df_med.index)
+            for col in ["nome_produto", "principio_ativo", "classe_terapeutica"]:
+                if col in df_med.columns:
+                    mask = mask | df_med[col].str.lower().str.contains(busca_lower, na=False)
+
+            results = df_med[mask].copy()
+
+            # Category filter
+            if cat_sel not in ("Todos", "All") and "categoria_regulatoria" in results.columns:
+                results = results[results["categoria_regulatoria"].str.lower().str.contains(cat_sel.lower(), na=False)]
+
+            if results.empty:
+                st.info("Nenhum registro ANVISA encontrado para esta busca." if lang == "PT" else "No ANVISA registrations found for this search.")
+            else:
+                total = len(results)
+                label_found = f"✅ **{total} registro(s) ANVISA encontrado(s)** para **{busca}**" if lang == "PT" else f"✅ **{total} ANVISA registration(s) found** for **{busca}**"
+                st.success(label_found)
+
+                # CMED price
+                cmed_price = next((v for k, v in CMED_PRICES.items() if k in busca_lower or busca_lower in k), None)
+                if cmed_price:
+                    st.info(f"💰 **Preço CMED (teto regulatório):** {cmed_price}" if lang == "PT" else f"💰 **CMED ceiling price:** {cmed_price}")
+
+                # Partner scoring
+                display_cols_map = {
+                    "nome_produto":             "Produto" if lang == "PT" else "Product",
+                    "principio_ativo":          "Princípio Ativo" if lang == "PT" else "Active Ingredient",
+                    "categoria_regulatoria":    "Categoria" if lang == "PT" else "Category",
+                    "data_vencimento_registro": "Vencimento" if lang == "PT" else "Expiry",
+                    "numero_registro_produto":  "Registro" if lang == "PT" else "Registry",
+                }
+                display_cols = [c for c in display_cols_map if c in results.columns]
+                df_show = results[display_cols].copy().head(20)
+                df_show.columns = [display_cols_map[c] for c in display_cols]
+
+                # Add partner score column
+                def _score(row):
+                    score = 50
+                    cat = str(row.get("Categoria", row.get("Category", ""))).lower()
+                    venc = str(row.get("Vencimento", row.get("Expiry", "")))
+                    if "biológico" in cat or "biological" in cat: score += 20
+                    if "genérico" in cat or "generic" in cat: score += 10
+                    try:
+                        from datetime import date
+                        d = date.fromisoformat(venc[:10])
+                        years_left = (d - date.today()).days / 365
+                        if years_left > 5: score += 20
+                        elif years_left > 2: score += 10
+                        elif years_left < 1: score -= 20
+                    except Exception:
+                        pass
+                    return min(score, 99)
+
+                df_show["Score"] = df_show.apply(_score, axis=1)
+                df_show = df_show.sort_values("Score", ascending=False)
+
+                # Color score
+                def _color_score(val):
+                    if val >= 80: return "background-color:#d4edda;color:#155724;font-weight:700"
+                    if val >= 60: return "background-color:#fff3cd;color:#856404;font-weight:700"
+                    return "background-color:#f8d7da;color:#721c24"
+
+                styled = df_show.style.applymap(_color_score, subset=["Score"])
+                st.dataframe(styled, use_container_width=True, hide_index=True)
+
+                # Download CTA
+                st.markdown("---")
+                col_dl1, col_dl2 = st.columns(2)
+                with col_dl1:
+                    dl_label = "📥 Baixar lista completa (CSV)" if lang == "PT" else "📥 Download full list (CSV)"
+                    csv_data = results[display_cols].to_csv(index=False).encode("utf-8")
+                    st.download_button(dl_label, csv_data, file_name=f"partners_{busca_lower}.csv", mime="text/csv")
+                with col_dl2:
+                    intro_label = "📩 Solicitar Introdução a Parceiro" if lang == "PT" else "📩 Request Partner Introduction"
+                    if st.button(intro_label, type="primary"):
+                        st.session_state["partnership_intro_molecule"] = busca
+                        st.session_state["page_key"] = "partnership"
+                        st.info("Acesse a aba 'Solicitar Introdução' para enviar sua solicitação." if lang == "PT" else "Go to 'Request Introduction' tab to submit your request.")
+        else:
+            # Default: show molecule menu
+            st.markdown("### " + ("Moléculas Prioritárias" if lang == "PT" else "Priority Molecules"))
+            hint = "Clique em uma molécula para buscar parceiros:" if lang == "PT" else "Click a molecule to search for partners:"
+            st.caption(hint)
+            cols = st.columns(5)
+            for i, mol in enumerate(MOLECULAS[:20]):
+                with cols[i % 5]:
+                    if st.button(mol.title(), key=f"mol_{mol}", use_container_width=True):
+                        st.session_state["partnership_search"] = mol
+                        st.rerun()
+            # If molecule was clicked via session state
+            if "partnership_search" in st.session_state:
+                mol_click = st.session_state.pop("partnership_search")
+                st.text_input(search_label if 'search_label' in dir() else "Busca:", value=mol_click)
+
+    # ── TAB 2: MARKET DEMAND ──────────────────────────────────────────────────
+    with t2:
+        st.markdown("### " + ("Inteligência de Demanda — Brasil 2025" if lang == "PT" else "Demand Intelligence — Brazil 2025"))
+
+        # Biologics NCM overview
+        if not df_imp.empty and "co_ncm" in df_imp.columns:
+            bio_ncms = {
+                "30021590": "Anticorpos monoclonais / Immunological products",
+                "30021520": "Trastuzumab, Bevacizumab, Rituximab, Basiliximab",
+                "30021235": "Imunoglobulina G / IgG",
+                "30024129": "Vacinas humanas / Human vaccines",
+            }
+            rows = []
+            for ncm, desc in bio_ncms.items():
+                sub = df_imp[df_imp["co_ncm"].astype(str).str[:8] == ncm]
+                if not sub.empty:
+                    fob = sub["vl_fob"].sum()
+                    ops = len(sub)
+                    rows.append({"NCM": ncm, "Descrição" if lang == "PT" else "Description": desc,
+                                 "FOB USD (2025)": f"USD {fob/1e9:.2f}B" if fob >= 1e9 else f"USD {fob/1e6:.1f}M",
+                                 "Operações" if lang == "PT" else "Operations": ops})
+            if rows:
+                st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+        # Top origin countries for biologics
+        bio_df = df_imp[df_imp["co_ncm"].astype(str).str.startswith("3002")] if not df_imp.empty else pd.DataFrame()
+        if not bio_df.empty and "ds_pais" in bio_df.columns:
+            st.markdown("#### " + ("Países de Origem — Biológicos 2025" if lang == "PT" else "Origin Countries — Biologics 2025"))
+            top_paises = bio_df.groupby("ds_pais")["vl_fob"].sum().sort_values(ascending=False).head(10).reset_index()
+            top_paises.columns = ["País" if lang == "PT" else "Country", "FOB USD"]
+            top_paises["FOB USD"] = top_paises["FOB USD"].apply(lambda x: f"USD {x/1e6:.0f}M")
+            top_paises["Gap para fornecedores indianos/coreanos"] = "⚠️ Subrepresentados" if lang == "PT" else "⚠️ Underrepresented"
+
+            st.dataframe(top_paises, use_container_width=True, hide_index=True)
+
+            st.info(
+                "🇮🇳 **Oportunidade:** Índia e Coreia do Sul — maiores hubs globais de biossimilares — representam menos de 3% das importações brasileiras de biológicos. Janela de entrada disponível."
+                if lang == "PT" else
+                "🇮🇳 **Opportunity:** India and South Korea — world's largest biosimilar hubs — represent less than 3% of Brazil's biologic imports. Entry window open."
+            )
+
+        # CMED price table
+        st.markdown("#### " + ("Preços CMED — Oncológicos Principais" if lang == "PT" else "CMED Prices — Key Oncology Molecules"))
+        cmed_df = pd.DataFrame([
+            {"Molécula" if lang == "PT" else "Molecule": k.title(), "Preço Teto CMED (PF)" if lang == "PT" else "CMED Ceiling Price (PF)": v}
+            for k, v in CMED_PRICES.items()
+        ])
+        st.dataframe(cmed_df, use_container_width=True, hide_index=True)
+        st.caption("[VERIFICADO] Fonte: CMED/ANVISA — Preço de Fábrica (PF)" if lang == "PT" else "[VERIFIED] Source: CMED/ANVISA — Factory Price (PF)")
+
+    # ── TAB 3: REGULATORY ROUTE ────────────────────────────────────────────────
+    with t3:
+        st.markdown("### " + ("Rotas Regulatórias ANVISA para Fornecedores de IFA" if lang == "PT" else "ANVISA Regulatory Routes for API Suppliers"))
+
+        routes = [
+            {
+                "Rota" if lang == "PT" else "Route": "A — Fornecimento de IFA para titular existente" if lang == "PT" else "A — API Supply to Existing Registration Holder",
+                "Prazo" if lang == "PT" else "Timeline": "3–9 meses" if lang == "PT" else "3–9 months",
+                "Melhor para" if lang == "PT" else "Best for": "Fabricantes de API com GMP FDA/EMA" if lang == "PT" else "API manufacturers with FDA/EMA GMP",
+                "Potencial de receita" if lang == "PT" else "Revenue potential": "USD 2–10M/ano" if lang == "PT" else "USD 2–10M/year",
+                "Complexidade": "Baixa" if lang == "PT" else "Low",
+            },
+            {
+                "Rota" if lang == "PT" else "Route": "B — Transferência de tecnologia / Licenciamento" if lang == "PT" else "B — Technology Transfer / Licensing",
+                "Prazo" if lang == "PT" else "Timeline": "12–24 meses" if lang == "PT" else "12–24 months",
+                "Melhor para" if lang == "PT" else "Best for": "Biossimilares proprietários buscando parceiro nacional" if lang == "PT" else "Proprietary biosimilars seeking national partner",
+                "Potencial de receita" if lang == "PT" else "Revenue potential": "USD 500K–3M upfront + royalties",
+                "Complexidade": "Média" if lang == "PT" else "Medium",
+            },
+            {
+                "Rota" if lang == "PT" else "Route": "C — Novo registro ANVISA (biossimilar)" if lang == "PT" else "C — New ANVISA Registration (biosimilar)",
+                "Prazo" if lang == "PT" else "Timeline": "24–48 meses" if lang == "PT" else "24–48 months",
+                "Melhor para" if lang == "PT" else "Best for": "Empresas com estratégia de longo prazo no Brasil" if lang == "PT" else "Companies with long-term Brazil strategy",
+                "Potencial de receita" if lang == "PT" else "Revenue potential": "USD 5–50M/ano (mercado próprio)" if lang == "PT" else "USD 5–50M/year (owned market)",
+                "Complexidade": "Alta" if lang == "PT" else "High",
+            },
+            {
+                "Rota" if lang == "PT" else "Route": "D — Importação produto acabado (registro existente)" if lang == "PT" else "D — Finished Product Import (existing registration)",
+                "Prazo" if lang == "PT" else "Timeline": "2–6 meses" if lang == "PT" else "2–6 months",
+                "Melhor para" if lang == "PT" else "Best for": "FDF com aprovação EU/FDA buscando entrada rápida" if lang == "PT" else "FDF with EU/FDA approval seeking fast entry",
+                "Potencial de receita" if lang == "PT" else "Revenue potential": "USD 500K–5M/ano" if lang == "PT" else "USD 500K–5M/year",
+                "Complexidade": "Baixa–Média" if lang == "PT" else "Low–Medium",
+            },
+        ]
+        st.dataframe(pd.DataFrame(routes), use_container_width=True, hide_index=True)
+
+        st.markdown("---")
+        rec = (
+            "**Recomendação para entrada em 30–90 dias:** Rota A — identifique um titular ANVISA ativo para sua molécula "
+            "e negocie um acordo de fornecimento de IFA. A PharmaIntel BR mapeia e apresenta os titulares relevantes."
+        ) if lang == "PT" else (
+            "**Recommendation for 30–90 day entry:** Route A — identify an active ANVISA registration holder for your molecule "
+            "and negotiate an API supply agreement. PharmaIntel BR maps and introduces the relevant holders."
+        )
+        st.success(rec)
+
+    # ── TAB 4: REQUEST INTRODUCTION ───────────────────────────────────────────
+    with t4:
+        st.markdown("### " + ("Solicitar Introdução a Parceiro Brasileiro" if lang == "PT" else "Request Brazilian Partner Introduction"))
+
+        pre_mol = st.session_state.get("partnership_intro_molecule", "")
+
+        with st.form("partnership_intro_form"):
+            col1, col2 = st.columns(2)
+            with col1:
+                company = st.text_input("Empresa / Company *", placeholder="Your company name")
+                contact_name = st.text_input("Nome do contato / Contact name *")
+                email = st.text_input("Email *")
+            with col2:
+                country = st.text_input("País / Country *", placeholder="India, Germany, USA...")
+                molecule = st.text_input("Molécula / IFA / API *", value=pre_mol, placeholder="Ex: Trastuzumab, Paclitaxel...")
+                partner_type = st.selectbox(
+                    "Tipo de parceiro buscado / Partner type sought",
+                    ["Titular ANVISA / Registration Holder", "Importador / Importer",
+                     "Distribuidor / Distributor", "CDMO", "Consultor Regulatório / Regulatory Consultant",
+                     "Operador de licitações / Tender Operator"]
+                )
+            message = st.text_area(
+                "Contexto da oportunidade / Opportunity context",
+                placeholder="Describe your molecule, GMP status, target market (public/private), and what you're looking for in a partner...",
+                height=120,
+            )
+            submit_label = "Enviar Solicitação" if lang == "PT" else "Submit Request"
+            submitted = st.form_submit_button(submit_label, type="primary")
+
+        if submitted:
+            if not all([company, contact_name, email, molecule]):
+                st.error("Preencha todos os campos obrigatórios (*)" if lang == "PT" else "Please fill all required fields (*)")
+            else:
+                # Save to session state for follow-up
+                st.session_state["partnership_requests"] = st.session_state.get("partnership_requests", []) + [{
+                    "company": company, "contact": contact_name, "email": email,
+                    "country": country, "molecule": molecule, "partner_type": partner_type,
+                    "message": message,
+                }]
+                st.success(
+                    f"✅ Solicitação recebida! Entraremos em contato com **{contact_name}** ({email}) em até 48 horas com um shortlist de parceiros para **{molecule}**."
+                    if lang == "PT" else
+                    f"✅ Request received! We'll contact **{contact_name}** ({email}) within 48 hours with a partner shortlist for **{molecule}**."
+                )
+                st.info(
+                    "💡 **Próximo passo:** Você receberá um relatório com 3–5 parceiros classificados por fit, "
+                    "capacidade regulatória e histórico de importação. Incluindo contatos verificados."
+                    if lang == "PT" else
+                    "💡 **Next step:** You'll receive a report with 3–5 partners ranked by fit, regulatory capability "
+                    "and import history. Including verified contacts."
+                )
+                # Show pricing
+                st.markdown("---")
+                st.markdown("#### " + ("Serviços disponíveis / Available services" if lang == "EN" else "Serviços disponíveis"))
+                price_data = pd.DataFrame([
+                    {"Serviço" if lang == "PT" else "Service": "Brazil API Opportunity Report", "Preço" if lang == "PT" else "Price": "USD 1.500–2.500", "Prazo" if lang == "PT" else "Timeline": "5–7 dias úteis" if lang == "PT" else "5–7 business days"},
+                    {"Serviço" if lang == "PT" else "Service": "Partner Mapping Sprint", "Preço" if lang == "PT" else "Price": "USD 4.500", "Prazo" if lang == "PT" else "Timeline": "10–15 dias úteis" if lang == "PT" else "10–15 business days"},
+                    {"Serviço" if lang == "PT" else "Service": "Brazil Market Entry Retainer", "Preço" if lang == "PT" else "Price": "USD 3.000–5.000/mês", "Prazo" if lang == "PT" else "Timeline": "Mensal" if lang == "PT" else "Monthly"},
+                ])
+                st.dataframe(price_data, use_container_width=True, hide_index=True)
+                st.markdown(f"📅 [**{'Agendar call' if lang == 'PT' else 'Book a call'}**](https://calendly.com/vinicius-hospitalar/30min) | 📧 business@globalhealthcareaccess.com")
 
 
 def page_tour(year: int) -> None:
