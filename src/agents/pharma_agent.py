@@ -2235,7 +2235,8 @@ class PharmaAgent:
                     text=f"📊 **Top Empresas com Registros ANVISA {self.year}**\n\n{data}\n\n*Dados: ANVISA*",
                 )
             if any(w in msg for w in ["anvisa", "registro", "regulat"]):
-                data = self._executor.execute("get_anvisa_alerts", {})
+                busca_term = msg.split()[0] if msg else ""
+                data = self._executor.execute("get_anvisa_registros_recentes", {"busca": busca_term, "top_n": 10, "dias": 9999})
                 return AgentResponse(
                     text=f"📊 **Status Regulatório ANVISA**\n\n{data}\n\n*Dados: ANVISA*",
                 )
