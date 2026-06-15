@@ -1170,11 +1170,13 @@ class ToolExecutor:
         if df.empty:
             return {"error": "Dados de países não disponíveis."}
         pais_col = "ds_pais" if "ds_pais" in df.columns else df.columns[0]
+        fob_col = "vl_fob" if "vl_fob" in df.columns else ("vl_fob_usd" if "vl_fob_usd" in df.columns else None)
+        total = df[fob_col].sum() if fob_col else 0
         rows = [
             {
                 "pais": r.get(pais_col, ""),
-                "fob_usd": _fmt_usd(float(r.get("vl_fob_usd", 0))),
-                "participacao_pct": f"{r.get('participacao_pct', 0):.1f}%",
+                "fob_usd": _fmt_usd(float(r.get(fob_col, 0))) if fob_col else "US$ 0",
+                "participacao_pct": f"{float(r.get(fob_col, 0)) / total * 100:.1f}%" if total > 0 else "0.0%",
             }
             for _, r in df.head(top_n).iterrows()
         ]
