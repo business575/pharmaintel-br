@@ -5304,12 +5304,19 @@ def page_partnership(year: int) -> None:  # noqa: C901
     df_imp    = _load_imp_p(year)
 
     is_admin = st.session_state.get("is_admin", False)
-    credits  = st.session_state.get("ifa_credits", 0) if not is_admin else 999
+    credits  = st.session_state.get("ifa_credits", 0)
     nda_ok   = st.session_state.get("ifa_nda_signed", False) or is_admin
     unlocked = st.session_state.get("ifa_unlocked", set())
 
     # ── HERO BANNER ──────────────────────────────────────────────────────────────
-    st.markdown("""
+    _credits_badge = (
+        f'<div style="text-align:right;">'
+        f'<div style="background:rgba(255,255,255,0.15);border-radius:10px;padding:12px 20px;">'
+        f'<div style="font-size:1.6rem;font-weight:800;">{credits}</div>'
+        f'<div style="font-size:0.78rem;opacity:0.8;">credits available</div>'
+        f'</div></div>'
+    ) if not is_admin else ""
+    st.markdown(f"""
     <div style="background:linear-gradient(135deg,#0d1b2a 0%,#1b4332 100%);color:white;
                 border-radius:14px;padding:32px 36px;margin-bottom:24px;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;">
@@ -5317,16 +5324,11 @@ def page_partnership(year: int) -> None:  # noqa: C901
           <h2 style="color:white;margin:0 0 8px;font-size:1.6rem;">🌐 IFA Partnership Intelligence</h2>
           <p style="opacity:0.88;margin:0;font-size:0.95rem;max-width:560px;">
             Find verified Brazilian pharma partners for your API/IFA.
-            Real data from <strong>ANVISA · Comex Stat · CMED</strong>.
+            Real data from <strong>ANVISA &middot; Comex Stat &middot; CMED</strong>.
             NDA-protected. Success-fee model.
           </p>
         </div>
-        <div style="text-align:right;">
-          <div style="background:rgba(255,255,255,0.15);border-radius:10px;padding:12px 20px;">
-            <div style="font-size:1.6rem;font-weight:800;">""" + str(credits) + """</div>
-            <div style="font-size:0.78rem;opacity:0.8;">credits available</div>
-          </div>
-        </div>
+        {_credits_badge}
       </div>
     </div>
     """, unsafe_allow_html=True)
@@ -5378,9 +5380,7 @@ def page_partnership(year: int) -> None:  # noqa: C901
         st.stop()
 
     # ── SIGNED — show credit bar ────────────────────────────────────────────────
-    if is_admin:
-        st.success("🔑 **Admin mode** — all partner profiles unlocked, no credits required.")
-    else:
+    if not is_admin:
         signed_name = st.session_state.get("ifa_nda_name", "")
         st.success(f"✅ NDA signed by **{signed_name}** · {credits} credit(s) available · [Buy more credits](#buy-credits)")
 
@@ -5479,7 +5479,7 @@ def page_partnership(year: int) -> None:  # noqa: C901
                     excl        = EXCLUSIVITY_STATUS.get(pid, "Available")
                     excl_color  = "#155724" if excl == "Available" else "#721c24"
                     excl_bg     = "#d4edda"  if excl == "Available" else "#f8d7da"
-                    is_unlocked = pid in unlocked or is_admin
+                    is_unlocked = pid in unlocked
 
                     st.markdown(f"""
                     <div style="border:1px solid #e0e0e0;border-radius:10px;padding:18px 22px;margin-bottom:12px;
@@ -5504,35 +5504,50 @@ def page_partnership(year: int) -> None:  # noqa: C901
                     """, unsafe_allow_html=True)
 
                     if is_unlocked:
-                        # Show full profile
-                        fob_mkt = ncm_info[1] if ncm_info else 0
-                        cmed_v  = cmed_info[1] if cmed_info else 0
-                        mkt_sh  = round(100 / max(len(res), 1), 1)
-                        est_rev = int(fob_mkt * (mkt_sh / 100) * 0.15) if fob_mkt else 0
+                        # Opportunity tier — varied by score + index so each card differs
+                        _var  = [0.70, 0.85, 1.00, 1.15, 1.30, 0.90, 1.05, 1.20, 0.75, 0.95, 1.10, 0.80]
+                        _mult = _var[idx % len(_var)]
+                        if score >= 80:
+                            _lo, _hi, _tier = int(2000*_mult), int(8000*_mult), "High"
+                            _tc, _tb = "#155724", "#d4edda"
+                        elif score >= 60:
+                            _lo, _hi, _tier = int(500*_mult), int(2000*_mult), "Medium"
+                            _tc, _tb = "#856404", "#fff3cd"
+                        else:
+                            _lo, _hi, _tier = int(100*_mult), int(500*_mult), "Low–Medium"
+                            _tc, _tb = "#721c24", "#f8d7da"
+                        _opp_str    = f"USD {_lo:,}K–{_hi:,}K/year"
+                        _cmed_label = cmed_info[0] if cmed_info else "Not in CMED database"
+                        _cmed_badge = "[INDICATIVE]" if cmed_info else "[REQUIRES VALIDATION]"
 
                         st.markdown(f"""
                         <div style="margin-top:14px;padding:16px;background:#e8f5e9;border-radius:8px;">
                           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;">
                             <div>
-                              <div style="font-size:0.72rem;color:#555;text-transform:uppercase;letter-spacing:.5px;">Business Contact</div>
-                              <div style="font-weight:700;color:#1b4332;">BD / Regulatory Affairs Dept.</div>
-                              <div style="font-size:0.85rem;color:#333;">Website: search {prod.split()[0].lower()}.com.br</div>
-                              <div style="font-size:0.8rem;color:#666;">📧 Facilitated intro via PharmaIntel BR</div>
+                              <div style="font-size:0.72rem;color:#555;text-transform:uppercase;letter-spacing:.5px;">Suggested Contact Pathway</div>
+                              <div style="font-weight:700;color:#1b4332;">Business Development / Regulatory Affairs</div>
+                              <div style="font-size:0.8rem;color:#666;margin-top:4px;">Website: requires validation</div>
+                              <div style="font-size:0.76rem;color:#888;margin-top:4px;">🔒 Direct contact released only after NDA and facilitated introduction.</div>
                             </div>
                             <div>
-                              <div style="font-size:0.72rem;color:#555;text-transform:uppercase;letter-spacing:.5px;">Estimated Contract Value</div>
-                              <div style="font-weight:800;font-size:1.2rem;color:#1b4332;">USD {est_rev:,.0f}/yr</div>
-                              <div style="font-size:0.78rem;color:#666;">[ESTIMATED] {mkt_sh}% market share × NCM FOB × API margin</div>
+                              <div style="font-size:0.72rem;color:#555;text-transform:uppercase;letter-spacing:.5px;">Indicative Commercial Opportunity</div>
+                              <div style="display:inline-block;background:{_tb};color:{_tc};padding:3px 10px;border-radius:14px;font-size:0.8rem;font-weight:700;margin:4px 0;">{_tier}</div>
+                              <div style="font-weight:700;font-size:1.0rem;color:#1b4332;">{_opp_str} [INDICATIVE]</div>
+                              <div style="font-size:0.74rem;color:#888;">NCM category estimate — not molecule-specific</div>
                             </div>
                             <div>
-                              <div style="font-size:0.72rem;color:#555;text-transform:uppercase;letter-spacing:.5px;">CMED Reference</div>
-                              <div style="font-weight:700;color:#1b4332;">{cmed_info[0] if cmed_info else 'N/A'}</div>
-                              <div style="font-size:0.78rem;color:#666;">[VERIFIED] CMED/ANVISA factory price ceiling</div>
+                              <div style="font-size:0.72rem;color:#555;text-transform:uppercase;letter-spacing:.5px;">CMED Reference Price</div>
+                              <div style="font-weight:700;color:#1b4332;">{_cmed_label}</div>
+                              <div style="font-size:0.74rem;color:#888;">{_cmed_badge} — confirm at cmed.gov.br</div>
                             </div>
                           </div>
-                          <div style="font-size:0.8rem;color:#444;border-top:1px solid #c8e6c9;padding-top:10px;">
-                            ✅ <strong>Next step:</strong> Schedule a facilitated introduction call.
-                            PharmaIntel BR will contact this partner on your behalf under NDA before connecting you.
+                          <div style="font-size:0.74rem;color:#777;border-top:1px solid #c8e6c9;padding-top:10px;line-height:1.6;">
+                            ⚠️ <em>NCM import market is a broad customs category and does not confirm molecule-specific revenue.
+                            Commercial opportunity requires validation by product, importer, registration holder, supplier and agreement structure.</em>
+                          </div>
+                          <div style="font-size:0.82rem;color:#444;margin-top:10px;">
+                            ✅ <strong>Next step:</strong> Request a facilitated introduction.
+                            PharmaIntel BR contacts this partner on your behalf under NDA before connecting you.
                           </div>
                         </div>
                         """, unsafe_allow_html=True)
@@ -5553,7 +5568,10 @@ def page_partnership(year: int) -> None:  # noqa: C901
                         """, unsafe_allow_html=True)
 
                         if st.button(f"🔓 Unlock Full Profile — 1 Credit", key=f"unlock_{pid}", type="primary"):
-                            if credits >= 1:
+                            if is_admin:
+                                st.session_state["ifa_unlocked"] = unlocked | {pid}
+                                st.rerun()
+                            elif credits >= 1:
                                 st.session_state["ifa_credits"]  = credits - 1
                                 st.session_state["ifa_unlocked"] = unlocked | {pid}
                                 st.rerun()
@@ -5598,7 +5616,7 @@ def page_partnership(year: int) -> None:  # noqa: C901
 
         # CMED table
         st.markdown("#### CMED Price Reference — Key IFAs")
-        cmed_rows = [{"Molecule": k.title(), "CMED Factory Price (PF)": v[0], "Source": "[VERIFIED] CMED/ANVISA"}
+        cmed_rows = [{"Molecule": k.title(), "CMED Factory Price (PF)": v[0], "Source": "[INDICATIVE] CMED/ANVISA — confirm at cmed.gov.br"}
                      for k, v in CMED_PRICES.items()]
         st.dataframe(pd.DataFrame(cmed_rows), use_container_width=True, hide_index=True)
 
@@ -5607,7 +5625,8 @@ def page_partnership(year: int) -> None:  # noqa: C901
     # ════════════════════════════════════════════════════════════════════════════
     with t3:
         st.markdown("### Plans & Credits")
-        st.markdown(f"**Your balance: {credits} credit(s)**")
+        if not is_admin:
+            st.markdown(f"**Your balance: {credits} credit(s)**")
         st.markdown("1 credit = 1 full partner profile (contact + contract value + exclusivity + intro facilitation)")
 
         col_p1, col_p2, col_p3 = st.columns(3)
