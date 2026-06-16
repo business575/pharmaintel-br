@@ -5402,9 +5402,78 @@ def page_partnership(year: int) -> None:  # noqa: C901
         with col_f:
             cat_sel = st.selectbox("Category", ["All", "Biological / Biosimilar", "Generic", "New / Originator"])
 
-        # Quick-select molecules
+        # Quick-select molecules + guided tour
         if not busca:
-            st.markdown("**Priority molecules:**")
+            # ── GUIDED TOUR ──────────────────────────────────────────────────────
+            _TOUR = [
+                ("🌐", "What is IFA Partnership?",
+                 "PharmaIntel BR connects foreign API, IFA and CDMO manufacturers with Brazilian "
+                 "pharmaceutical companies using verified ANVISA, Comex Stat and CMED data. "
+                 "Every connection is NDA-protected and facilitated by PharmaIntel BR.",
+                 "You have already signed the NDA. You are now inside the partner database."),
+                ("🔍", "Search by molecule or API",
+                 "Type any molecule name — e.g. trastuzumab, adalimumab, pegfilgrastim — to see "
+                 "all Brazilian companies holding an active ANVISA registration for that active ingredient. "
+                 "Use the INN international name or the Portuguese spelling.",
+                 "Tip: short prefix works — type 'filgra' to find filgrastim and pegfilgrastim."),
+                ("📋", "Read the partner card",
+                 "Each result shows: product name, active ingredient, ANVISA registration number, "
+                 "expiry date, regulatory category (biological, generic, originator) and a "
+                 "Partnership Fit Score based on registration type and validity.",
+                 "Higher score = stronger regulatory position + longer exclusivity window."),
+                ("🔓", "Unlock the full profile",
+                 "Click 'Unlock Full Profile' to reveal the indicative commercial opportunity tier "
+                 "(High / Medium / Low), estimated contract range, suggested contact pathway and "
+                 "CMED reference price. Costs 1 credit per profile.",
+                 "You have free credits — try unlocking any result from your search."),
+                ("📩", "Request a facilitated introduction",
+                 "PharmaIntel BR contacts the Brazilian partner on your behalf — under NDA — "
+                 "before connecting both parties. This protects you and the partner, avoids "
+                 "cold outreach and triggers the non-circumvention clock.",
+                 "Use the 'Request Introduction' tab after unlocking a profile."),
+            ]
+            _step = st.session_state.get("ifa_tour_step", 0) % len(_TOUR)
+            _icon, _title, _body, _tip = _TOUR[_step]
+            _dots = "".join(
+                f'<div style="width:24px;height:4px;border-radius:2px;margin-right:4px;'
+                f'background:{"#1b4332" if i == _step else "#c8e6c9"};"></div>'
+                for i in range(len(_TOUR))
+            )
+            st.markdown(f"""
+            <div style="background:linear-gradient(135deg,#e8f5e9 0%,#f0fff4 100%);
+                        border:1px solid #a5d6a7;border-radius:12px;padding:22px 26px;margin-bottom:18px;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                <span style="font-size:1.7rem;">{_icon}</span>
+                <div>
+                  <div style="font-size:0.7rem;color:#555;text-transform:uppercase;letter-spacing:.8px;">
+                    Guided Tour &nbsp;&middot;&nbsp; Step {_step+1} of {len(_TOUR)}
+                  </div>
+                  <div style="font-size:1.1rem;font-weight:700;color:#1b4332;">{_title}</div>
+                </div>
+              </div>
+              <p style="color:#333;font-size:0.88rem;line-height:1.7;margin:0 0 10px;">{_body}</p>
+              <div style="font-size:0.8rem;color:#555;background:rgba(255,255,255,0.65);
+                          border-radius:6px;padding:8px 12px;">
+                💡 {_tip}
+              </div>
+              <div style="display:flex;margin-top:14px;">{_dots}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            _tc1, _tc2, _tc3 = st.columns([1, 1, 5])
+            with _tc1:
+                if st.button("← Back", key="ifa_tour_prev", disabled=(_step == 0)):
+                    st.session_state["ifa_tour_step"] = _step - 1
+                    st.rerun()
+            with _tc2:
+                _btn_lbl = "Next →" if _step < len(_TOUR) - 1 else "Search above ↑"
+                if st.button(_btn_lbl, key="ifa_tour_next",
+                             type="primary" if _step == len(_TOUR) - 1 else "secondary"):
+                    if _step < len(_TOUR) - 1:
+                        st.session_state["ifa_tour_step"] = _step + 1
+                        st.rerun()
+            st.markdown("---")
+            # ── PRIORITY MOLECULES ────────────────────────────────────────────────
+            st.markdown("**Or try a priority molecule:**")
             cols_mol = st.columns(5)
             for i, mol in enumerate(MOLECULAS_LIST):
                 with cols_mol[i % 5]:
@@ -5429,7 +5498,45 @@ def page_partnership(year: int) -> None:  # noqa: C901
                 res = res[res["categoria_regulatoria"].str.lower().str.contains(kw, na=False)]
 
             if res.empty:
-                st.warning(f"No ANVISA registrations found for **{busca}**. Try a broader search term.")
+                # Fuzzy suggestions — molecules sharing a 3-char prefix with the query
+                _sugg = [m for m in MOLECULAS_LIST
+                         if (b[:3] in m.lower() or m[:3] in b.lower()) and m.lower() != b][:5]
+                st.markdown(f"""
+                <div style="background:#fff8e1;border:1px solid #f9a825;border-radius:10px;
+                            padding:18px 22px;margin-bottom:14px;">
+                  <div style="font-size:1.05rem;font-weight:700;color:#7b5800;margin-bottom:8px;">
+                    ⚠️ No ANVISA registrations found for &ldquo;{busca}&rdquo;
+                  </div>
+                  <p style="color:#555;font-size:0.86rem;margin:0 0 10px;line-height:1.7;">
+                    This term was not found in the ANVISA open-data registry. Common reasons:
+                  </p>
+                  <div style="font-size:0.84rem;color:#444;line-height:1.9;">
+                    &bull; Use the <strong>INN international name</strong>
+                      (e.g. <em>trastuzumab</em>, not <em>Herceptin</em>)<br>
+                    &bull; Try the <strong>Portuguese spelling</strong>
+                      (e.g. <em>trastuzumabe</em>, <em>bevacizumabe</em>, <em>adalimumabe</em>)<br>
+                    &bull; Use a <strong>shorter prefix</strong>
+                      (e.g. <em>filgra</em> for filgrastim / pegfilgrastim)<br>
+                    &bull; Search by <strong>active ingredient</strong> rather than brand name
+                  </div>
+                </div>
+                """, unsafe_allow_html=True)
+                if _sugg:
+                    st.markdown("**Did you mean one of these?**")
+                    _scols = st.columns(len(_sugg))
+                    for _si, _sm in enumerate(_sugg):
+                        with _scols[_si]:
+                            if st.button(f"Try: {_sm.title()}", key=f"sugg_{_sm}_{b}",
+                                         use_container_width=True):
+                                st.session_state["ifa_busca"] = _sm
+                                st.rerun()
+                st.markdown("**Or explore these verified molecules:**")
+                _ncols = st.columns(5)
+                for _ni, _nm in enumerate(MOLECULAS_LIST[:10]):
+                    with _ncols[_ni % 5]:
+                        if st.button(_nm.title(), key=f"nores_{_nm}", use_container_width=True):
+                            st.session_state["ifa_busca"] = _nm
+                            st.rerun()
             else:
                 # Market size header
                 ncm_info = NCM_MARKET.get(b)
