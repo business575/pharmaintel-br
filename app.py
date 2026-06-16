@@ -5116,6 +5116,96 @@ TAM estimado: US$ {max(total_fob * 3, 50_000_000):,.0f}. Crescimento projetado 2
 
 
 # ===========================================================================
+# Tour
+# ===========================================================================
+
+def page_tour(year: int) -> None:
+    """Guided tour — walks prospect through platform benefits step by step."""
+    lang = st.session_state.get("lang", "PT")
+    is_en = lang == "EN"
+
+    render_header(_t("nav_tour"))
+
+    if is_en:
+        st.markdown("""
+        <div style="background:linear-gradient(135deg,#0d1b2a,#1b4332);color:white;
+                    border-radius:12px;padding:28px 32px;margin-bottom:24px;">
+        <h3 style="color:white;margin:0 0 10px;">Welcome to PharmaIntel BR</h3>
+        <p style="opacity:0.9;margin:0;">
+        This guided tour shows you the key capabilities of the platform.
+        Use the steps below to explore market intelligence, ANVISA data,
+        import analytics and the AI agent.
+        </p>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <div style="background:linear-gradient(135deg,#0d1b2a,#1b4332);color:white;
+                    border-radius:12px;padding:28px 32px;margin-bottom:24px;">
+        <h3 style="color:white;margin:0 0 10px;">Bem-vindo ao PharmaIntel BR</h3>
+        <p style="opacity:0.9;margin:0;">
+        Este tour guiado apresenta as principais funcionalidades da plataforma.
+        Use os passos abaixo para explorar inteligência de mercado, dados ANVISA,
+        análise de importações e o agente de IA.
+        </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    steps = [
+        ("📊", "Visão Geral do Mercado" if not is_en else "Market Overview",
+         "overview",
+         "KPIs de importação, top países e principais NCMs farmacêuticos."
+         if not is_en else
+         "Import KPIs, top countries and key pharma NCMs."),
+        ("📦", "Importações Detalhadas" if not is_en else "Detailed Imports",
+         "imports",
+         "Análise completa de importações por NCM, país e empresa."
+         if not is_en else
+         "Full import analysis by NCM, country and company."),
+        ("📋", "Registros ANVISA" if not is_en else "ANVISA Registrations",
+         "anvisa",
+         "Busque produtos registrados, titulares e datas de vencimento."
+         if not is_en else
+         "Search registered products, holders and expiry dates."),
+        ("🤖", "Agente de IA" if not is_en else "AI Agent",
+         "agent",
+         "Faça perguntas em linguagem natural sobre o mercado farmacêutico."
+         if not is_en else
+         "Ask natural language questions about the pharmaceutical market."),
+        ("🤝", "IFA Partnership" if not is_en else "IFA Partnership",
+         "partnership",
+         "Encontre parceiros brasileiros para fornecimento de IFA/API e CDMO."
+         if not is_en else
+         "Find Brazilian partners for IFA/API supply and CDMO agreements."),
+    ]
+
+    for i, (icon, title, key, desc) in enumerate(steps, 1):
+        col_num, col_content, col_btn = st.columns([0.5, 5, 2])
+        with col_num:
+            st.markdown(
+                f'<div style="background:#1b4332;color:white;border-radius:50%;'
+                f'width:36px;height:36px;display:flex;align-items:center;justify-content:center;'
+                f'font-weight:800;font-size:1rem;margin-top:8px;">{i}</div>',
+                unsafe_allow_html=True,
+            )
+        with col_content:
+            st.markdown(f"**{icon} {title}**")
+            st.caption(desc)
+        with col_btn:
+            btn_label = f"Ir para {title}" if not is_en else f"Go to {title}"
+            if st.button(btn_label, key=f"tour_btn_{key}", use_container_width=True):
+                st.session_state["page_key"] = key
+                st.rerun()
+        st.markdown("---")
+
+    st.markdown(
+        "📅 [**Agendar demonstração**](https://calendly.com/vinicius-hospitalar/30min)"
+        if not is_en else
+        "📅 [**Schedule a demo**](https://calendly.com/vinicius-hospitalar/30min)"
+    )
+
+
+# ===========================================================================
 # Main
 # ===========================================================================
 
