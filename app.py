@@ -5303,8 +5303,9 @@ def page_partnership(year: int) -> None:  # noqa: C901
     df_anvisa = _load_anvisa_p()
     df_imp    = _load_imp_p(year)
 
-    credits = st.session_state.get("ifa_credits", 0)
-    nda_ok   = st.session_state.get("ifa_nda_signed", False)
+    is_admin = st.session_state.get("is_admin", False)
+    credits  = st.session_state.get("ifa_credits", 0) if not is_admin else 999
+    nda_ok   = st.session_state.get("ifa_nda_signed", False) or is_admin
     unlocked = st.session_state.get("ifa_unlocked", set())
 
     # ── HERO BANNER ──────────────────────────────────────────────────────────────
@@ -5377,8 +5378,11 @@ def page_partnership(year: int) -> None:  # noqa: C901
         st.stop()
 
     # ── SIGNED — show credit bar ────────────────────────────────────────────────
-    signed_name = st.session_state.get("ifa_nda_name", "")
-    st.success(f"✅ NDA signed by **{signed_name}** · {credits} credit(s) available · [Buy more credits](#buy-credits)")
+    if is_admin:
+        st.success("🔑 **Admin mode** — all partner profiles unlocked, no credits required.")
+    else:
+        signed_name = st.session_state.get("ifa_nda_name", "")
+        st.success(f"✅ NDA signed by **{signed_name}** · {credits} credit(s) available · [Buy more credits](#buy-credits)")
 
     # ── TABS ────────────────────────────────────────────────────────────────────
     t1, t2, t3, t4, t5 = st.tabs([
@@ -5475,7 +5479,7 @@ def page_partnership(year: int) -> None:  # noqa: C901
                     excl        = EXCLUSIVITY_STATUS.get(pid, "Available")
                     excl_color  = "#155724" if excl == "Available" else "#721c24"
                     excl_bg     = "#d4edda"  if excl == "Available" else "#f8d7da"
-                    is_unlocked = pid in unlocked
+                    is_unlocked = pid in unlocked or is_admin
 
                     st.markdown(f"""
                     <div style="border:1px solid #e0e0e0;border-radius:10px;padding:18px 22px;margin-bottom:12px;
