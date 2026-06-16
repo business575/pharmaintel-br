@@ -3945,6 +3945,23 @@ def sidebar() -> tuple[str, int]:
         <hr style="border-color:#1E3A5F; margin:0.75rem 0;">
         """, unsafe_allow_html=True)
 
+        # ── Partner visitor — locked to IFA Partnership only ─────────────────────
+        if st.session_state.get("auth_user") == "partner_visitor":
+            st.markdown("""
+            <div style="background:#1b4332;border-radius:8px;padding:12px 14px;margin-bottom:14px;">
+              <div style="font-size:0.8rem;color:#a5d6a7;font-weight:700;">🌐 IFA Partnership Access</div>
+              <div style="font-size:0.72rem;color:#81c784;margin-top:4px;line-height:1.5;">
+                Search Brazilian pharma partners · Sign NDA · Unlock profiles · Request introduction
+              </div>
+            </div>
+            """, unsafe_allow_html=True)
+            st.markdown("<hr style='border-color:#1E3A5F; margin:0.5rem 0;'>", unsafe_allow_html=True)
+            if st.button("← Exit platform", use_container_width=True):
+                for k in list(st.session_state.keys()):
+                    del st.session_state[k]
+                st.rerun()
+            return "partnership", 2025
+
         # Navigation — translated labels mapped to internal keys
         _is_admin = (
             st.session_state.get("auth_user") == _APP_USERNAME
