@@ -5348,27 +5348,31 @@ def page_partnership(year: int) -> None:  # noqa: C901
         </div>
         """, unsafe_allow_html=True)
 
-        col_nda1, col_nda2 = st.columns([3, 1])
-        with col_nda1:
-            nda_company = st.text_input("Your Company Name *", key="nda_company_input")
-            nda_name    = st.text_input("Your Full Name *", key="nda_name_input")
-            nda_email   = st.text_input("Business Email *", key="nda_email_input")
-        with col_nda2:
-            nda_country  = st.text_input("Country *", key="nda_country_input")
-            nda_role     = st.text_input("Title / Role", key="nda_role_input")
+        with st.form("ifa_nda_form"):
+            col_nda1, col_nda2 = st.columns([3, 1])
+            with col_nda1:
+                nda_company = st.text_input("Your Company Name *", key="nda_company_input")
+                nda_name    = st.text_input("Your Full Name *", key="nda_name_input")
+                nda_email   = st.text_input("Business Email *", key="nda_email_input")
+            with col_nda2:
+                nda_country = st.text_input("Country *", key="nda_country_input")
+                nda_role    = st.text_input("Title / Role", key="nda_role_input")
+            agree = st.checkbox("✅ I have read and agree to the Non-Disclosure and Non-Circumvention Agreement above.")
+            submitted = st.form_submit_button("Access IFA Partnership Database →", type="primary")
 
-        agree = st.checkbox("✅ I have read and agree to the Non-Disclosure and Non-Circumvention Agreement above.")
-        if st.button("Access IFA Partnership Database →", type="primary", disabled=not agree):
-            if not all([nda_company, nda_name, nda_email]):
-                st.error("Please fill all required fields.")
+        if submitted:
+            if not all([nda_company.strip(), nda_name.strip(), nda_email.strip()]):
+                st.error("Please fill all required fields (Company, Full Name, Email).")
+            elif not agree:
+                st.error("Please check the agreement box to continue.")
             else:
                 st.session_state["ifa_nda_signed"]   = True
-                st.session_state["ifa_nda_company"]  = nda_company
-                st.session_state["ifa_nda_name"]     = nda_name
-                st.session_state["ifa_nda_email"]    = nda_email
-                st.session_state["ifa_credits"]      = 3  # 3 free credits on NDA sign
+                st.session_state["ifa_nda_company"]  = nda_company.strip()
+                st.session_state["ifa_nda_name"]     = nda_name.strip()
+                st.session_state["ifa_nda_email"]    = nda_email.strip()
+                st.session_state["ifa_credits"]      = 3
                 st.session_state["ifa_unlocked"]     = set()
-                st.success(f"✅ NDA accepted. Welcome, {nda_name}. You received **3 free credits** to explore the database.")
+                st.success(f"✅ NDA accepted. Welcome, {nda_name.strip()}. You received **3 free credits** to explore the database.")
                 st.rerun()
         st.stop()
 
