@@ -2144,6 +2144,19 @@ window.addEventListener('resize', () => {
     st.stop()
 
 
+# Public IFA partner access — ?page=partnership bypasses login wall
+# The NDA gate inside page_partnership handles actual access control
+try:
+    if (not st.session_state.get("authenticated", False)
+            and st.query_params.get("page") == "partnership"):
+        st.session_state["authenticated"]   = True
+        st.session_state["auth_user"]       = "partner_visitor"
+        st.session_state["subscriber_plan"] = "starter"
+        st.session_state["page_key"]        = "partnership"
+        st.rerun()
+except Exception:
+    pass
+
 # Gate: show pricing page if requested (unauthenticated)
 if not st.session_state.get("authenticated", False):
     if st.session_state.get("show_demo_agent", False):
@@ -5213,7 +5226,7 @@ def main() -> None:
     # URL parameter routing — ?page=tour opens tour directly
     try:
         params = st.query_params
-        if "page" in params and params["page"] in ["tour", "overview", "imports", "anvisa", "trials", "agent"]:
+        if "page" in params and params["page"] in ["tour", "overview", "imports", "anvisa", "trials", "agent", "partnership"]:
             st.session_state["page_key"] = params["page"]
     except Exception:
         pass
