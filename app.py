@@ -223,7 +223,17 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         # Quality Control
         "nav_quality":        "Qualidade",
         "nav_costs":          "Gerente Financeiro",
+        "nav_job_manager":    "🧩 Gerenciador de Jobs",
         "nav_partnership":    "🤝 IFA Partnership",
+        "nav_home":           "🏠 Home",
+        "nav_sourcing":       "🇧🇷 Brazilian Pharma Sourcing",
+        "nav_entry":          "🌍 Brazil Market Entry",
+        "nav_molecule":       "🔬 Molecule Opportunity Report",
+        "nav_partner_search": "🤝 Partner Search",
+        "nav_market_intel":   "📊 Market Intelligence",
+        "nav_intro":          "📨 Request Introduction",
+        "nav_list_company":   "➕ List Company / Portfolio",
+        "nav_plans":          "💼 Plans & Services",
         # Outreach
         "nav_outreach":       "Prospecção",
         "outreach_title":     "Agente de Prospecção — 10-20 contatos/dia",
@@ -330,7 +340,17 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         # Quality Control
         "nav_quality":        "Quality Control",
         "nav_costs":          "Finance Manager",
+        "nav_job_manager":    "🧩 Agent Job Manager",
         "nav_partnership":    "🤝 IFA Partnership",
+        "nav_home":           "🏠 Home",
+        "nav_sourcing":       "🇧🇷 Brazilian Pharma Sourcing",
+        "nav_entry":          "🌍 Brazil Market Entry",
+        "nav_molecule":       "🔬 Molecule Opportunity Report",
+        "nav_partner_search": "🤝 Partner Search",
+        "nav_market_intel":   "📊 Market Intelligence",
+        "nav_intro":          "📨 Request Introduction",
+        "nav_list_company":   "➕ List Company / Portfolio",
+        "nav_plans":          "💼 Plans & Services",
         # Outreach
         "nav_outreach":       "Outreach",
         "outreach_title":     "Outreach Agent — 10-20 contacts/day",
@@ -365,10 +385,20 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 }
 
 # Internal navigation keys (language-independent)
-_NAV_KEYS = ["tour", "overview", "imports", "anvisa", "suppliers", "companies", "comtrade", "etl", "agent", "trials", "partnership", "report"]
+_NAV_KEYS = [
+    "home", "sourcing", "entry",
+    "anvisa", "partnership", "overview",
+    "intro", "list_company", "plans",
+    "report",
+    "tour", "imports", "suppliers", "companies", "comtrade", "etl", "agent", "trials",
+]
 _NAV_T_KEYS = [
-    "nav_tour", "nav_overview", "nav_imports", "nav_anvisa", "nav_suppliers", "nav_companies",
-    "nav_comtrade", "nav_etl", "nav_agent", "nav_trials", "nav_partnership", "nav_report",
+    "nav_home", "nav_sourcing", "nav_entry",
+    "nav_molecule", "nav_partner_search", "nav_market_intel",
+    "nav_intro", "nav_list_company", "nav_plans",
+    "nav_report",
+    "nav_tour", "nav_imports", "nav_suppliers", "nav_companies",
+    "nav_comtrade", "nav_etl", "nav_agent", "nav_trials",
 ]
 
 
@@ -3314,6 +3344,96 @@ def page_agent(year: int) -> None:
 
 
 # ===========================================================================
+# Agent Job Manager Page
+# ===========================================================================
+
+def _page_job_manager(_year: int = 2025) -> None:
+    """Agent Job Manager — business request intake through commercial next action."""
+    lang = st.session_state.get("lang", "PT")
+    is_en = lang == "EN"
+
+    title = "Agent Job Manager" if is_en else "Gerenciador de Jobs — Agentes"
+    st.markdown(f'<h2 style="color:#4DB6AC;">{title}</h2>', unsafe_allow_html=True)
+
+    from src import master_orchestrator, job_manager, quality_agent
+
+    request_label = "New business request" if is_en else "Nova solicitação comercial"
+    request_text = st.text_area(request_label, height=120, key="job_manager_request")
+
+    if st.button("Create Job" if is_en else "Criar Job", type="primary"):
+        if not request_text.strip():
+            st.warning("Enter a business request first." if is_en else "Informe uma solicitação antes de continuar.")
+        else:
+            with st.spinner("Running agents…" if is_en else "Executando agentes…"):
+                job_result = master_orchestrator.run(request_text.strip())
+                job_quality = quality_agent.check(job_result)
+            st.session_state["job_manager_last_result"] = job_result
+            st.session_state["job_manager_last_quality"] = job_quality
+
+    result = st.session_state.get("job_manager_last_result")
+    quality = st.session_state.get("job_manager_last_quality")
+
+    if result:
+        st.markdown("---")
+
+        if quality and not quality["passed"]:
+            st.error("Quality check blocked this output:" if is_en else "Verificação de qualidade bloqueou este resultado:")
+            for issue in quality["issues"]:
+                st.write(f"⚠ {issue}")
+
+        status_color = {"completed": "#4DB6AC", "blocked": "#FFB300", "failed": "#FF5252"}.get(result["job_status"], "#aaa")
+        st.markdown(
+            f"**{'Job status' if is_en else 'Status do job'}:** "
+            f"<span style='color:{status_color}'>{result['job_status']}</span>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(f"**{'Molecule' if is_en else 'Molécula'}:** {result['molecule'] or '—'}")
+        st.markdown(f"**{'Therapeutic area' if is_en else 'Área terapêutica'}:** {result['therapeutic_area'] or '—'}")
+        st.markdown(f"**{'Opportunity level' if is_en else 'Nível de oportunidade'}:** {result['opportunity_level']}")
+
+        st.markdown(f"**{'Assigned agents' if is_en else 'Agentes designados'}:**")
+        st.write(", ".join(result["assigned_agents"]))
+
+        if result["missing_information"]:
+            st.markdown(f"**{'Missing information' if is_en else 'Informações faltantes'}:**")
+            for m in result["missing_information"]:
+                st.write(f"• {m}")
+
+        na = result["next_action"]
+        st.markdown(f"**{'Next action' if is_en else 'Próxima ação'} [{na.get('priority')}]:** {na.get('action')}")
+        st.caption(na.get("reason", ""))
+
+        proposal = result["commercial_proposal"]
+        st.markdown(f"**{'Commercial proposal' if is_en else 'Proposta comercial'}:**")
+        st.write(f"{proposal.get('recommended_service')} — {proposal.get('recommended_price')}")
+        st.caption(proposal.get("rationale", ""))
+
+        protection = result["contract_protection"]
+        if protection.get("warning"):
+            st.warning(protection.get("message", ""))
+            for k, v in protection.get("required", {}).items():
+                st.write(f"[REQUIRED] {k}: {v}")
+        else:
+            st.info(protection.get("message", ""))
+
+        with st.expander("Executive summary" if is_en else "Resumo executivo"):
+            st.text(result["executive_summary"])
+
+    jobs = job_manager.list_jobs()
+    if jobs:
+        st.markdown("---")
+        st.markdown(f"**{'Job history' if is_en else 'Histórico de jobs'}**")
+        st.dataframe(
+            [
+                {"id": j["job_id"], "title": j["title"], "priority": j["priority"],
+                 "status": j["status"], "value": j["commercial_value"]}
+                for j in jobs
+            ],
+            use_container_width=True,
+        )
+
+
+# ===========================================================================
 # Quality Control Page
 # ===========================================================================
 
@@ -3968,8 +4088,8 @@ def sidebar() -> tuple[str, int]:
             or st.session_state.get("is_admin")
         )
         # Build nav — always keep report tab (page itself gates access by plan)
-        admin_extra_keys = ["outreach", "director", "quality", "costs"]
-        admin_extra_t    = ["nav_outreach", "nav_director", "nav_quality", "nav_costs"]
+        admin_extra_keys = ["outreach", "director", "quality", "costs", "job_manager"]
+        admin_extra_t    = ["nav_outreach", "nav_director", "nav_quality", "nav_costs", "nav_job_manager"]
         nav_keys_active  = _NAV_KEYS + (admin_extra_keys if _is_admin else [])
         nav_t_keys_active = _NAV_T_KEYS + (admin_extra_t if _is_admin else [])
         nav_labels = [_t(k) for k in nav_t_keys_active]
@@ -5236,6 +5356,456 @@ def page_tour(year: int) -> None:
 
 
 # ===========================================================================
+# Commercial Pages — Two-Sided Marketplace
+# ===========================================================================
+
+def page_home() -> None:
+    lang = st.session_state.get("lang", "PT")
+    st.markdown("""
+    <div style="text-align:center; padding: 2rem 1rem 1rem;">
+      <h1 style="color:#4DB6AC; font-size:2rem; margin-bottom:0.5rem;">PharmaIntel BR</h1>
+      <p style="color:#8899AA; font-size:1rem; max-width:680px; margin:0 auto 0.5rem;">
+        Molecule-level sourcing intelligence for API/IFA/CDMO partnerships in Brazil.
+      </p>
+      <p style="color:#607080; font-size:0.85rem; max-width:720px; margin:0 auto 1.5rem;">
+        PharmaIntel BR helps Brazilian pharmaceutical companies identify qualified international
+        API/IFA/CDMO suppliers and helps international suppliers evaluate molecule-level
+        opportunities, find local partners and structure protected business introductions in Brazil.
+      </p>
+    </div>
+    """, unsafe_allow_html=True)
+    col1, col2 = st.columns(2, gap="large")
+    with col1:
+        st.markdown("""
+        <div style="background:#112240; border:1px solid #00897B; border-radius:12px;
+                    padding:2rem; min-height:320px;">
+          <div style="font-size:2rem; margin-bottom:0.75rem;">🇧🇷</div>
+          <h2 style="color:#4DB6AC; font-size:1.3rem; margin-bottom:0.5rem;">Brazilian Pharma Sourcing</h2>
+          <p style="color:#8899AA; font-size:0.9rem; margin-bottom:1rem; font-weight:600;">
+            Find qualified international API/IFA/CDMO suppliers
+          </p>
+          <p style="color:#607080; font-size:0.85rem; line-height:1.6; margin-bottom:1.5rem;">
+            For Brazilian pharmaceutical companies looking for international suppliers,
+            new molecules, CDMO capabilities, licensing, technology transfer, finished
+            products or portfolio expansion.
+          </p>
+          <ul style="color:#8899AA; font-size:0.82rem; line-height:1.8; padding-left:1.2rem;">
+            <li>Qualified API/IFA supplier identification</li>
+            <li>CDMO partner mapping</li>
+            <li>Finished product sourcing</li>
+            <li>Licensing &amp; technology transfer</li>
+            <li>ANVISA, CMED &amp; import signals</li>
+          </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("🇧🇷 Iniciar Sourcing" if lang == "PT" else "🇧🇷 Start Sourcing",
+                     use_container_width=True, type="primary", key="btn_sourcing"):
+            st.session_state["page_key"] = "sourcing"
+            st.rerun()
+    with col2:
+        st.markdown("""
+        <div style="background:#112240; border:1px solid #26C6DA; border-radius:12px;
+                    padding:2rem; min-height:320px;">
+          <div style="font-size:2rem; margin-bottom:0.75rem;">🌍</div>
+          <h2 style="color:#26C6DA; font-size:1.3rem; margin-bottom:0.5rem;">Brazil Market Entry</h2>
+          <p style="color:#8899AA; font-size:0.9rem; margin-bottom:1rem; font-weight:600;">
+            Enter the Brazilian pharmaceutical market
+          </p>
+          <p style="color:#607080; font-size:0.85rem; line-height:1.6; margin-bottom:1.5rem;">
+            For international API/IFA/CDMO and pharmaceutical suppliers looking to identify
+            Brazilian pharma partners, evaluate ANVISA/CMED/import signals and structure
+            protected commercial introductions.
+          </p>
+          <ul style="color:#8899AA; font-size:0.82rem; line-height:1.8; padding-left:1.2rem;">
+            <li>Molecule-level Brazil opportunity</li>
+            <li>ANVISA registration holder mapping</li>
+            <li>CMED &amp; import signal analysis</li>
+            <li>Qualified Brazilian partner origination</li>
+            <li>Protected commercial introduction</li>
+          </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("🌍 Enter Brazil", use_container_width=True, key="btn_entry"):
+            st.session_state["page_key"] = "entry"
+            st.rerun()
+    st.markdown("""
+    <div style="text-align:center; padding:1.5rem; border-top:1px solid #1E3A5F; margin-top:1.5rem;">
+      <p style="color:#607080; font-size:0.78rem;">
+        All introductions are NDA-protected. Data sourced from ANVISA, Comex Stat/MDIC and CMED.
+        Commercial opportunities require validation by product, importer, registration holder and agreement structure.
+      </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def page_brazilian_sourcing() -> None:
+    import json as _json, smtplib as _smtp
+    from email.mime.multipart import MIMEMultipart as _MIME
+    from email.mime.text import MIMEText as _MIMEText
+    from datetime import datetime as _dt
+
+    st.markdown("""
+    <div style="padding:1.5rem 0 0.5rem;">
+      <h1 style="color:#4DB6AC; font-size:1.6rem; margin-bottom:0.25rem;">🇧🇷 Brazilian Pharma Sourcing</h1>
+      <p style="color:#8899AA; font-size:0.9rem;">Find international API/IFA/CDMO suppliers by molecule, technology or portfolio need.</p>
+    </div><hr style="border-color:#1E3A5F; margin:0.5rem 0 1.5rem;">
+    """, unsafe_allow_html=True)
+    st.markdown("""
+    <div style="background:#112240; border-radius:10px; padding:1.25rem 1.5rem; margin-bottom:1.5rem;">
+      <p style="color:#8899AA; font-size:0.88rem; line-height:1.7; margin:0;">
+        For Brazilian pharma companies — including Chemobras, Difucap, Farmarin, Cristália, Blau,
+        Eurofarma, União Química, Libbs, EMS, Biolab, Aché, Hypera and others — identify qualified
+        international API/IFA suppliers, map CDMO partners, evaluate finished product opportunities,
+        licensing, technology transfer, ANVISA/CMED signals, and request active international sourcing by molecule.
+      </p>
+    </div>
+    """, unsafe_allow_html=True)
+    with st.form("form_sourcing", clear_on_submit=True):
+        st.markdown("### Sourcing Diagnosis Request")
+        c1, c2 = st.columns(2)
+        with c1:
+            company  = st.text_input("Company name *")
+            contact  = st.text_input("Contact name *")
+            email    = st.text_input("Business email *")
+        with c2:
+            molecule = st.text_input("Molecule / API / IFA of interest *")
+            area     = st.selectbox("Therapeutic area", [
+                "Oncology", "Biologics / Biosimilars", "GLP-1 / Metabolic", "CNS / Neurology",
+                "Cardiology", "Infectology / Antibiotics", "Immunology", "Rare Diseases",
+                "Plasma-derived / Albumin", "Specialty Injectables", "Other",
+            ])
+        need_type = st.multiselect("Type of need *", [
+            "API/IFA supply", "CDMO", "Finished product", "Licensing",
+            "Technology transfer", "Co-development", "Regulatory partnership",
+        ])
+        urgency   = st.selectbox("Urgency", ["High — within 30 days", "Medium — 1–3 months", "Low — 3–6 months", "Exploratory"])
+        comments  = st.text_area("Additional comments", height=90)
+        sub = st.form_submit_button("📨 Request Molecule Sourcing Diagnosis", use_container_width=True, type="primary")
+    if sub:
+        if not company or not contact or not email or not molecule:
+            st.error("Please fill in all required fields (*).")
+        else:
+            entry = {"request_type": "brazilian_pharma_sourcing", "status": "pending_review",
+                     "company": company, "contact": contact, "email": email, "molecule": molecule,
+                     "area": area, "need_type": need_type, "urgency": urgency, "comments": comments,
+                     "submitted_at": _dt.utcnow().isoformat()}
+            _lp = Path(__file__).parent / "data" / "sourcing_requests.json"
+            _lp.parent.mkdir(parents=True, exist_ok=True)
+            _existing = _json.loads(_lp.read_text()) if _lp.exists() else []
+            _existing.append(entry)
+            _lp.write_text(_json.dumps(_existing, indent=2, ensure_ascii=False))
+            try:
+                _u = os.getenv("GMAIL_USER", ""); _p = os.getenv("GMAIL_APP_PASSWORD", "")
+                if _u and _p:
+                    _m = _MIME("alternative"); _m["From"] = _u; _m["To"] = "business@globalhealthcareaccess.com"
+                    _m["Subject"] = f"[Sourcing Request] {company} — {molecule}"
+                    _m.attach(_MIMEText(f"Brazilian Pharma Sourcing:\nCompany: {company}\nContact: {contact}\nEmail: {email}\nMolecule: {molecule}\nArea: {area}\nNeed: {', '.join(need_type)}\nUrgency: {urgency}\nComments: {comments}", "plain", "utf-8"))
+                    with _smtp.SMTP_SSL("smtp.gmail.com", 465, timeout=15) as _srv: _srv.login(_u, _p); _srv.send_message(_m)
+            except Exception: pass
+            st.success("✅ Request received. We will contact you within 24 hours with your molecule sourcing diagnosis.")
+            st.balloons()
+
+
+def page_brazil_market_entry() -> None:
+    import json as _json, smtplib as _smtp
+    from email.mime.multipart import MIMEMultipart as _MIME
+    from email.mime.text import MIMEText as _MIMEText
+    from datetime import datetime as _dt
+
+    st.markdown("""
+    <div style="padding:1.5rem 0 0.5rem;">
+      <h1 style="color:#26C6DA; font-size:1.6rem; margin-bottom:0.25rem;">🌍 Brazil Market Entry</h1>
+      <p style="color:#8899AA; font-size:0.9rem;">Identify qualified Brazilian pharma partners for your API, IFA, CDMO capability or pharmaceutical portfolio.</p>
+    </div><hr style="border-color:#1E3A5F; margin:0.5rem 0 1.5rem;">
+    """, unsafe_allow_html=True)
+    st.markdown("""
+    <div style="background:#112240; border-radius:10px; padding:1.25rem 1.5rem; margin-bottom:1.5rem;">
+      <p style="color:#8899AA; font-size:0.88rem; line-height:1.7; margin:0;">
+        Understand Brazil market opportunity, evaluate molecule-level potential, map ANVISA registration
+        holders, analyze CMED and import signals, identify qualified Brazilian pharma partners,
+        structure protected commercial introductions, and support local representation and follow-up.
+      </p>
+    </div>
+    """, unsafe_allow_html=True)
+    with st.form("form_entry", clear_on_submit=True):
+        st.markdown("### Brazil Market Entry Assessment Request")
+        c1, c2 = st.columns(2)
+        with c1:
+            company   = st.text_input("Company name *")
+            country   = st.text_input("Country *")
+            contact   = st.text_input("Contact name *")
+            email     = st.text_input("Business email *")
+        with c2:
+            co_type   = st.selectbox("Company type *", [
+                "API/IFA manufacturer", "CDMO", "FDF manufacturer",
+                "Biologics / Biosimilars", "Peptides / GLP-1", "Oncology", "Specialty pharma",
+            ])
+            molecules = st.text_area("Molecules / products offered *", height=80)
+        certs     = st.multiselect("Certifications", ["GMP", "US FDA", "EMA", "WHO", "CEP", "DMF", "ANVISA"])
+        objective = st.multiselect("Objective in Brazil *", [
+            "Supply agreement", "Licensing", "Technology transfer",
+            "Local partner", "Registration partner", "Distribution", "Co-development",
+        ])
+        comments  = st.text_area("Additional comments", height=90)
+        sub = st.form_submit_button("📨 Request Brazil Market Entry Assessment", use_container_width=True, type="primary")
+    if sub:
+        if not company or not country or not contact or not email or not molecules:
+            st.error("Please fill in all required fields (*).")
+        else:
+            entry = {"request_type": "brazil_market_entry", "status": "pending_review",
+                     "company": company, "country": country, "contact": contact, "email": email,
+                     "company_type": co_type, "molecules": molecules, "certifications": certs,
+                     "objective": objective, "comments": comments, "submitted_at": _dt.utcnow().isoformat()}
+            _lp = Path(__file__).parent / "data" / "market_entry_requests.json"
+            _lp.parent.mkdir(parents=True, exist_ok=True)
+            _existing = _json.loads(_lp.read_text()) if _lp.exists() else []
+            _existing.append(entry)
+            _lp.write_text(_json.dumps(_existing, indent=2, ensure_ascii=False))
+            try:
+                _u = os.getenv("GMAIL_USER", ""); _p = os.getenv("GMAIL_APP_PASSWORD", "")
+                if _u and _p:
+                    _m = _MIME("alternative"); _m["From"] = _u; _m["To"] = "business@globalhealthcareaccess.com"
+                    _m["Subject"] = f"[Market Entry] {company} ({country}) — {co_type}"
+                    _m.attach(_MIMEText(f"Brazil Market Entry:\nCompany: {company}\nCountry: {country}\nContact: {contact}\nEmail: {email}\nType: {co_type}\nMolecules: {molecules}\nCerts: {', '.join(certs)}\nObjective: {', '.join(objective)}\nComments: {comments}", "plain", "utf-8"))
+                    with _smtp.SMTP_SSL("smtp.gmail.com", 465, timeout=15) as _srv: _srv.login(_u, _p); _srv.send_message(_m)
+            except Exception: pass
+            st.success("✅ Request received. We will deliver your Brazil Market Entry Assessment within 48 hours.")
+            st.balloons()
+
+
+def page_request_intro() -> None:
+    import json as _json, smtplib as _smtp
+    from email.mime.multipart import MIMEMultipart as _MIME
+    from email.mime.text import MIMEText as _MIMEText
+    from datetime import datetime as _dt
+
+    st.markdown("""
+    <div style="padding:1.5rem 0 0.5rem;">
+      <h1 style="color:#4DB6AC; font-size:1.6rem; margin-bottom:0.25rem;">📨 Request Introduction</h1>
+      <p style="color:#8899AA; font-size:0.9rem;">Request a protected, NDA-gated commercial introduction between a Brazilian pharma company and an international supplier.</p>
+    </div><hr style="border-color:#1E3A5F; margin:0.5rem 0 1.5rem;">
+    """, unsafe_allow_html=True)
+    user_type = st.radio("I am a:", ["Brazilian pharma company", "International supplier"], horizontal=True)
+    with st.form("form_intro", clear_on_submit=True):
+        c1, c2 = st.columns(2)
+        with c1:
+            company = st.text_input("Company name *")
+            contact = st.text_input("Contact name *")
+            email   = st.text_input("Business email *")
+        with c2:
+            if user_type == "Brazilian pharma company":
+                molecule = st.text_input("Molecule / API / IFA *")
+                supplier_type = st.selectbox("Desired supplier type", ["API/IFA manufacturer", "CDMO", "FDF manufacturer", "Biologics / Biosimilars", "Any"])
+                country = ""; portfolio = ""; certs = []; target = ""
+            else:
+                country   = st.text_input("Country *")
+                portfolio = st.text_area("Portfolio / molecules *", height=70)
+                molecule = ""; supplier_type = ""
+                certs  = st.multiselect("Certifications", ["GMP", "US FDA", "EMA", "WHO", "CEP", "DMF", "ANVISA"])
+                target = st.selectbox("Target partner type in Brazil", ["Importer / distributor", "ANVISA registration holder", "Hospital pharmacy", "Compounding pharmacy", "Any"])
+        objective = st.text_input("Objective")
+        urgency   = st.selectbox("Urgency", ["High", "Medium", "Low"]) if user_type == "Brazilian pharma company" else ""
+        comments  = st.text_area("Comments", height=80)
+        sub = st.form_submit_button("📨 Submit Introduction Request", use_container_width=True, type="primary")
+    if sub:
+        if not company or not contact or not email:
+            st.error("Please fill in all required fields (*).")
+        else:
+            entry = {"request_type": "introduction_request", "user_type": user_type, "status": "pending_review",
+                     "company": company, "country": country, "contact": contact, "email": email,
+                     "molecule": molecule, "supplier_type": supplier_type, "portfolio": portfolio,
+                     "certifications": certs if isinstance(certs, list) else [], "target_partner": target,
+                     "objective": objective, "urgency": urgency, "comments": comments,
+                     "submitted_at": _dt.utcnow().isoformat()}
+            _lp = Path(__file__).parent / "data" / "introduction_requests.json"
+            _lp.parent.mkdir(parents=True, exist_ok=True)
+            _existing = _json.loads(_lp.read_text()) if _lp.exists() else []
+            _existing.append(entry)
+            _lp.write_text(_json.dumps(_existing, indent=2, ensure_ascii=False))
+            try:
+                _u = os.getenv("GMAIL_USER", ""); _p = os.getenv("GMAIL_APP_PASSWORD", "")
+                if _u and _p:
+                    _m = _MIME("alternative"); _m["From"] = _u; _m["To"] = "business@globalhealthcareaccess.com"
+                    _m["Subject"] = f"[Introduction Request] {company} — {user_type}"
+                    _m.attach(_MIMEText(f"Introduction Request:\nUser type: {user_type}\nCompany: {company}\nContact: {contact}\nEmail: {email}\nMolecule: {molecule}\nObjective: {objective}\nComments: {comments}", "plain", "utf-8"))
+                    with _smtp.SMTP_SSL("smtp.gmail.com", 465, timeout=15) as _srv: _srv.login(_u, _p); _srv.send_message(_m)
+            except Exception: pass
+            st.success("✅ Introduction request received. Status: **pending_review**. We will qualify and proceed within 48 hours.")
+
+
+def page_list_company() -> None:
+    import json as _json, smtplib as _smtp
+    from email.mime.multipart import MIMEMultipart as _MIME
+    from email.mime.text import MIMEText as _MIMEText
+    from datetime import datetime as _dt
+
+    st.markdown("""
+    <div style="padding:1.5rem 0 0.5rem;">
+      <h1 style="color:#4DB6AC; font-size:1.6rem; margin-bottom:0.25rem;">➕ List Company / Portfolio</h1>
+      <p style="color:#8899AA; font-size:0.9rem;">Register your company or portfolio to be matched with qualified partners. All listings reviewed before publication.</p>
+    </div><hr style="border-color:#1E3A5F; margin:0.5rem 0 1.5rem;">
+    """, unsafe_allow_html=True)
+    tab_sup, tab_buy = st.tabs(["🌍 International Supplier Listing", "🇧🇷 Brazilian Pharma Buyer Interest"])
+    with tab_sup:
+        st.markdown('<p style="color:#8899AA; font-size:0.88rem; line-height:1.7;">List your API/IFA/CDMO portfolio to be matched with verified Brazilian pharma buyers under NDA. 12-month listing: <b style="color:#4DB6AC;">USD 500</b>. All entries reviewed before activation.</p>', unsafe_allow_html=True)
+        with st.form("form_supplier", clear_on_submit=True):
+            c1, c2 = st.columns(2)
+            with c1:
+                company  = st.text_input("Company name *")
+                country  = st.text_input("Country *")
+                contact  = st.text_input("Contact name *")
+                email    = st.text_input("Business email *")
+            with c2:
+                co_type  = st.selectbox("Company type *", ["API/IFA manufacturer", "CDMO", "FDF manufacturer", "Biologics / Biosimilars", "Peptides / GLP-1", "Specialty pharma"])
+                capacity = st.text_input("Annual capacity (kg or units)")
+            portfolio = st.text_area("Molecules / products offered *", height=90)
+            certs     = st.multiselect("Certifications", ["GMP", "US FDA", "EMA", "WHO", "CEP", "DMF", "ANVISA"])
+            brazil_obj = st.multiselect("Objective in Brazil", ["Supply agreement", "Licensing", "Technology transfer", "Local partner", "Registration partner", "Distribution", "Co-development"])
+            comments  = st.text_area("Additional information", height=70)
+            sub = st.form_submit_button("Submit for Review — USD 500 listing", use_container_width=True, type="primary")
+        if sub:
+            if not company or not country or not contact or not email or not portfolio:
+                st.error("Please fill in all required fields (*).")
+            else:
+                entry = {"listing_type": "international_supplier", "status": "pending_review",
+                         "company": company, "country": country, "contact": contact, "email": email,
+                         "company_type": co_type, "capacity": capacity, "portfolio": portfolio,
+                         "certifications": certs, "brazil_objective": brazil_obj, "comments": comments,
+                         "submitted_at": _dt.utcnow().isoformat()}
+                _lp = Path(__file__).parent / "data" / "supplier_listings.json"
+                _lp.parent.mkdir(parents=True, exist_ok=True)
+                _existing = _json.loads(_lp.read_text()) if _lp.exists() else []
+                _existing.append(entry); _lp.write_text(_json.dumps(_existing, indent=2, ensure_ascii=False))
+                try:
+                    _u = os.getenv("GMAIL_USER", ""); _p = os.getenv("GMAIL_APP_PASSWORD", "")
+                    if _u and _p:
+                        _m = _MIME("alternative"); _m["From"] = _u; _m["To"] = "business@globalhealthcareaccess.com"
+                        _m["Subject"] = f"[Supplier Listing] {company} ({country}) — {co_type}"
+                        _m.attach(_MIMEText(f"New Supplier Listing:\nCompany: {company}\nCountry: {country}\nContact: {contact}\nEmail: {email}\nType: {co_type}\nPortfolio: {portfolio}\nCerts: {', '.join(certs)}", "plain", "utf-8"))
+                        with _smtp.SMTP_SSL("smtp.gmail.com", 465, timeout=15) as _srv: _srv.login(_u, _p); _srv.send_message(_m)
+                except Exception: pass
+                st.success("✅ Listing submitted. Status: **pending_review**. We will contact you within 48 hours to confirm activation and payment details.")
+    with tab_buy:
+        st.markdown('<p style="color:#8899AA; font-size:0.88rem; line-height:1.7;">Register your sourcing interest to receive qualified international supplier introductions for your target molecules and therapeutic areas.</p>', unsafe_allow_html=True)
+        with st.form("form_buyer", clear_on_submit=True):
+            c1, c2 = st.columns(2)
+            with c1:
+                company  = st.text_input("Company name *", key="b_company")
+                contact  = st.text_input("Contact name *", key="b_contact")
+                email    = st.text_input("Business email *", key="b_email")
+            with c2:
+                area     = st.selectbox("Therapeutic area", ["Oncology", "Biologics / Biosimilars", "GLP-1 / Metabolic", "CNS / Neurology", "Cardiology", "Infectology", "Immunology", "Rare Diseases", "Plasma-derived", "Specialty Injectables", "Other"])
+                sup_type = st.selectbox("Supplier type needed", ["API/IFA manufacturer", "CDMO", "FDF manufacturer", "Biologics / Biosimilars", "Any"])
+            molecules = st.text_area("Molecules / API / IFA of interest *", height=80)
+            urgency   = st.selectbox("Urgency", ["High — within 30 days", "Medium — 1–3 months", "Low — 3–6 months"])
+            comments  = st.text_area("Comments", height=70, key="b_comments")
+            sub = st.form_submit_button("Submit Buyer Interest", use_container_width=True, type="primary")
+        if sub:
+            if not company or not contact or not email or not molecules:
+                st.error("Please fill in all required fields (*).")
+            else:
+                entry = {"listing_type": "brazilian_buyer_interest", "status": "pending_review",
+                         "company": company, "contact": contact, "email": email, "area": area,
+                         "supplier_type": sup_type, "molecules": molecules, "urgency": urgency,
+                         "comments": comments, "submitted_at": _dt.utcnow().isoformat()}
+                _lp = Path(__file__).parent / "data" / "buyer_interests.json"
+                _lp.parent.mkdir(parents=True, exist_ok=True)
+                _existing = _json.loads(_lp.read_text()) if _lp.exists() else []
+                _existing.append(entry); _lp.write_text(_json.dumps(_existing, indent=2, ensure_ascii=False))
+                try:
+                    _u = os.getenv("GMAIL_USER", ""); _p = os.getenv("GMAIL_APP_PASSWORD", "")
+                    if _u and _p:
+                        _m = _MIME("alternative"); _m["From"] = _u; _m["To"] = "business@globalhealthcareaccess.com"
+                        _m["Subject"] = f"[Buyer Interest] {company} — {molecules[:60]}"
+                        _m.attach(_MIMEText(f"Buyer Interest:\nCompany: {company}\nContact: {contact}\nEmail: {email}\nArea: {area}\nMolecules: {molecules}\nUrgency: {urgency}", "plain", "utf-8"))
+                        with _smtp.SMTP_SSL("smtp.gmail.com", 465, timeout=15) as _srv: _srv.login(_u, _p); _srv.send_message(_m)
+                except Exception: pass
+                st.success("✅ Buyer interest registered. We will match you with qualified international suppliers and contact you within 48 hours.")
+
+
+def page_plans() -> None:
+    st.markdown("""
+    <div style="padding:1.5rem 0 0.5rem;">
+      <h1 style="color:#4DB6AC; font-size:1.6rem; margin-bottom:0.25rem;">💼 Plans & Services</h1>
+      <p style="color:#8899AA; font-size:0.9rem;">Transparent pricing for Brazilian pharmaceutical companies and international suppliers.</p>
+    </div><hr style="border-color:#1E3A5F; margin:0.5rem 0 1.5rem;">
+    """, unsafe_allow_html=True)
+    c1, c2 = st.columns(2, gap="large")
+    with c1:
+        st.markdown("""
+        <div style="background:#112240; border:1px solid #00897B; border-radius:12px; padding:1.75rem;">
+          <h2 style="color:#4DB6AC; font-size:1.2rem; margin-bottom:1rem;">🇧🇷 Brazilian Pharma Companies</h2>
+          <div style="border-top:1px solid #1E3A5F; padding-top:1rem; margin-bottom:1rem;">
+            <p style="color:#8899AA; font-size:0.85rem; margin:0 0 0.2rem; font-weight:700;">Molecule Sourcing Diagnosis</p>
+            <p style="color:#4DB6AC; font-size:1.1rem; font-weight:700; margin:0 0 0.4rem;">R$ 2.500 – R$ 5.000</p>
+            <p style="color:#607080; font-size:0.8rem; margin:0;">Molecule-level international supplier identification</p>
+          </div>
+          <div style="border-top:1px solid #1E3A5F; padding-top:1rem; margin-bottom:1rem;">
+            <p style="color:#8899AA; font-size:0.85rem; margin:0 0 0.2rem; font-weight:700;">International Supplier Mapping</p>
+            <p style="color:#4DB6AC; font-size:1.1rem; font-weight:700; margin:0 0 0.4rem;">R$ 7.500 – R$ 15.000</p>
+            <p style="color:#607080; font-size:0.8rem; margin:0;">Full qualified supplier map for your portfolio</p>
+          </div>
+          <div style="border-top:1px solid #1E3A5F; padding-top:1rem; margin-bottom:1rem;">
+            <p style="color:#8899AA; font-size:0.85rem; margin:0 0 0.2rem; font-weight:700;">Strategic Sourcing Report</p>
+            <p style="color:#4DB6AC; font-size:1.1rem; font-weight:700; margin:0 0 0.4rem;">R$ 10.000 – R$ 20.000</p>
+            <p style="color:#607080; font-size:0.8rem; margin:0;">Molecule portfolio + ANVISA + CMED + supplier recommendations</p>
+          </div>
+          <div style="border-top:1px solid #1E3A5F; padding-top:1rem;">
+            <p style="color:#8899AA; font-size:0.85rem; margin:0 0 0.2rem; font-weight:700;">Success Fee</p>
+            <p style="color:#4DB6AC; font-size:1.1rem; font-weight:700; margin:0 0 0.4rem;">3% – 5%</p>
+            <p style="color:#607080; font-size:0.8rem; margin:0;">On closed supply or licensing agreements</p>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+    with c2:
+        st.markdown("""
+        <div style="background:#112240; border:1px solid #26C6DA; border-radius:12px; padding:1.75rem;">
+          <h2 style="color:#26C6DA; font-size:1.2rem; margin-bottom:1rem;">🌍 International Suppliers</h2>
+          <div style="border-top:1px solid #1E3A5F; padding-top:1rem; margin-bottom:1rem;">
+            <p style="color:#8899AA; font-size:0.85rem; margin:0 0 0.2rem; font-weight:700;">Supplier Listing</p>
+            <p style="color:#26C6DA; font-size:1.1rem; font-weight:700; margin:0 0 0.4rem;">USD 500 – USD 1.500 / year</p>
+            <p style="color:#607080; font-size:0.8rem; margin:0;">Verified profile + NDA-gated buyer introductions</p>
+          </div>
+          <div style="border-top:1px solid #1E3A5F; padding-top:1rem; margin-bottom:1rem;">
+            <p style="color:#8899AA; font-size:0.85rem; margin:0 0 0.2rem; font-weight:700;">Brazil Market Entry Report</p>
+            <p style="color:#26C6DA; font-size:1.1rem; font-weight:700; margin:0 0 0.4rem;">USD 1.500 – USD 3.000</p>
+            <p style="color:#607080; font-size:0.8rem; margin:0;">Molecule-level opportunity + ANVISA + CMED + buyer map</p>
+          </div>
+          <div style="border-top:1px solid #1E3A5F; padding-top:1rem; margin-bottom:1rem;">
+            <p style="color:#8899AA; font-size:0.85rem; margin:0 0 0.2rem; font-weight:700;">Local Representation</p>
+            <p style="color:#26C6DA; font-size:1.1rem; font-weight:700; margin:0 0 0.4rem;">USD 3.500+ / month</p>
+            <p style="color:#607080; font-size:0.8rem; margin:0;">Active partner origination + follow-up + regulatory support</p>
+          </div>
+          <div style="border-top:1px solid #1E3A5F; padding-top:1rem;">
+            <p style="color:#8899AA; font-size:0.85rem; margin:0 0 0.2rem; font-weight:700;">Success Fee</p>
+            <p style="color:#26C6DA; font-size:1.1rem; font-weight:700; margin:0 0 0.4rem;">3% – 5%</p>
+            <p style="color:#607080; font-size:0.8rem; margin:0;">On closed supply or licensing agreements</p>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+    st.markdown("""
+    <div style="background:#0D1B2E; border-radius:8px; padding:1rem 1.5rem; margin-top:1.5rem;">
+      <p style="color:#607080; font-size:0.8rem; margin:0; line-height:1.6;">
+        <b style="color:#8899AA;">Note:</b> Pricing may vary depending on molecule complexity, data availability, regulatory status and required level of business development support.
+        Contact: <a href="mailto:business@globalhealthcareaccess.com" style="color:#4DB6AC;">business@globalhealthcareaccess.com</a>
+        · Book a call: <a href="https://calendly.com/vinicius-hospitalar/30min" style="color:#4DB6AC;">calendly.com/vinicius-hospitalar/30min</a>
+      </p>
+    </div>
+    """, unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+    ca, cb, cc = st.columns(3)
+    with ca:
+        if st.button("🇧🇷 Request Sourcing Diagnosis", use_container_width=True, type="primary"):
+            st.session_state["page_key"] = "sourcing"; st.rerun()
+    with cb:
+        if st.button("🌍 Request Market Entry Assessment", use_container_width=True):
+            st.session_state["page_key"] = "entry"; st.rerun()
+    with cc:
+        if st.button("➕ List Your Company", use_container_width=True):
+            st.session_state["page_key"] = "list_company"; st.rerun()
+
+
+# ===========================================================================
 # Main
 # ===========================================================================
 
@@ -5243,7 +5813,7 @@ def main() -> None:
     # URL parameter routing — ?page=tour opens tour directly
     try:
         params = st.query_params
-        if "page" in params and params["page"] in ["tour", "overview", "imports", "anvisa", "trials", "agent", "partnership"]:
+        if "page" in params and params["page"] in ["tour", "overview", "imports", "anvisa", "trials", "agent", "partnership", "home", "sourcing", "entry", "intro", "list_company", "plans"]:
             st.session_state["page_key"] = params["page"]
     except Exception:
         pass
@@ -5251,28 +5821,36 @@ def main() -> None:
     page_key, year = sidebar()
 
     pages = {
-        "overview":   page_overview,
-        "tour":       page_tour,
-        "suppliers":  page_suppliers,
-        "imports":    page_importacoes,
-        "anvisa":     page_anvisa,
-        "companies":  page_empresas,
-        "comtrade":   page_comtrade,
-        "etl":        page_etl,
-        "agent":      page_agent,
-        "trials":     page_trials,
+        "home":        page_home,
+        "sourcing":    page_brazilian_sourcing,
+        "entry":       page_brazil_market_entry,
+        "intro":       page_request_intro,
+        "list_company": page_list_company,
+        "plans":       page_plans,
+        "overview":    page_overview,
+        "tour":        page_tour,
+        "suppliers":   page_suppliers,
+        "imports":     page_importacoes,
+        "anvisa":      page_anvisa,
+        "companies":   page_empresas,
+        "comtrade":    page_comtrade,
+        "etl":         page_etl,
+        "agent":       page_agent,
+        "trials":      page_trials,
         "partnership": page_partnership,
-        "outreach":   _page_outreach,
-        "director":   _page_admin_director,
-        "quality":    _page_quality,
-        "costs":      _page_finance_manager,
-        "report":     _page_relatorio_estrategico,
+        "outreach":    _page_outreach,
+        "director":    _page_admin_director,
+        "quality":     _page_quality,
+        "costs":       _page_finance_manager,
+        "report":      _page_relatorio_estrategico,
+        "job_manager": _page_job_manager,
     }
 
     fn = pages.get(page_key)
     if fn:
-        # these admin pages don't use `year`
-        if page_key in ("director", "outreach", "quality", "costs", "report"):
+        # these pages don't use `year`
+        if page_key in ("director", "outreach", "quality", "costs", "report", "job_manager",
+                        "home", "sourcing", "entry", "intro", "list_company", "plans"):
             fn()
         else:
             fn(year)
