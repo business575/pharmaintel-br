@@ -5993,8 +5993,8 @@ def page_partnership(year: int) -> None:  # noqa: C901
         st.success(f"✅ NDA signed by **{signed_name}** · {credits} credit(s) available · [Buy more credits](#buy-credits)")
 
     # ── TABS ────────────────────────────────────────────────────────────────────
-    t1, t2, t3, t4, t5 = st.tabs([
-        "🔍 Partner Search", "📊 IFA Market Intelligence", "💰 Plans & Credits", "📩 Request Introduction", "📋 List Your IFA"
+    t1, t2, t3, t4, t5, t6 = st.tabs([
+        "🔍 Partner Search", "📊 IFA Market Intelligence", "💰 Plans & Credits", "📩 Request Introduction", "📋 List Your IFA", "🎯 Moléculas Disponíveis"
     ])
 
     # ════════════════════════════════════════════════════════════════════════════
@@ -6570,6 +6570,276 @@ def page_partnership(year: int) -> None:  # noqa: C901
 📧 **Email:** business@globalhealthcareaccess.com
                     """)
                     st.info("💡 **Tip:** Companies with FDA or EMA GMP certification receive a **Verified Supplier** badge and appear higher in search results.")
+
+    # ════════════════════════════════════════════════════════════════════════════
+    # TAB 6 — MOLÉCULAS DISPONÍVEIS PARA CONTRATO
+    # ════════════════════════════════════════════════════════════════════════════
+    with t6:
+        subscriber_plan = st.session_state.get("subscriber_plan", "none")
+        is_paid = is_admin or subscriber_plan in ("starter", "pro", "enterprise")
+
+        # ── PAYWALL ──────────────────────────────────────────────────────────────
+        if not is_paid:
+            st.markdown("""
+            <div style="background:linear-gradient(135deg,#0d1b2a 0%,#1a3a5c 100%);color:white;
+                        border-radius:14px;padding:32px 36px;margin-bottom:24px;text-align:center;">
+              <div style="font-size:2.5rem;margin-bottom:12px;">🔒</div>
+              <h2 style="color:white;margin:0 0 10px;font-size:1.5rem;">Acesso Exclusivo para Assinantes</h2>
+              <p style="opacity:0.88;margin:0 0 6px;font-size:0.95rem;max-width:520px;margin-left:auto;margin-right:auto;">
+                A aba <strong>Moléculas Disponíveis</strong> lista oportunidades ativas de contrato —
+                moléculas com <strong>interesse confirmado da indústria farmacêutica brasileira</strong>,
+                prontas para fechar acordo com fornecedores internacionais.
+              </p>
+              <p style="opacity:0.7;margin:16px 0 0;font-size:0.85rem;">
+                Disponível nos planos <strong>Starter · Pro · Enterprise</strong>
+              </p>
+            </div>
+            """, unsafe_allow_html=True)
+
+            col_u1, col_u2, col_u3 = st.columns([1, 2, 1])
+            with col_u2:
+                if st.button("💼 Ver Planos e Assinar →", use_container_width=True, type="primary"):
+                    st.session_state["page_key"] = "plans"
+                    st.rerun()
+            st.stop()
+
+        # ── MASTER MOLECULE LIST (admin-controlled interest flag) ─────────────
+        # industry_interest = True → interesse da indústria confirmado → aparece na lista
+        # Admin pode togglear via painel abaixo
+        AVAILABLE_MOLECULES = [
+            {
+                "id": "trastuzumabe_biosimilar",
+                "molecule": "Trastuzumabe Biossimilar",
+                "ther_area": "Oncologia — HER2+",
+                "supplier_country": "Índia",
+                "gmp": "FDA + EMA",
+                "contract_type": "Fornecimento de IFA / Technology Transfer",
+                "volume": "50–200 kg/ano",
+                "market_size": "USD 265M (NCM 30021520)",
+                "priority": "Alta",
+                "industry_interest": True,
+            },
+            {
+                "id": "adalimumabe_biosimilar",
+                "molecule": "Adalimumabe Biossimilar",
+                "ther_area": "Reumatologia / Imunologia",
+                "supplier_country": "Coreia do Sul",
+                "gmp": "FDA + EMA + WHO",
+                "contract_type": "Acordo de Fornecimento / CDMO",
+                "volume": "100–500 kg/ano",
+                "market_size": "USD 3,6B (NCM 30021590)",
+                "priority": "Alta",
+                "industry_interest": True,
+            },
+            {
+                "id": "semaglutida_glp1",
+                "molecule": "Semaglutida (GLP-1)",
+                "ther_area": "Endocrinologia / Obesidade",
+                "supplier_country": "China",
+                "gmp": "WHO + GMP local",
+                "contract_type": "Fornecimento de IFA / Distribuição",
+                "volume": "10–50 kg/ano",
+                "market_size": "USD 1,67B (NCM 30043929)",
+                "priority": "Alta",
+                "industry_interest": False,
+            },
+            {
+                "id": "pembrolizumabe_biosimilar",
+                "molecule": "Pembrolizumabe Biossimilar",
+                "ther_area": "Oncologia — Imunoterapia",
+                "supplier_country": "Índia",
+                "gmp": "FDA aprovado",
+                "contract_type": "Parceria Regulatória / Fornecimento",
+                "volume": "20–80 kg/ano",
+                "market_size": "USD 1,65B (NCM 30049069)",
+                "priority": "Alta",
+                "industry_interest": False,
+            },
+            {
+                "id": "paclitaxel_nab",
+                "molecule": "Paclitaxel (nab-paclitaxel)",
+                "ther_area": "Oncologia — Citotóxico",
+                "supplier_country": "Índia",
+                "gmp": "FDA + EMA",
+                "contract_type": "Fornecimento de IFA",
+                "volume": "500 kg–2t/ano",
+                "market_size": "USD 489M (NCM 30049059)",
+                "priority": "Média",
+                "industry_interest": True,
+            },
+            {
+                "id": "bevacizumabe_biosimilar",
+                "molecule": "Bevacizumabe Biossimilar",
+                "ther_area": "Oncologia — Anti-VEGF",
+                "supplier_country": "Coreia do Sul",
+                "gmp": "EMA + WHO",
+                "contract_type": "Technology Transfer / CDMO",
+                "volume": "30–120 kg/ano",
+                "market_size": "USD 265M (NCM 30021520)",
+                "priority": "Média",
+                "industry_interest": False,
+            },
+            {
+                "id": "filgrastim_biosimilar",
+                "molecule": "Filgrastim Biossimilar",
+                "ther_area": "Hematologia / Oncologia de Suporte",
+                "supplier_country": "Índia",
+                "gmp": "WHO prequalificado",
+                "contract_type": "Acordo de Fornecimento",
+                "volume": "1–5 kg/ano",
+                "market_size": "USD 3,6B (NCM 30021590)",
+                "priority": "Média",
+                "industry_interest": False,
+            },
+            {
+                "id": "oxaliplatina",
+                "molecule": "Oxaliplatina",
+                "ther_area": "Oncologia — Câncer Colorretal",
+                "supplier_country": "China",
+                "gmp": "FDA + EMA",
+                "contract_type": "Fornecimento de IFA / Distribuição",
+                "volume": "200 kg–1t/ano",
+                "market_size": "USD 1,65B (NCM 30049069)",
+                "priority": "Média",
+                "industry_interest": False,
+            },
+        ]
+
+        # Merge with admin overrides stored in session state
+        interest_overrides = st.session_state.get("mol_interest_overrides", {})
+        for mol in AVAILABLE_MOLECULES:
+            if mol["id"] in interest_overrides:
+                mol["industry_interest"] = interest_overrides[mol["id"]]
+
+        # ── ADMIN PANEL — toggle interest per molecule ────────────────────────
+        if is_admin:
+            with st.expander("⚙️ Admin — Gerenciar Interesse da Indústria por Molécula", expanded=False):
+                st.caption("Marque 'Interesse Confirmado' para que a molécula apareça na lista de disponíveis para clientes pagantes.")
+                overrides = st.session_state.get("mol_interest_overrides", {})
+                for mol in AVAILABLE_MOLECULES:
+                    current = mol["industry_interest"]
+                    new_val = st.checkbox(
+                        f"{mol['molecule']} — Interesse da indústria confirmado",
+                        value=current,
+                        key=f"admin_interest_{mol['id']}",
+                    )
+                    if new_val != current:
+                        overrides[mol["id"]] = new_val
+                        mol["industry_interest"] = new_val
+                st.session_state["mol_interest_overrides"] = overrides
+
+        # ── FILTER: only show molecules with confirmed industry interest ───────
+        active_molecules = [m for m in AVAILABLE_MOLECULES if m["industry_interest"]]
+
+        st.markdown("""
+        <div style="background:linear-gradient(135deg,#0d1b2a 0%,#1a3a5c 100%);color:white;
+                    border-radius:14px;padding:28px 36px;margin-bottom:24px;">
+          <h2 style="color:white;margin:0 0 8px;font-size:1.5rem;">🎯 Moléculas Disponíveis para Contrato</h2>
+          <p style="opacity:0.88;margin:0;font-size:0.95rem;max-width:620px;">
+            Oportunidades ativas com <strong>interesse confirmado da indústria farmacêutica brasileira</strong>.
+            Fornecedores internacionais verificados — GMP certificado — prontos para fechar contrato.
+          </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        if not active_molecules:
+            st.info("Nenhuma molécula com interesse da indústria confirmado no momento. Novas oportunidades são adicionadas conforme validadas pela PharmaIntel BR.")
+        else:
+            priority_filter = st.selectbox(
+                "Filtrar por prioridade",
+                ["Todas", "Alta", "Média"],
+                key="avail_priority_filter",
+            )
+            filtered = [m for m in active_molecules
+                        if priority_filter == "Todas" or m["priority"] == priority_filter]
+
+            col_stat1, col_stat2, col_stat3 = st.columns(3)
+            with col_stat1:
+                st.metric("Disponíveis para contrato", len(filtered))
+            with col_stat2:
+                high_count = sum(1 for m in filtered if m["priority"] == "Alta")
+                st.metric("Prioridade Alta", high_count)
+            with col_stat3:
+                countries = len({m["supplier_country"] for m in filtered})
+                st.metric("Países fornecedores", countries)
+
+            st.markdown("---")
+
+            for mol in filtered:
+                priority_color = "#155724" if mol["priority"] == "Alta" else "#856404"
+                priority_bg    = "#d4edda"  if mol["priority"] == "Alta" else "#fff3cd"
+
+                st.markdown(f"""
+                <div style="border:1px solid #dce7f3;border-radius:12px;padding:20px 24px;
+                            margin-bottom:14px;background:white;">
+                  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
+                    <div>
+                      <span style="font-size:1.1rem;font-weight:800;color:#0d1b2a;">{mol['molecule']}</span>
+                      &nbsp;·&nbsp;
+                      <span style="font-size:0.88rem;color:#555;">{mol['ther_area']}</span>
+                      <br>
+                      <span style="font-size:0.8rem;color:#777;margin-top:4px;display:inline-block;">
+                        🌐 Fornecedor: <strong>{mol['supplier_country']}</strong>
+                        &nbsp;·&nbsp; GMP: <strong>{mol['gmp']}</strong>
+                        &nbsp;·&nbsp; Volume: {mol['volume']}
+                      </span>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                      <span style="background:{priority_bg};color:{priority_color};
+                                   padding:4px 12px;border-radius:20px;font-size:0.8rem;font-weight:700;">
+                        Prioridade {mol['priority']}
+                      </span>
+                      <span style="background:#d4edda;color:#155724;
+                                   padding:4px 12px;border-radius:20px;font-size:0.8rem;font-weight:700;">
+                        ✅ Interesse Confirmado
+                      </span>
+                    </div>
+                  </div>
+                  <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+                    <div style="background:#f8f9fa;border-radius:8px;padding:10px 14px;">
+                      <div style="font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:.5px;">Tipo de Parceria</div>
+                      <div style="font-weight:700;color:#0d1b2a;font-size:0.88rem;margin-top:3px;">{mol['contract_type']}</div>
+                    </div>
+                    <div style="background:#f8f9fa;border-radius:8px;padding:10px 14px;">
+                      <div style="font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:.5px;">Mercado Brasil (NCM)</div>
+                      <div style="font-weight:700;color:#0d1b2a;font-size:0.88rem;margin-top:3px;">{mol['market_size']}</div>
+                    </div>
+                    <div style="background:#f8f9fa;border-radius:8px;padding:10px 14px;">
+                      <div style="font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:.5px;">Volume Negociável</div>
+                      <div style="font-weight:700;color:#0d1b2a;font-size:0.88rem;margin-top:3px;">{mol['volume']}</div>
+                    </div>
+                  </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                if st.button(
+                    f"📩 Avançar para Contrato — {mol['molecule']}",
+                    key=f"avail_intro_{mol['id']}",
+                    use_container_width=True,
+                    type="primary",
+                ):
+                    st.session_state["ifa_intro_molecule"] = mol["molecule"]
+                    st.success(
+                        f"✅ Interesse registrado para **{mol['molecule']}**. "
+                        "Acesse a aba **📩 Request Introduction** para enviar o formulário completo."
+                    )
+
+            st.markdown("---")
+            st.markdown("""
+            <div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:10px;
+                        padding:16px 22px;font-size:0.88rem;color:#1b4332;line-height:1.7;">
+            <strong>🔒 Como funciona:</strong> Apenas moléculas com <strong>interesse da indústria farmacêutica
+            brasileira confirmado</strong> aparecem aqui. PharmaIntel BR facilita a introdução sob NDA e
+            acompanha até o fechamento do contrato (success fee de 3–5% do Ano 1).<br><br>
+            📅 <strong>Agendar call:</strong>
+            <a href="https://calendly.com/vinicius-hospitalar/30min" target="_blank">
+              calendly.com/vinicius-hospitalar/30min
+            </a>
+            &nbsp;·&nbsp;
+            📧 <strong>business@globalhealthcareaccess.com</strong>
+            </div>
+            """, unsafe_allow_html=True)
+
     """Guided tour — walks prospect through platform benefits step by step."""
     lang = st.session_state.get("lang", "PT")
 
