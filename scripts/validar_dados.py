@@ -4,9 +4,11 @@ Executa antes de qualquer geracao de material (PDF, email, relatorio).
 Valida dados criticos e bloqueia geracao se encontrar erro.
 """
 import sys, os, warnings
+from pathlib import Path
 warnings.filterwarnings('ignore')
-sys.path.insert(0, 'C:/Users/vinic/OneDrive/Desktop/PharmaIntelBR')
-os.chdir('C:/Users/vinic/OneDrive/Desktop/PharmaIntelBR')
+_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_ROOT))
+os.chdir(_ROOT)
 from dotenv import load_dotenv
 load_dotenv()
 
